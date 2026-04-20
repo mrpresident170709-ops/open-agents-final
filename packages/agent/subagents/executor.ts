@@ -2,9 +2,18 @@ import type { LanguageModel } from "ai";
 import { gateway, stepCountIs, ToolLoopAgent } from "ai";
 import { z } from "zod";
 import { bashTool } from "../tools/bash";
+import { critiqueCloneTool } from "../tools/critic";
+import { exaFindSimilarTool, exaSearchTool } from "../tools/exa";
+import {
+  firecrawlMapTool,
+  firecrawlScrapeTool,
+  firecrawlSearchTool,
+} from "../tools/firecrawl";
 import { globTool } from "../tools/glob";
 import { grepTool } from "../tools/grep";
+import { generateImageTool } from "../tools/image-gen";
 import { readFileTool } from "../tools/read";
+import { generateVideoTool } from "../tools/video-gen";
 import { editFileTool, writeFileTool } from "../tools/write";
 import type { SandboxExecutionContext } from "../types";
 import {
@@ -43,7 +52,27 @@ Example final response:
 ${SUBAGENT_VALIDATE_RULES}
 
 ## TOOLS
-You have full access to file operations (read, write, edit, grep, glob) and bash commands. Use them to complete your task.
+You have full access to file operations (read, write, edit, grep, glob) and bash commands.
+
+You also have website-cloning tools — use them when your task involves
+building or modifying a section that clones a real competitor website:
+- \`firecrawl_search\`, \`firecrawl_map\`, \`firecrawl_scrape\` — re-scrape the
+  competitor's section if you need exact CSS, copy, or HTML structure.
+- \`exa_search\`, \`exa_find_similar\` — find reference assets on the open web.
+- \`generate_image\` — Together AI Nano Banana 2 (\`google/flash-image-3.1\`).
+  USE THIS for ANY non-trivial visual: hero illustrations, decorative
+  backgrounds, abstract gradients, product mockups, photo-style imagery.
+  Do NOT leave \`<div className="bg-muted h-96"/>\` placeholders where the
+  competitor has rich imagery. Save into \`public/cloned-assets/\`.
+- \`generate_video\` — OpenAI Sora 2. USE THIS when the competitor has an
+  animated hero loop, ambient motion background, or video clip that can't be
+  reproduced in CSS. Save into \`public/cloned-assets/\`.
+- \`critique_clone\` — vision-model scoring of your section vs the
+  competitor's section. Score must be ≥ 85 before you mark the task done.
+
+When your task says "build the X section as a clone of <Competitor>'s X
+section", treat asset procurement as part of the task — never substitute a
+plain colored block for what should be a real visual.
 
 ${SUBAGENT_BASH_RULES}`;
 
@@ -68,6 +97,14 @@ export const executorSubagent = new ToolLoopAgent({
     grep: grepTool(),
     glob: globTool(),
     bash: bashTool(),
+    firecrawl_search: firecrawlSearchTool,
+    firecrawl_map: firecrawlMapTool,
+    firecrawl_scrape: firecrawlScrapeTool,
+    exa_search: exaSearchTool,
+    exa_find_similar: exaFindSimilarTool,
+    generate_image: generateImageTool,
+    generate_video: generateVideoTool,
+    critique_clone: critiqueCloneTool,
   },
   stopWhen: stepCountIs(SUBAGENT_STEP_LIMIT),
   callOptionsSchema,

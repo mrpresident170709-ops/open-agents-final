@@ -2,9 +2,16 @@ import type { LanguageModel } from "ai";
 import { gateway, stepCountIs, ToolLoopAgent } from "ai";
 import { z } from "zod";
 import { bashTool } from "../tools/bash";
+import { exaFindSimilarTool, exaSearchTool } from "../tools/exa";
+import {
+  firecrawlMapTool,
+  firecrawlScrapeTool,
+  firecrawlSearchTool,
+} from "../tools/firecrawl";
 import { globTool } from "../tools/glob";
 import { grepTool } from "../tools/grep";
 import { readFileTool } from "../tools/read";
+import { webFetchTool } from "../tools/fetch";
 import type { SandboxExecutionContext } from "../types";
 import {
   SUBAGENT_NO_QUESTIONS_RULES,
@@ -44,7 +51,9 @@ Example final response:
 
 ## TOOLS & GUIDELINES
 
-You have access to: read, grep, glob, bash (read-only commands only)
+You have access to: read, grep, glob, bash (read-only commands only),
+web_fetch, firecrawl_search, firecrawl_map, firecrawl_scrape, exa_search,
+exa_find_similar (for any web/competitor research the parent task gave you)
 
 **Strengths:**
 - Rapidly finding files using glob patterns
@@ -81,6 +90,12 @@ export const explorerSubagent = new ToolLoopAgent({
     grep: grepTool(),
     glob: globTool(),
     bash: bashTool(),
+    web_fetch: webFetchTool,
+    firecrawl_search: firecrawlSearchTool,
+    firecrawl_map: firecrawlMapTool,
+    firecrawl_scrape: firecrawlScrapeTool,
+    exa_search: exaSearchTool,
+    exa_find_similar: exaFindSimilarTool,
   },
   stopWhen: stepCountIs(SUBAGENT_STEP_LIMIT),
   callOptionsSchema,
