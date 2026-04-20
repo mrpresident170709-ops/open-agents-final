@@ -1,11 +1,15 @@
 import type { NextRequest } from "next/server";
 import type { Session } from "./types";
 import { SESSION_COOKIE_NAME } from "./constants";
+import { LOCAL_SESSION } from "./local-user";
 import { decryptJWE } from "@/lib/jwe/decrypt";
 
 export async function getSessionFromCookie(
   cookieValue?: string,
 ): Promise<Session | undefined> {
+  if (process.env.SINGLE_USER_MODE === "true") {
+    return LOCAL_SESSION;
+  }
   if (cookieValue) {
     const decrypted = await decryptJWE<Session>(cookieValue);
     if (decrypted) {
@@ -21,6 +25,9 @@ export async function getSessionFromCookie(
 export async function getSessionFromReq(
   req: NextRequest,
 ): Promise<Session | undefined> {
+  if (process.env.SINGLE_USER_MODE === "true") {
+    return LOCAL_SESSION;
+  }
   const cookieValue = req.cookies.get(SESSION_COOKIE_NAME)?.value;
   return getSessionFromCookie(cookieValue);
 }

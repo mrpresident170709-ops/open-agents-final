@@ -3,6 +3,24 @@ import { nanoid } from "nanoid";
 import { db } from "./client";
 import { users } from "./schema";
 
+export async function ensureLocalAdminUser(userId: string): Promise<void> {
+  const exists = await userExists(userId);
+  if (!exists) {
+    const now = new Date();
+    await db.insert(users).values({
+      id: userId,
+      provider: "github",
+      externalId: userId,
+      accessToken: "local",
+      username: "admin",
+      name: "Admin",
+      createdAt: now,
+      updatedAt: now,
+      lastLoginAt: now,
+    });
+  }
+}
+
 /**
  * Check if a user exists in the database by ID.
  * Returns true if found, false otherwise. Lightweight query (only fetches the ID).
