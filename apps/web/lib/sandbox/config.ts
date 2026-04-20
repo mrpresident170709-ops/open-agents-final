@@ -3,8 +3,11 @@
  * All timeout values are in milliseconds.
  */
 
-/** Default timeout for new cloud sandboxes (5 hours) */
-export const DEFAULT_SANDBOX_TIMEOUT_MS = 5 * 60 * 60 * 1000;
+/** Default timeout for new cloud sandboxes (45 minutes — Vercel plan max).
+ * Override with VERCEL_SANDBOX_TIMEOUT_MS if your plan allows longer. */
+export const DEFAULT_SANDBOX_TIMEOUT_MS = process.env.VERCEL_SANDBOX_TIMEOUT_MS
+  ? Number(process.env.VERCEL_SANDBOX_TIMEOUT_MS)
+  : 44 * 60 * 1000;
 
 /** Manual extension duration for explicit fallback flows (20 minutes) */
 export const EXTEND_TIMEOUT_DURATION_MS = 20 * 60 * 1000;
