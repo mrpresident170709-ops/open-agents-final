@@ -3353,8 +3353,7 @@ export function SessionChatContent({
                                 isRestoringSnapshot ||
                                 isReconnectingSandbox ||
                                 isHibernatingUi ||
-                                isServerRestoring ||
-                                !isSandboxActive) ? (
+                                isServerRestoring) ? (
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                   <Loader2 className="h-4 w-4 animate-spin" />
                                   <p>Sandbox is initializing…</p>

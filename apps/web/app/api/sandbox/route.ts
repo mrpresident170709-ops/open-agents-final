@@ -195,6 +195,19 @@ export async function POST(req: Request) {
     const message = error instanceof Error ? error.message : String(error);
     const stack = error instanceof Error ? error.stack : undefined;
     console.error("[POST /api/sandbox] connectSandbox failed:", message, stack);
+
+    const is404 =
+      message.includes("404") || message.toLowerCase().includes("not found");
+    if (is404) {
+      return Response.json(
+        {
+          error: "Sandbox unavailable",
+          reason: "Vercel Sandbox is not enabled on this plan (404 from API).",
+        },
+        { status: 503 },
+      );
+    }
+
     return Response.json(
       {
         error: "Failed to create sandbox",
