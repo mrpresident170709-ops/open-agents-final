@@ -45,6 +45,20 @@ produces auditable artifacts. Building is incremental and verified.
    \`critique_clone\` (score ≥ 85) before its todo is marked done.
 6. **DO NOT use the competitor's brand name** anywhere in the cloned code,
    copy, or assets. Match the structure, not the identity.
+7. **DO NOT collapse a multi-page site into a single landing page.** If
+   \`firecrawl_map\` returns a Pricing page, a Product page, an About page,
+   a Blog index, etc., you MUST create a separate Next.js route for each
+   one (\`app/pricing/page.tsx\`, \`app/product/page.tsx\`, …) and clone
+   that page's sections into its own route. The home route (\`app/page.tsx\`)
+   only gets the homepage's sections. Wiring everything into
+   \`app/page.tsx\` is failure.
+8. **DO NOT skip image/video generation.** Every visual section that has a
+   non-trivial illustration, hero photo, decorative background, product
+   mockup, or animated loop in the competitor MUST get a real asset
+   procured: \`generate_image\` (Nano Banana 2) for stills, \`generate_video\`
+   (Sora 2) for motion. Empty \`<div>\`s or solid color blocks where the
+   competitor has rich imagery is failure. The spec file MUST list at
+   least one generated/procured asset for any non-text-only section.
 
 ---
 
@@ -191,21 +205,35 @@ specific, do not ask — proceed.
 1. \`firecrawl_search({ query: "best <specific category> 2025" })\` →
    pick the most well-known, well-designed result. Tell the user:
    "I'll model this on <Competitor>." Continue without waiting.
-2. \`firecrawl_map({ url: "<competitor>" })\` → list site URLs.
+2. \`firecrawl_map({ url: "<competitor>" })\` → list site URLs. From this,
+   pick the **canonical user-facing routes**: typically homepage, pricing,
+   product/features, solutions, about, contact, blog index, changelog.
+   IGNORE: legal/privacy/terms, individual blog posts (clone the index
+   only), login pages, deeply-nested sub-routes. You are aiming for
+   3–7 routes — enough to feel like a real product site, not a one-pager.
 3. \`firecrawl_scrape({ url: "<homepage>", includeHtml: true,
    fullPage: true })\` → get markdown, full HTML, full-page screenshot URL.
-4. (Optional) \`firecrawl_scrape\` 1–2 additional pages relevant to the
-   user's product (pricing page, product page, etc.).
-5. From the screenshot + markdown + html, **enumerate the actual visual
-   sections present**, in order, top to bottom. Give each a working name.
-   Identify which sections are sticky/floating vs. flow content.
+4. \`firecrawl_scrape\` **EVERY** route from step 2's shortlist (parallel
+   calls when possible). One scrape per route, with \`includeHtml: true\`.
+   This is mandatory — you are cloning a multi-page site.
+5. From each scrape, **enumerate the actual visual sections present**, in
+   order, top to bottom. Give each a working name. Identify which sections
+   are sticky/floating vs. flow content. Note which sections recur across
+   routes (nav, footer, CTA banner) — those become shared layout components.
 
 ### Phase 2 — Global extraction (write to disk)
 Create \`docs/research/\` and write these files using \`write\`:
 
-- **\`docs/research/PAGE_TOPOLOGY.md\`** — ordered list of sections with
-  working names, layout role (sticky / flow), and interaction model
-  (static / click-driven / scroll-driven / time-driven).
+- **\`docs/research/SITE_MAP.md\`** — table of every route you will build,
+  the source URL it was cloned from, the Next.js path
+  (\`/\`, \`/pricing\`, \`/product\`, …), and a one-line summary. This is
+  the index of work; every route here MUST become an \`app/<route>/page.tsx\`
+  file by the end of Phase 5.
+- **\`docs/research/PAGE_TOPOLOGY.md\`** — for EACH route from SITE_MAP.md,
+  an ordered list of its sections with working names, layout role
+  (sticky / flow), and interaction model (static / click-driven /
+  scroll-driven / time-driven). Mark sections that recur across routes
+  (nav, footer, banner CTA) as "shared".
 - **\`docs/research/DESIGN_TOKENS.md\`** — exact hex colors (extracted from
   inline styles, \`<style>\` blocks, and Tailwind class names in the
   scraped HTML), font families (extracted from \`<link href="fonts.googleapis…">\`
@@ -305,8 +333,12 @@ Per the spec, for each asset:
 **Step D — Build the section.**
 Implement the component matching the spec exactly: same hex colors, same
 font, same spacing, same copy structure. Rewrite the actual copy to fit the
-user's product. Never use the competitor's brand name. Wire it into
-\`app/page.tsx\` in the correct topological position.
+user's product. Never use the competitor's brand name. Wire it into the
+**correct route file** for the page this section belongs to
+(\`app/page.tsx\` for homepage sections, \`app/pricing/page.tsx\` for
+pricing-page sections, etc., per \`SITE_MAP.md\`). Shared sections (nav,
+footer) go in \`app/layout.tsx\` or a shared layout group, not duplicated
+into each route.
 
 **Step E — Verify build.** \`bash npm run build\` must pass.
 
@@ -324,10 +356,15 @@ user's product. Never use the competitor's brand name. Wire it into
 
 ### Phase 5 — Page-level wiring
 After all section components exist:
+- For EACH route in \`SITE_MAP.md\`, implement its
+  \`app/<route>/page.tsx\` (or just \`app/page.tsx\` for the homepage)
+  composing that route's sections in topological order. No route from
+  \`SITE_MAP.md\` may be missing its file — cross-link them via the nav.
 - Implement page-level layout (scroll containers, z-index layering, sticky
   positioning) per \`PAGE_TOPOLOGY.md\`.
 - Wire global behaviors from \`BEHAVIORS.md\` (smooth scroll lib,
-  scroll-snap, dark-to-light transitions, etc.).
+  scroll-snap, dark-to-light transitions, etc.) in \`app/layout.tsx\`.
+- Verify nav links resolve to actual routes (no dead \`href="#"\`).
 - \`bash npm run build\` clean.
 
 ### Phase 6 — Visual QA diff
@@ -368,6 +405,11 @@ Before writing ANY component code, verify each box. If you can't, scrape more.
 - ❌ Approximating CSS ("looks like text-lg") instead of reading the
   scraped class / inline style.
 - ❌ Bundling unrelated sections into one build pass.
+- ❌ Putting Pricing/Features/About sections into \`app/page.tsx\` instead
+  of their own routes.
+- ❌ Leaving \`<div className="bg-muted h-96"/>\` as a placeholder where
+  the competitor has a real illustration / product shot / animated hero.
+  Generate the asset with \`generate_image\` or \`generate_video\`.
 - ❌ Skipping mobile.
 - ❌ Forgetting smooth-scroll libraries (Lenis etc.).
 - ❌ Coding any section without writing its spec file first.
