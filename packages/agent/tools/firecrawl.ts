@@ -190,6 +190,30 @@ The screenshot URL is hosted by Firecrawl and can be passed directly to critique
       .boolean()
       .optional()
       .describe("Include discovered links. Default: true"),
+    includeHtml: z
+      .boolean()
+      .optional()
+      .describe(
+        "Include the rendered HTML so you can read class names, inline styles, font links, and SVG sources. Default: false. Set true when you are extracting design tokens.",
+      ),
+    actions: z
+      .array(
+        z.union([
+          z.object({
+            type: z.literal("wait"),
+            milliseconds: z.number().int().min(0).max(30000),
+          }),
+          z.object({ type: z.literal("scroll"), direction: z.enum(["up", "down"]) }),
+          z.object({ type: z.literal("click"), selector: z.string() }),
+          z.object({ type: z.literal("hover"), selector: z.string() }),
+          z.object({ type: z.literal("press"), key: z.string() }),
+          z.object({ type: z.literal("screenshot"), fullPage: z.boolean().optional() }),
+        ]),
+      )
+      .optional()
+      .describe(
+        "Optional Firecrawl browser actions executed BEFORE the final scrape. Use to trigger hover/click/scroll states (e.g. open a tab, scroll past a sticky-nav threshold) so the captured HTML/screenshot reflects the post-interaction state.",
+      ),
   }),
   outputSchema: z.union([
     z.object({
@@ -199,12 +223,20 @@ The screenshot URL is hosted by Firecrawl and can be passed directly to critique
       markdown: z.string(),
       truncated: z.boolean(),
       screenshotUrl: z.string().nullable(),
+      html: z.string().optional(),
+      htmlTruncated: z.boolean().optional(),
       links: z.array(z.string()).optional(),
     }),
     z.object({ success: z.literal(false), error: z.string() }),
   ]),
   execute: async (
-    { url, fullPage = true, includeLinks = true },
+    {
+      url,
+      fullPage = true,
+      includeLinks = true,
+      includeHtml = false,
+      actions,
+    },
     { abortSignal },
   ) => {
     try {
@@ -213,17 +245,24 @@ The screenshot URL is hosted by Firecrawl and can be passed directly to critique
         { type: "screenshot", fullPage },
       ];
       if (includeLinks) formats.push("links");
+      if (includeHtml) formats.push("html");
+      const body: Record<string, unknown> = { url, formats };
+      if (actions && actions.length > 0) body.actions = actions;
       const data = await firecrawlRequest<{
         data?: {
           markdown?: string;
+          html?: string;
           screenshot?: string;
           links?: string[];
           metadata?: { title?: string; sourceURL?: string };
         };
-      }>("/v2/scrape", { url, formats }, abortSignal);
+      }>("/v2/scrape", body, abortSignal);
       const d = data.data ?? {};
       const md = d.markdown ?? "";
       const truncated = md.length > MAX_MARKDOWN;
+      const MAX_HTML = 60_000;
+      const html = d.html ?? "";
+      const htmlTruncated = html.length > MAX_HTML;
       return {
         success: true as const,
         url: d.metadata?.sourceURL ?? url,
@@ -231,6 +270,12 @@ The screenshot URL is hosted by Firecrawl and can be passed directly to critique
         markdown: truncated ? md.slice(0, MAX_MARKDOWN) : md,
         truncated,
         screenshotUrl: d.screenshot ?? null,
+        ...(includeHtml
+          ? {
+              html: htmlTruncated ? html.slice(0, MAX_HTML) : html,
+              htmlTruncated,
+            }
+          : {}),
         ...(includeLinks ? { links: d.links ?? [] } : {}),
       };
     } catch (e) {

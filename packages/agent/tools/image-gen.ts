@@ -4,9 +4,25 @@ import { writeBinaryToSandbox, downloadUrlToSandbox } from "./binary-utils";
 import { getSandbox, toDisplayPath } from "./utils";
 
 const TOGETHER_BASE = "https://api.together.xyz/v1";
+// Together AI's serverless id for "Nano Banana 2" / Gemini Flash Image 3.1.
+// IMPORTANT: this model rejects the `steps` parameter — only pass it when the
+// caller is using a model that does support it.
 const DEFAULT_MODEL =
-  process.env.TOGETHER_IMAGE_MODEL || "google/gemini-2.5-flash-image-preview";
+  process.env.TOGETHER_IMAGE_MODEL || "google/flash-image-3.1";
 const REQUEST_TIMEOUT_MS = 180_000;
+
+/**
+ * Models that do NOT accept the `steps` parameter at the Together /images
+ * endpoint. Flux/Gemini Flash family are sampled internally and reject `steps`.
+ */
+const MODELS_WITHOUT_STEPS = new Set<string>([
+  "google/flash-image-3.1",
+  "google/flash-image-2.5",
+  "google/gemini-3-pro-image",
+  "google/imagen-4.0-fast",
+  "google/imagen-4.0-preview",
+  "google/imagen-4.0-ultra",
+]);
 
 function getApiKey(): string {
   const key = process.env.TOGETHER_API_KEY;
@@ -84,21 +100,25 @@ The model generates square (1024x1024) images by default; pass width/height to o
 
       let payload: TogetherImageResponse;
       try {
+        const supportsSteps = !MODELS_WITHOUT_STEPS.has(useModel);
+        const body: Record<string, unknown> = {
+          model: useModel,
+          prompt,
+          width,
+          height,
+          n: 1,
+          response_format: "b64_json",
+        };
+        if (supportsSteps) {
+          body.steps = steps;
+        }
         const res = await fetch(`${TOGETHER_BASE}/images/generations`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            model: useModel,
-            prompt,
-            width,
-            height,
-            steps,
-            n: 1,
-            response_format: "b64_json",
-          }),
+          body: JSON.stringify(body),
           signal: controller.signal,
         });
         const text = await res.text();
