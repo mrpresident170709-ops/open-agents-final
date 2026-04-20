@@ -251,9 +251,10 @@ export async function POST(req: Request) {
           ? { subagentModel: subagentModelSelection }
           : {}),
         ...(skills.length > 0 && { skills }),
-        customInstructions: isFirstUserMessageOfSession
-          ? `${assistantFileLinkPrompt}\n\n${COMPETITOR_CLONING_PLAYBOOK}`
-          : assistantFileLinkPrompt,
+        customInstructions: assistantFileLinkPrompt,
+        ...(isFirstUserMessageOfSession && {
+          priorityInstructions: COMPETITOR_CLONING_PLAYBOOK,
+        }),
       },
       ...(shouldAutoCommitPush &&
         sessionRecord.repoOwner &&

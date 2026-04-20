@@ -51,6 +51,7 @@ const callOptionsSchema = z.object({
   model: z.custom<OpenHarnessAgentModelInput>().optional(),
   subagentModel: z.custom<OpenHarnessAgentModelInput>().optional(),
   customInstructions: z.string().optional(),
+  priorityInstructions: z.string().optional(),
   skills: z.custom<SkillMetadata[]>().optional(),
 });
 
@@ -128,6 +129,7 @@ export const openHarnessAgent = new ToolLoopAgent({
         })
       : undefined;
     const customInstructions = options.customInstructions;
+    const priorityInstructions = options.priorityInstructions;
     const sandbox = options.sandbox;
     const skills = options.skills ?? [];
 
@@ -135,6 +137,7 @@ export const openHarnessAgent = new ToolLoopAgent({
       cwd: sandbox.workingDirectory,
       currentBranch: sandbox.currentBranch,
       customInstructions,
+      priorityInstructions,
       environmentDetails: sandbox.environmentDetails,
       skills,
       modelId: mainSelection.id,

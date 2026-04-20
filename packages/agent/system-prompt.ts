@@ -352,6 +352,13 @@ export interface BuildSystemPromptOptions {
   cwd?: string;
   currentBranch?: string;
   customInstructions?: string;
+  /**
+   * Highest-priority instructions that are PREPENDED to the entire system
+   * prompt (before the core prompt and model overlay). Use sparingly — only
+   * for instructions that must override the agent's default coding-agent
+   * behavior, such as the first-message competitor cloning playbook.
+   */
+  priorityInstructions?: string;
   environmentDetails?: string;
   skills?: SkillMetadata[];
   modelId?: string;
@@ -420,7 +427,11 @@ npx skills --help                      # all options
 export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
   const family = detectModelFamily(options.modelId);
 
-  const parts = [CORE_SYSTEM_PROMPT, getModelOverlay(family, options.modelId)];
+  const parts: string[] = [];
+  if (options.priorityInstructions) {
+    parts.push(options.priorityInstructions);
+  }
+  parts.push(CORE_SYSTEM_PROMPT, getModelOverlay(family, options.modelId));
 
   if (options.cwd) {
     parts.push(
