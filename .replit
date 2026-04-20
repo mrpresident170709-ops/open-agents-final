@@ -37,3 +37,4 @@ externalPort = 80
 
 [userenv.shared]
 SINGLE_USER_MODE = "true"
+VERCEL_SANDBOX_BASE_SNAPSHOT_ID = ""

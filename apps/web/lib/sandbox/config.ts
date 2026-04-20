@@ -41,9 +41,15 @@ export const DEFAULT_WORKING_DIRECTORY = "/vercel/sandbox";
  * - Current snapshot includes: bun + jq + agent-browser + chromium + code-server
  * - Previous snapshot includes: bun + jq + agent-browser + chromium
  */
-export const DEFAULT_SANDBOX_BASE_SNAPSHOT_ID =
+const _rawSnapshotId =
   process.env.VERCEL_SANDBOX_BASE_SNAPSHOT_ID ??
   // Previous snapshot (bun + jq): "snap_MQ0NqdLL5qEXiYusgWL3K0yaMmql"
   // Previous snapshot (bun + jq + agent-browser + chromium): "snap_C8tUFhwRXZky4MaFvTuwO7DH66wx"
   // Current snapshot (bun + jq + agent-browser + chromium + code-server):
   "snap_EjsphVxi07bFKrfojljJdIS41KHT";
+
+// An empty string disables the base snapshot so sandboxes boot without it.
+// This is needed when the configured Vercel team doesn't have access to the
+// upstream snapshot (e.g. self-hosted forks).
+export const DEFAULT_SANDBOX_BASE_SNAPSHOT_ID: string | undefined =
+  _rawSnapshotId.length > 0 ? _rawSnapshotId : undefined;
