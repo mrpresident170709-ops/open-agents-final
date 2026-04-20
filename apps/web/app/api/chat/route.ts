@@ -25,6 +25,8 @@ import { getAllVariants } from "@/lib/model-variants";
 import { createCancelableReadableStream } from "@/lib/chat/create-cancelable-readable-stream";
 import { assistantFileLinkPrompt } from "@/lib/assistant-file-links";
 import { COMPETITOR_CLONING_PLAYBOOK } from "@/lib/cloning-playbook";
+import { seedCloneStarterIfNeeded } from "@/lib/clone-starter-template";
+import { chatHasCloneSignals } from "@/lib/cloning-enforcement";
 import { getServerSession } from "@/lib/session/get-server-session";
 import {
   isManagedTemplateTrialUser,
@@ -220,6 +222,31 @@ export async function POST(req: Request) {
       })
     : undefined;
 
+  // Cloning mode is active on the very first turn AND on any follow-up turn
+  // of a chat that already shows clone-workflow tool activity (e.g. user is
+  // replying to an `ask_user_question` for the brand name). This keeps the
+  // enforcement loop alive across multi-turn cloning flows.
+  const cloningModeActive =
+    isFirstUserMessageOfSession || chatHasCloneSignals(existingChatMessages);
+
+  // Seed the sandbox with a known-good Next.js + Tailwind v3 + shadcn
+  // baseline. The seeder is idempotent (marker file) so calling on every
+  // cloning turn lets a transient first-turn failure self-heal instead of
+  // leaving the agent stranded with no scaffold.
+  if (cloningModeActive) {
+    try {
+      const result = await seedCloneStarterIfNeeded(sandbox);
+      console.log(
+        `[clone-starter] session=${sessionId} seeded=${result.seeded} reason=${result.reason}`,
+      );
+    } catch (error) {
+      console.error(
+        `[clone-starter] failed to seed session=${sessionId}:`,
+        error,
+      );
+    }
+  }
+
   // Determine if auto-commit and auto-PR should run after a natural finish.
   const shouldAutoCommitPush =
     sessionRecord.autoCommitPushOverride ??
@@ -252,9 +279,13 @@ export async function POST(req: Request) {
           : {}),
         ...(skills.length > 0 && { skills }),
         customInstructions: assistantFileLinkPrompt,
+        // Inject the playbook only on the very first turn (model has it once,
+        // then prompt-cache reuses it). Enforcement, however, must stay on
+        // for the duration of the cloning workflow.
         ...(isFirstUserMessageOfSession && {
           priorityInstructions: COMPETITOR_CLONING_PLAYBOOK,
         }),
+        ...(cloningModeActive && { cloningPlaybookActive: true }),
       },
       ...(shouldAutoCommitPush &&
         sessionRecord.repoOwner &&

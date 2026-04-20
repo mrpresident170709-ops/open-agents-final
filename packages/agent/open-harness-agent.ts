@@ -53,6 +53,12 @@ const callOptionsSchema = z.object({
   customInstructions: z.string().optional(),
   priorityInstructions: z.string().optional(),
   skills: z.custom<SkillMetadata[]>().optional(),
+  /**
+   * When true, the chat workflow runs an enforcement pass before letting the
+   * agent stop, ensuring required cloning playbook tools (image gen, critic
+   * loop, brand intake) actually fired. Set on first user message of a session.
+   */
+  cloningPlaybookActive: z.boolean().optional(),
 });
 
 export type OpenHarnessAgentCallOptions = z.infer<typeof callOptionsSchema>;

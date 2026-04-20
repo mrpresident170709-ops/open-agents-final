@@ -32,6 +32,10 @@ import {
   runAutoCreatePrStep,
 } from "./chat-post-finish";
 import { dedupeMessageReasoning } from "@/lib/chat/dedupe-message-reasoning";
+import {
+  evaluateCloningEnforcement,
+  MAX_NUDGES,
+} from "@/lib/cloning-enforcement";
 import type {
   WorkflowRunStatus,
   WorkflowRunStepTiming,
@@ -491,6 +495,7 @@ export async function runAgentWorkflow(options: Options) {
         };
 
   let originalMessagesForStep: WebAgentUIMessage[] = [latestMessage];
+  let cloningNudgeCount = 0;
 
   await sendStart(writable, assistantId);
 
@@ -550,11 +555,37 @@ export async function runAgentWorkflow(options: Options) {
           : result.stepUsage;
       }
 
-      const shouldContinue =
+      let shouldContinue =
         result.finishReason === "tool-calls" &&
         !shouldPauseForToolInteraction(
           result.responseMessage?.parts ?? pendingAssistantResponse.parts,
         );
+
+      // Cloning playbook enforcement: if the model is trying to stop but
+      // hasn't called the required tools (firecrawl_scrape, generate_image,
+      // critique_clone, brand intake), inject a synthetic user nudge and
+      // force another loop iteration. Capped at MAX_NUDGES to avoid loops.
+      if (
+        !shouldContinue &&
+        options.agentOptions.cloningPlaybookActive &&
+        cloningNudgeCount < MAX_NUDGES &&
+        !shouldPauseForToolInteraction(
+          result.responseMessage?.parts ?? pendingAssistantResponse.parts,
+        )
+      ) {
+        const enforcement = evaluateCloningEnforcement(modelMessages);
+        if (!enforcement.satisfied && enforcement.nudge) {
+          cloningNudgeCount += 1;
+          console.log(
+            `[clone-enforce] session=${options.sessionId} nudge=${cloningNudgeCount}/${MAX_NUDGES}: forcing continue`,
+          );
+          modelMessages.push({
+            role: "user",
+            content: enforcement.nudge,
+          });
+          shouldContinue = true;
+        }
+      }
 
       if (!shouldContinue) {
         break;
