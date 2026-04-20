@@ -13,6 +13,18 @@ import type { VercelState } from "./state";
 
 const MAX_OUTPUT_LENGTH = 50_000;
 const DEFAULT_WORKING_DIRECTORY = "/vercel/sandbox";
+
+function getVercelCredentials():
+  | { token: string; teamId: string; projectId: string }
+  | undefined {
+  const token = process.env.VERCEL_ACCESS_TOKEN ?? process.env.VERCEL_TOKEN;
+  const teamId = process.env.VERCEL_TEAM_ID;
+  const projectId = process.env.VERCEL_PROJECT_ID;
+  if (token && teamId && projectId) {
+    return { token, teamId, projectId };
+  }
+  return undefined;
+}
 const TIMEOUT_BUFFER_MS = 30_000; // 30 seconds buffer for beforeStop hook
 const MAX_SDK_TIMEOUT_MS = 18_000_000; // Vercel API limit: 5 hours
 const MAX_PROACTIVE_TIMEOUT_MS = MAX_SDK_TIMEOUT_MS - TIMEOUT_BUFFER_MS;
@@ -531,6 +543,7 @@ ${hostLine}${portLines}${runtimeEnvLine}`;
       networkPolicy: buildGitHubCredentialBrokeringPolicy(githubToken),
       ...(ports && { ports }),
       ...(snapshotExpiration !== undefined && { snapshotExpiration }),
+      ...(getVercelCredentials() ?? {}),
     };
 
     let sdk: VercelSandboxSDK;
@@ -722,6 +735,7 @@ ${hostLine}${portLines}${runtimeEnvLine}`;
     const sdk = await VercelSandboxSDK.get({
       name: sandboxName,
       resume: options.resume ?? false,
+      ...(getVercelCredentials() ?? {}),
     });
     await syncGitHubCredentialBrokering(sdk, options.githubToken);
     const session = sdk.currentSession();
