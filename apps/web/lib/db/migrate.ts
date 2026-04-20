@@ -29,9 +29,9 @@ type ErrorWithCause = {
   cause?: unknown;
 };
 
-const url = process.env.POSTGRES_URL;
+const url = process.env.POSTGRES_URL || process.env.DATABASE_URL;
 if (!url) {
-  console.log("POSTGRES_URL not set — skipping migrations");
+  console.log("POSTGRES_URL or DATABASE_URL not set — skipping migrations");
   process.exit(0);
 }
 

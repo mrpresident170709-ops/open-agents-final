@@ -2,7 +2,10 @@ import type { NextConfig } from "next";
 import { withBotId } from "botid/next/config";
 import { withWorkflow } from "workflow/next";
 
+const replitDomain = process.env.REPLIT_DEV_DOMAIN;
+
 const nextConfig: NextConfig = {
+  allowedDevOrigins: replitDomain ? [replitDomain, `*.${replitDomain}`] : [],
   images: {
     remotePatterns: [
       {
