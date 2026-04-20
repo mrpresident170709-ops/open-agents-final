@@ -28,3 +28,6 @@ export {
   type VercelSandboxConnectConfig,
   type VercelState,
 } from "./vercel";
+
+// local
+export { LocalSandbox, connectLocal, type LocalState } from "./local";
