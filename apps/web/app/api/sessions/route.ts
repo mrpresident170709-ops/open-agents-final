@@ -37,7 +37,7 @@ interface CreateSessionRequest {
   branch?: string;
   cloneUrl?: string;
   isNewBranch?: boolean;
-  sandboxType?: "vercel" | "local";
+  sandboxType?: "vercel";
   autoCommitPush?: boolean;
   autoCreatePr?: boolean;
   vercelProject?: VercelProjectSelection | null;
@@ -189,11 +189,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  if (
-    body.sandboxType &&
-    body.sandboxType !== "vercel" &&
-    body.sandboxType !== "local"
-  ) {
+  if (body.sandboxType && body.sandboxType !== "vercel") {
     return Response.json({ error: "Invalid sandbox type" }, { status: 400 });
   }
 
@@ -257,7 +253,7 @@ export async function POST(req: Request) {
     branch,
     cloneUrl,
     isNewBranch,
-    sandboxType = process.env.REPL_ID ? "local" : "vercel",
+    sandboxType = "vercel",
     autoCommitPush,
     autoCreatePr,
   } = body;
@@ -350,10 +346,7 @@ export async function POST(req: Request) {
           ? effectiveAutoCreatePr
           : false,
         globalSkillRefs: preferences.globalSkillRefs,
-        sandboxState:
-          sandboxType === "local"
-            ? { type: "local", sandboxName: `sbx-${nanoid()}` }
-            : { type: "vercel" },
+        sandboxState: { type: sandboxType },
         lifecycleState: "provisioning",
         lifecycleVersion: 0,
       },
