@@ -522,6 +522,23 @@ ${hostLine}${portLines}${runtimeEnvLine}`;
     // Calculate SDK timeout with buffer for beforeStop hook.
     const sdkTimeout = effectiveTimeout + TIMEOUT_BUFFER_MS;
 
+    // The @vercel/sandbox SDK only auto-detects VERCEL_OIDC_TOKEN from env.
+    // For personal-token auth (VERCEL_TOKEN + team + project), we must pass
+    // them explicitly — otherwise the SDK falls back to an interactive device
+    // authorization flow that hangs forever in non-TTY environments.
+    const personalAuth =
+      !process.env.VERCEL_OIDC_TOKEN && process.env.VERCEL_TOKEN
+        ? {
+            token: process.env.VERCEL_TOKEN,
+            ...(process.env.VERCEL_TEAM_ID
+              ? { teamId: process.env.VERCEL_TEAM_ID }
+              : {}),
+            ...(process.env.VERCEL_PROJECT_ID
+              ? { projectId: process.env.VERCEL_PROJECT_ID }
+              : {}),
+          }
+        : {};
+
     const createBaseConfig = {
       ...(name ? { name } : {}),
       resources: { vcpus },
@@ -531,6 +548,7 @@ ${hostLine}${portLines}${runtimeEnvLine}`;
       networkPolicy: buildGitHubCredentialBrokeringPolicy(githubToken),
       ...(ports && { ports }),
       ...(snapshotExpiration !== undefined && { snapshotExpiration }),
+      ...personalAuth,
     };
 
     let sdk: VercelSandboxSDK;
