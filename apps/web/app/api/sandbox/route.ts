@@ -198,11 +198,13 @@ export async function POST(req: Request) {
 
     const is404 =
       message.includes("404") || message.toLowerCase().includes("not found");
-    if (is404) {
+    const is403 = message.includes("403");
+    if (is404 || is403) {
+      const statusCode = is403 ? 403 : 404;
       return Response.json(
         {
           error: "Sandbox unavailable",
-          reason: "Vercel Sandbox is not enabled on this plan (404 from API).",
+          reason: `Vercel Sandbox is not accessible (HTTP ${statusCode}). Check VERCEL_TOKEN permissions and that your Vercel plan includes Sandbox access.`,
         },
         { status: 503 },
       );

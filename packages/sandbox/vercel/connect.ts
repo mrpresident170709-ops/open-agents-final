@@ -51,7 +51,11 @@ function toErrorMessage(error: unknown): string {
 
 function isSandboxNotFoundError(error: unknown): boolean {
   const message = toErrorMessage(error).toLowerCase();
-  return message.includes("status code 404") || message.includes("not found");
+  return (
+    message.includes("status code 404") ||
+    message.includes("status code 403") ||
+    message.includes("not found")
+  );
 }
 
 function buildCreateConfig(
