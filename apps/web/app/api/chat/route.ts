@@ -9,6 +9,7 @@ import {
   createChatMessageIfNotExists,
   getChatById,
   getChatMessageById,
+  getChatMessages,
   isFirstChatMessage,
   touchChat,
   updateChat,
@@ -23,6 +24,7 @@ import {
 import { getAllVariants } from "@/lib/model-variants";
 import { createCancelableReadableStream } from "@/lib/chat/create-cancelable-readable-stream";
 import { assistantFileLinkPrompt } from "@/lib/assistant-file-links";
+import { COMPETITOR_CLONING_PLAYBOOK } from "@/lib/cloning-playbook";
 import { getServerSession } from "@/lib/session/get-server-session";
 import {
   isManagedTemplateTrialUser,
@@ -151,6 +153,12 @@ export async function POST(req: Request) {
     }),
   });
 
+  // Determine whether this is the very first user message of the session.
+  // Query the DB before kicking off the fire-and-forget persist below so the
+  // check is deterministic and not gated on client-submitted history shape.
+  const existingChatMessages = await getChatMessages(chatId).catch(() => []);
+  const isFirstUserMessageOfSession = existingChatMessages.length === 0;
+
   // Persist the latest user message immediately (fire-and-forget) so it's
   // in the DB before the workflow starts. This ensures a page refresh
   // during workflow queue time still shows the message.
@@ -243,7 +251,9 @@ export async function POST(req: Request) {
           ? { subagentModel: subagentModelSelection }
           : {}),
         ...(skills.length > 0 && { skills }),
-        customInstructions: assistantFileLinkPrompt,
+        customInstructions: isFirstUserMessageOfSession
+          ? `${assistantFileLinkPrompt}\n\n${COMPETITOR_CLONING_PLAYBOOK}`
+          : assistantFileLinkPrompt,
       },
       ...(shouldAutoCommitPush &&
         sessionRecord.repoOwner &&

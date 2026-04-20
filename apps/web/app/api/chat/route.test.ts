@@ -164,6 +164,7 @@ mock.module("@/lib/db/sessions", () => ({
   createChatMessageIfNotExists: async () => undefined,
   getChatById: async () => chatRecord,
   getChatMessageById: async () => existingChatMessage,
+  getChatMessages: async () => (existingChatMessage ? [existingChatMessage] : []),
   getSessionById: async () => sessionRecord,
   isFirstChatMessage: async () => false,
   touchChat: async () => {},
@@ -339,7 +340,7 @@ describe("/api/chat route", () => {
       expect.objectContaining({
         maxSteps: 500,
         agentOptions: expect.objectContaining({
-          customInstructions: assistantFileLinkPrompt,
+          customInstructions: expect.stringContaining(assistantFileLinkPrompt),
         }),
       }),
     ]);

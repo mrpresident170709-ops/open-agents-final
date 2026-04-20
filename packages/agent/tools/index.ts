@@ -17,3 +17,12 @@ export {
 } from "./ask-user-question";
 export { skillTool, type SkillToolInput } from "./skill";
 export { webFetchTool } from "./fetch";
+export {
+  firecrawlSearchTool,
+  firecrawlMapTool,
+  firecrawlScrapeTool,
+} from "./firecrawl";
+export { exaSearchTool, exaFindSimilarTool } from "./exa";
+export { generateImageTool } from "./image-gen";
+export { generateVideoTool } from "./video-gen";
+export { critiqueCloneTool } from "./critic";

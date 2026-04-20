@@ -13,7 +13,15 @@ import { buildSystemPrompt } from "./system-prompt";
 import {
   askUserQuestionTool,
   bashTool,
+  critiqueCloneTool,
   editFileTool,
+  exaFindSimilarTool,
+  exaSearchTool,
+  firecrawlMapTool,
+  firecrawlScrapeTool,
+  firecrawlSearchTool,
+  generateImageTool,
+  generateVideoTool,
   globTool,
   grepTool,
   readFileTool,
@@ -74,6 +82,14 @@ const tools = {
   ask_user_question: askUserQuestionTool,
   skill: skillTool,
   web_fetch: webFetchTool,
+  firecrawl_search: firecrawlSearchTool,
+  firecrawl_map: firecrawlMapTool,
+  firecrawl_scrape: firecrawlScrapeTool,
+  exa_search: exaSearchTool,
+  exa_find_similar: exaFindSimilarTool,
+  generate_image: generateImageTool,
+  generate_video: generateVideoTool,
+  critique_clone: critiqueCloneTool,
 } satisfies ToolSet;
 
 export const openHarnessAgent = new ToolLoopAgent({

@@ -188,9 +188,8 @@ function resolveBaseModel(
     const openaiModelId = id.slice("openai/".length);
     const openai = createOpenAI({
       apiKey: process.env.OPENAI_API_KEY,
-      compatibility: "strict",
     });
-    return openai.responses(openaiModelId);
+    return openai.responses(openaiModelId) as unknown as LanguageModel;
   }
 
   // Fall back to Vercel AI Gateway for all other models
@@ -215,11 +214,12 @@ export function gateway(
 
   if (Object.keys(providerOptions).length > 0) {
     model = wrapLanguageModel({
-      model,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      model: model as any,
       middleware: defaultSettingsMiddleware({
         settings: { providerOptions },
       }),
-    });
+    }) as LanguageModel;
   }
 
   return model;
