@@ -55,16 +55,19 @@ export const DEFAULT_WORKING_DIRECTORY = "/vercel/sandbox";
  */
 function resolveBaseSnapshotId(): string | undefined {
   const raw = process.env.VERCEL_SANDBOX_BASE_SNAPSHOT_ID;
-  if (raw !== undefined) {
-    const trimmed = raw.trim();
-    if (trimmed === "" || trimmed.toLowerCase() === "none") {
-      return undefined;
-    }
-    return trimmed;
+  if (!raw) {
+    // No env var set → create a fresh sandbox with no base snapshot.
+    // The Open Harness default snapshot (snap_EjsphVxi07bFKrfojljJdIS41KHT)
+    // belongs to the original Open Harness Vercel team and is inaccessible to
+    // other teams.  To use a pre-built snapshot, set this env var to your own
+    // snapshot ID (create one via `npx vercel sandbox snapshot`).
+    return undefined;
   }
-  // Open Harness default (bun + jq + agent-browser + chromium + code-server).
-  // Only accessible inside the Open Harness Vercel team.
-  return "snap_EjsphVxi07bFKrfojljJdIS41KHT";
+  const trimmed = raw.trim();
+  if (trimmed === "" || trimmed.toLowerCase() === "none") {
+    return undefined;
+  }
+  return trimmed;
 }
 
 export const DEFAULT_SANDBOX_BASE_SNAPSHOT_ID = resolveBaseSnapshotId();
