@@ -492,8 +492,9 @@ const SessionRow = memo(function SessionRow({
       </span>
     </div>
   ) : (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       className={`group relative flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left outline-none transition-[background-color,opacity] cursor-pointer ${
         isActive ? "bg-sidebar-active" : "hover:bg-muted/50"
       } ${isPending ? "opacity-80" : "opacity-100"}`}
@@ -502,6 +503,12 @@ const SessionRow = memo(function SessionRow({
       onMouseLeave={handleMouseLeave}
       onClick={() => onSessionClick(session)}
       onFocus={() => onSessionPrefetch(session)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSessionClick(session);
+        }
+      }}
       aria-busy={isPending}
     >
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">
@@ -583,7 +590,7 @@ const SessionRow = memo(function SessionRow({
           />
         ) : null}
       </span>
-    </button>
+    </div>
   );
 
   if (isMobile || isRenaming) {

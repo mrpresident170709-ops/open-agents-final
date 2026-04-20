@@ -1,0 +1,84 @@
+## Error Type
+Console Error
+
+## Error Message
+In HTML, <button> cannot be a descendant of <button>.
+This will cause a hydration error.
+
+  ...
+    <Popover data-slot="popover" open={false} onOpenChange={function bound dispatchSetState}>
+      <Popper __scopePopper={{Popper:[...]}}>
+        <PopperProvider scope={{Popper:[...]}} anchor={HTMLButtonElement} ...>
+          <PopoverProvider scope={undefined} contentId="radix-_R_d..." triggerRef={{...}} open={false} ...>
+            <PopoverTrigger asChild={true}>
+              <PopoverTrigger data-slot="popover-tr..." asChild={true}>
+                <PopperAnchor asChild={true} __scopePopper={{Popper:[...]}}>
+                  <Primitive.div asChild={true} ref={function}>
+                    <Primitive.div.Slot ref={function}>
+                      <Primitive.div.SlotClone ref={function}>
+                        <Primitive.button type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                          <Primitive.button.Slot type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                            <Primitive.button.SlotClone type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+>                             <button
+>                               type="button"
+>                               className="group relative flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text..."
+>                               style={{contentVisibility:"auto",containIntrinsicSize:"2.25rem"}}
+>                               onMouseEnter={function SessionRow.SessionRow.useCallback[handleMouseEnter]}
+>                               onMouseLeave={function SessionRow.SessionRow.useCallback[handleMouseLeave]}
+>                               onClick={function}
+>                               onFocus={function onFocus}
+>                               aria-busy={false}
+>                               aria-haspopup="dialog"
+>                               aria-expanded={false}
+>                               aria-controls="radix-_R_daiqbmmlb_"
+>                               data-state="closed"
+>                               data-slot="popover-trigger"
+>                               ref={function}
+>                             >
+                                <span>
+                                <span>
+                                ...
+                                  <Primitive.button aria-describedby={undefined} data-state="closed" ...>
+                                    <Primitive.button.Slot aria-describedby={undefined} data-state="closed" ...>
+                                      <Primitive.button.SlotClone aria-describedby={undefined} data-state="closed" ...>
+>                                       <button
+>                                         type="button"
+>                                         className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:te..."
+>                                         aria-label="Rename session"
+>                                         onClick={function}
+>                                         aria-describedby={undefined}
+>                                         data-state="closed"
+>                                         data-slot="tooltip-trigger"
+>                                         onPointerMove={function handleEvent}
+>                                         onPointerLeave={function handleEvent}
+>                                         onPointerDown={function handleEvent}
+>                                         onFocus={function handleEvent}
+>                                         onBlur={function handleEvent}
+>                                         ref={function}
+>                                       >
+            ...
+
+
+
+    at button (<anonymous>:null:null)
+    at SessionRow (components/inbox-sidebar.tsx:527:19)
+    at TooltipTrigger (components/ui/tooltip.tsx:34:10)
+    at SessionRow (components/inbox-sidebar.tsx:526:17)
+    at <unknown> (components/inbox-sidebar.tsx:1115:29)
+    at Array.map (<anonymous>:null:null)
+    at <unknown> (components/inbox-sidebar.tsx:1114:43)
+    at Array.map (<anonymous>:null:null)
+    at InboxSidebar (components/inbox-sidebar.tsx:1015:32)
+    at SessionsRouteShell (app/sessions/sessions-route-shell.tsx:262:13)
+    at SessionsLayout (app/sessions/layout.tsx:30:5)
+
+## Code Frame
+  525 |               <Tooltip>
+  526 |                 <TooltipTrigger asChild>
+> 527 |                   <button
+      |                   ^
+  528 |                     type="button"
+  529 |                     className="rounded p-0.5 text-muted-foreground/60...
+  530 |                     aria-label="Rename session"
+
+Next.js version: 16.2.1 (Turbopack)
