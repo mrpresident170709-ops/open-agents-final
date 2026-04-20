@@ -7,6 +7,8 @@ import {
   type JSONValue,
   type LanguageModel,
 } from "ai";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createOpenAI } from "@ai-sdk/openai";
 import type { AnthropicLanguageModelOptions } from "@ai-sdk/anthropic";
 import type { OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
 
@@ -168,18 +170,43 @@ export function getProviderOptionsForModel(
   return providerOptions;
 }
 
+function resolveBaseModel(
+  modelId: GatewayModelId,
+  config?: GatewayConfig,
+): LanguageModel {
+  const id = modelId as string;
+
+  // Route Claude models directly to Anthropic API when key is available
+  if (id.startsWith("anthropic/") && process.env.ANTHROPIC_API_KEY) {
+    const anthropicModelId = id.slice("anthropic/".length);
+    const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    return anthropic(anthropicModelId);
+  }
+
+  // Route OpenAI models directly to OpenAI API when key is available
+  if (id.startsWith("openai/") && process.env.OPENAI_API_KEY) {
+    const openaiModelId = id.slice("openai/".length);
+    const openai = createOpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      compatibility: "strict",
+    });
+    return openai.responses(openaiModelId);
+  }
+
+  // Fall back to Vercel AI Gateway for all other models
+  const baseGateway = config
+    ? createGateway({ baseURL: config.baseURL, apiKey: config.apiKey })
+    : aiGateway;
+  return baseGateway(modelId);
+}
+
 export function gateway(
   modelId: GatewayModelId,
   options: GatewayOptions = {},
 ): LanguageModel {
   const { config, providerOptionsOverrides } = options;
 
-  // Use custom gateway config or default AI SDK gateway
-  const baseGateway = config
-    ? createGateway({ baseURL: config.baseURL, apiKey: config.apiKey })
-    : aiGateway;
-
-  let model: LanguageModel = baseGateway(modelId);
+  let model = resolveBaseModel(modelId, config);
 
   const providerOptions = getProviderOptionsForModel(
     modelId,
