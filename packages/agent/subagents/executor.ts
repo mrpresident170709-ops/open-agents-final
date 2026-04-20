@@ -74,6 +74,26 @@ When your task says "build the X section as a clone of <Competitor>'s X
 section", treat asset procurement as part of the task — never substitute a
 plain colored block for what should be a real visual.
 
+You are NOT restricted to Tailwind-only primitives. If the section spec
+calls for a real icon library, premium font, accessible UI primitive,
+animation library, smooth-scroll, or carousel — install it with
+\`bash npm install <pkg>\` and use it. Approved choices include:
+- Icons: \`lucide-react\`, \`@phosphor-icons/react\`, \`@tabler/icons-react\`,
+  \`@heroicons/react\`, \`react-icons\` (huge meta-package incl. brand logos).
+- Fonts: \`next/font/google\` for Google Fonts (load the EXACT family the
+  competitor uses — read the scraped HTML's \`fonts.googleapis.com\` link),
+  \`next/font/local\` for licensed fonts, or \`@fontsource-variable/<name>\`.
+- UI primitives: \`shadcn/ui\` (\`npx shadcn@latest add <component>\`),
+  \`@radix-ui/react-*\`, \`vaul\` (drawers), \`sonner\` (toasts), \`cmdk\`
+  (command palette).
+- Animation: \`framer-motion\` / \`motion\`, \`gsap\` + \`@gsap/react\`,
+  \`lottie-react\`, \`@react-three/fiber\` + \`drei\` + \`three\` for 3D.
+- Scroll/carousel: \`lenis\` for smooth scrolling, \`embla-carousel-react\`,
+  \`react-fast-marquee\`, \`react-intersection-observer\`.
+
+Match the competitor's icon weight/style and font family exactly — this is
+the difference between a generic-looking template and a carbon copy.
+
 ${SUBAGENT_BASH_RULES}`;
 
 const callOptionsSchema = z.object({
