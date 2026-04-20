@@ -178,7 +178,12 @@ function resolveBaseModel(
 
   // Route Claude models directly to Anthropic API when key is available
   if (id.startsWith("anthropic/") && process.env.ANTHROPIC_API_KEY) {
-    const anthropicModelId = id.slice("anthropic/".length);
+    // Anthropic's API uses dashes between version segments
+    // (e.g. `claude-haiku-4-5`), but the gateway-style IDs we receive use
+    // dots (`claude-haiku-4.5`). Normalize before forwarding.
+    const anthropicModelId = id
+      .slice("anthropic/".length)
+      .replace(/\./g, "-");
     const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     return anthropic(anthropicModelId);
   }
