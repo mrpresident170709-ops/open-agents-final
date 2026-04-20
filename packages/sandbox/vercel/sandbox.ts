@@ -11,6 +11,28 @@ import type { SandboxStatus } from "../types";
 import type { VercelSandboxConfig, VercelSandboxConnectConfig } from "./config";
 import type { VercelState } from "./state";
 
+/**
+ * The @vercel/sandbox SDK reads auth from these env vars (in order):
+ *   1. VERCEL_OIDC_TOKEN (for Vercel-hosted deployments)
+ *   2. VERCEL_TOKEN + VERCEL_TEAM_ID + VERCEL_PROJECT_ID (personal access token)
+ *   3. Falls back to interactive device authorization flow
+ *
+ * Many users name their personal token env var `VERCEL_ACCESS_TOKEN` (which is
+ * what the Vercel REST API examples use). To avoid a confusing device-flow
+ * fallback, we alias common alternative names to `VERCEL_TOKEN` here.
+ */
+function ensureVercelTokenEnv(): void {
+  if (process.env.VERCEL_TOKEN && process.env.VERCEL_TOKEN.trim() !== "") {
+    return;
+  }
+  const fallback =
+    process.env.VERCEL_ACCESS_TOKEN ?? process.env.VERCEL_API_TOKEN;
+  if (fallback && fallback.trim() !== "") {
+    process.env.VERCEL_TOKEN = fallback;
+  }
+}
+ensureVercelTokenEnv();
+
 const MAX_OUTPUT_LENGTH = 50_000;
 const DEFAULT_WORKING_DIRECTORY = "/vercel/sandbox";
 const TIMEOUT_BUFFER_MS = 30_000; // 30 seconds buffer for beforeStop hook
