@@ -71,12 +71,8 @@ export function getSandboxCreateErrorDetails(
   error: unknown,
 ): SandboxCreateErrorDetails {
   if (error instanceof SandboxCreateRequestError) {
-    // Include the server-side reason (actual Vercel/SDK error) when available.
-    const message = error.reason
-      ? `${error.message}: ${error.reason}`
-      : error.message;
     return {
-      message,
+      message: error.message,
       actionUrl: error.actionUrl,
     };
   }
@@ -91,10 +87,6 @@ export function getSandboxCreateErrorDetails(
 function getFallbackSandboxCreateErrorMessage(status: number): string {
   if (status === 403) {
     return "Sandbox access denied. Please reconnect GitHub and try again.";
-  }
-
-  if (status === 503) {
-    return "Sandbox unavailable (Vercel Sandbox not enabled on this plan).";
   }
 
   return "Failed to create sandbox. Please try again.";

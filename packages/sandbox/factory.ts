@@ -1,4 +1,6 @@
 import type { Sandbox, SandboxHooks } from "./interface";
+import { connectLocal } from "./local/connect";
+import type { LocalState } from "./local/state";
 import type { SandboxStatus } from "./types";
 import { connectVercel } from "./vercel/connect";
 import type { VercelState } from "./vercel/state";
@@ -10,7 +12,9 @@ export type { SandboxStatus };
  * Unified sandbox state type.
  * Use `type` discriminator to determine which sandbox implementation to use.
  */
-export type SandboxState = { type: "vercel" } & VercelState;
+export type SandboxState =
+  | ({ type: "vercel" } & VercelState)
+  | ({ type: "local" } & Partial<LocalState>);
 
 /**
  * Base connect options for all sandbox types.
@@ -48,9 +52,19 @@ export interface ConnectOptions {
  * Configuration for connecting to a sandbox.
  */
 export type SandboxConnectConfig = {
-  state: { type: "vercel" } & VercelState;
+  state: SandboxState;
   options?: ConnectOptions;
 };
+
+function dispatchConnect(
+  state: SandboxState,
+  options?: ConnectOptions,
+): Promise<Sandbox> {
+  if (state.type === "local") {
+    return connectLocal(state, options);
+  }
+  return connectVercel(state, options);
+}
 
 /**
  * Connect to a sandbox based on the provided configuration.
@@ -61,15 +75,15 @@ export async function connectSandbox(
 ): Promise<Sandbox> {
   const isNewApi =
     typeof configOrState === "object" &&
+    configOrState !== null &&
     "state" in configOrState &&
-    typeof configOrState.state === "object" &&
-    "type" in configOrState.state;
+    typeof (configOrState as SandboxConnectConfig).state === "object" &&
+    "type" in (configOrState as SandboxConnectConfig).state;
 
   if (isNewApi) {
     const config = configOrState as SandboxConnectConfig;
-    return connectVercel(config.state, config.options);
+    return dispatchConnect(config.state, config.options);
   }
 
-  const state = configOrState as SandboxState;
-  return connectVercel(state, legacyOptions);
+  return dispatchConnect(configOrState as SandboxState, legacyOptions);
 }

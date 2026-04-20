@@ -41,30 +41,9 @@ export const DEFAULT_WORKING_DIRECTORY = "/vercel/sandbox";
  * - Current snapshot includes: bun + jq + agent-browser + chromium + code-server
  * - Previous snapshot includes: bun + jq + agent-browser + chromium
  */
-/**
- * Base snapshot ID for the Vercel sandbox. The stock Open Harness snapshot
- * (`snap_EjsphVxi07bFKrfojljJdIS41KHT`) lives in the Open Harness Vercel team
- * and is not accessible from other teams — using a user-supplied VERCEL_TOKEN
- * with a different team will fail to create a sandbox from it.
- *
- * Behavior:
- * - If `VERCEL_SANDBOX_BASE_SNAPSHOT_ID` is set to a non-empty value, use it.
- * - If it's explicitly set to `"none"` or empty, skip the base snapshot and
- *   create a fresh sandbox (the agent will install bun/etc. on demand).
- * - Otherwise, fall back to the Open Harness default snapshot.
- */
-function resolveBaseSnapshotId(): string | undefined {
-  const raw = process.env.VERCEL_SANDBOX_BASE_SNAPSHOT_ID;
-  if (raw !== undefined) {
-    const trimmed = raw.trim();
-    if (trimmed === "" || trimmed.toLowerCase() === "none") {
-      return undefined;
-    }
-    return trimmed;
-  }
-  // Open Harness default (bun + jq + agent-browser + chromium + code-server).
-  // Only accessible inside the Open Harness Vercel team.
-  return "snap_EjsphVxi07bFKrfojljJdIS41KHT";
-}
-
-export const DEFAULT_SANDBOX_BASE_SNAPSHOT_ID = resolveBaseSnapshotId();
+export const DEFAULT_SANDBOX_BASE_SNAPSHOT_ID =
+  process.env.VERCEL_SANDBOX_BASE_SNAPSHOT_ID ??
+  // Previous snapshot (bun + jq): "snap_MQ0NqdLL5qEXiYusgWL3K0yaMmql"
+  // Previous snapshot (bun + jq + agent-browser + chromium): "snap_C8tUFhwRXZky4MaFvTuwO7DH66wx"
+  // Current snapshot (bun + jq + agent-browser + chromium + code-server):
+  "snap_EjsphVxi07bFKrfojljJdIS41KHT";

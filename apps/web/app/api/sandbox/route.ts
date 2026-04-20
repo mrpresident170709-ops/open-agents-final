@@ -170,54 +170,23 @@ export async function POST(req: Request) {
       }
     : undefined;
 
-  let sandbox;
-  try {
-    sandbox = await connectSandbox({
-      state: {
-        type: "vercel",
-        ...(sandboxName ? { sandboxName } : {}),
-        source,
-      },
-      options: {
-        githubToken: githubToken ?? undefined,
-        gitUser,
-        timeout: DEFAULT_SANDBOX_TIMEOUT_MS,
-        ports: DEFAULT_SANDBOX_PORTS,
-        ...(DEFAULT_SANDBOX_BASE_SNAPSHOT_ID
-          ? { baseSnapshotId: DEFAULT_SANDBOX_BASE_SNAPSHOT_ID }
-          : {}),
-        persistent: !!sandboxName,
-        resume: !!sandboxName,
-        createIfMissing: !!sandboxName,
-      },
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const stack = error instanceof Error ? error.stack : undefined;
-    console.error("[POST /api/sandbox] connectSandbox failed:", message, stack);
-
-    const is404 =
-      message.includes("404") || message.toLowerCase().includes("not found");
-    const is403 = message.includes("403");
-    if (is404 || is403) {
-      const statusCode = is403 ? 403 : 404;
-      return Response.json(
-        {
-          error: "Sandbox unavailable",
-          reason: `Vercel Sandbox is not accessible (HTTP ${statusCode}). Check VERCEL_TOKEN permissions and that your Vercel plan includes Sandbox access.`,
-        },
-        { status: 503 },
-      );
-    }
-
-    return Response.json(
-      {
-        error: "Failed to create sandbox",
-        reason: message,
-      },
-      { status: 500 },
-    );
-  }
+  const sandbox = await connectSandbox({
+    state: {
+      type: "vercel",
+      ...(sandboxName ? { sandboxName } : {}),
+      source,
+    },
+    options: {
+      githubToken: githubToken ?? undefined,
+      gitUser,
+      timeout: DEFAULT_SANDBOX_TIMEOUT_MS,
+      ports: DEFAULT_SANDBOX_PORTS,
+      baseSnapshotId: DEFAULT_SANDBOX_BASE_SNAPSHOT_ID,
+      persistent: !!sandboxName,
+      resume: !!sandboxName,
+      createIfMissing: !!sandboxName,
+    },
+  });
 
   if (sessionId && sandbox.getState) {
     const nextState = sandbox.getState() as SandboxState;

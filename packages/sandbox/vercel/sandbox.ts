@@ -13,24 +13,6 @@ import type { VercelState } from "./state";
 
 const MAX_OUTPUT_LENGTH = 50_000;
 const DEFAULT_WORKING_DIRECTORY = "/vercel/sandbox";
-
-/**
- * Returns explicit auth params for the @vercel/sandbox SDK when personal-token
- * credentials are present in env.  All three fields must be supplied together —
- * the SDK requires token + teamId + projectId or it falls back to the
- * interactive device-authorization flow which hangs in server environments.
- */
-function getPersonalAuth(): { token: string; teamId: string; projectId: string } | Record<string, never> {
-  const token = process.env.VERCEL_TOKEN;
-  const teamId = process.env.VERCEL_TEAM_ID;
-  const projectId = process.env.VERCEL_PROJECT_ID;
-  const oidcToken = process.env.VERCEL_OIDC_TOKEN;
-
-  if (!oidcToken && token && teamId && projectId) {
-    return { token, teamId, projectId };
-  }
-  return {};
-}
 const TIMEOUT_BUFFER_MS = 30_000; // 30 seconds buffer for beforeStop hook
 const MAX_SDK_TIMEOUT_MS = 18_000_000; // Vercel API limit: 5 hours
 const MAX_PROACTIVE_TIMEOUT_MS = MAX_SDK_TIMEOUT_MS - TIMEOUT_BUFFER_MS;
@@ -540,16 +522,6 @@ ${hostLine}${portLines}${runtimeEnvLine}`;
     // Calculate SDK timeout with buffer for beforeStop hook.
     const sdkTimeout = effectiveTimeout + TIMEOUT_BUFFER_MS;
 
-    // The @vercel/sandbox SDK only auto-detects VERCEL_OIDC_TOKEN from env.
-    // For personal-token auth we must pass token/teamId/projectId explicitly —
-    // otherwise the SDK falls back to an interactive device authorization flow
-    // that hangs forever in server environments.
-    const personalAuth = getPersonalAuth();
-
-    console.log(
-      `[VercelSandbox.create] auth: ${Object.keys(personalAuth).join(", ") || "(device flow — VERCEL_TOKEN/TEAM/PROJECT not all set)"}`,
-    );
-
     const createBaseConfig = {
       ...(name ? { name } : {}),
       resources: { vcpus },
@@ -559,7 +531,6 @@ ${hostLine}${portLines}${runtimeEnvLine}`;
       networkPolicy: buildGitHubCredentialBrokeringPolicy(githubToken),
       ...(ports && { ports }),
       ...(snapshotExpiration !== undefined && { snapshotExpiration }),
-      ...personalAuth,
     };
 
     let sdk: VercelSandboxSDK;
@@ -748,14 +719,9 @@ ${hostLine}${portLines}${runtimeEnvLine}`;
       resume?: boolean;
     } = {},
   ): Promise<VercelSandbox> {
-    const personalAuth = getPersonalAuth();
-    console.log(
-      `[VercelSandbox.connect] auth: ${Object.keys(personalAuth).join(", ") || "(device flow — VERCEL_TOKEN/TEAM/PROJECT not all set)"}`,
-    );
     const sdk = await VercelSandboxSDK.get({
       name: sandboxName,
       resume: options.resume ?? false,
-      ...personalAuth,
     });
     await syncGitHubCredentialBrokering(sdk, options.githubToken);
     const session = sdk.currentSession();
