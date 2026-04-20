@@ -523,21 +523,27 @@ ${hostLine}${portLines}${runtimeEnvLine}`;
     const sdkTimeout = effectiveTimeout + TIMEOUT_BUFFER_MS;
 
     // The @vercel/sandbox SDK only auto-detects VERCEL_OIDC_TOKEN from env.
-    // For personal-token auth (VERCEL_TOKEN + team + project), we must pass
-    // them explicitly — otherwise the SDK falls back to an interactive device
-    // authorization flow that hangs forever in non-TTY environments.
+    // For personal-token auth we must pass token/teamId/projectId explicitly —
+    // otherwise the SDK falls back to an interactive device authorization flow
+    // that hangs forever in non-TTY server environments.
+    // All three fields must be present; providing only some causes an SDK error.
+    const vercelToken = process.env.VERCEL_TOKEN;
+    const vercelTeamId = process.env.VERCEL_TEAM_ID;
+    const vercelProjectId = process.env.VERCEL_PROJECT_ID;
+    const vercelOidcToken = process.env.VERCEL_OIDC_TOKEN;
+
+    console.log(
+      `[VercelSandbox] auth env: oidc=${vercelOidcToken ? "set" : "missing"} token=${vercelToken ? "set" : "missing"} team=${vercelTeamId ? "set" : "missing"} project=${vercelProjectId ? "set" : "missing"}`,
+    );
+
     const personalAuth =
-      !process.env.VERCEL_OIDC_TOKEN && process.env.VERCEL_TOKEN
-        ? {
-            token: process.env.VERCEL_TOKEN,
-            ...(process.env.VERCEL_TEAM_ID
-              ? { teamId: process.env.VERCEL_TEAM_ID }
-              : {}),
-            ...(process.env.VERCEL_PROJECT_ID
-              ? { projectId: process.env.VERCEL_PROJECT_ID }
-              : {}),
-          }
+      !vercelOidcToken && vercelToken && vercelTeamId && vercelProjectId
+        ? { token: vercelToken, teamId: vercelTeamId, projectId: vercelProjectId }
         : {};
+
+    console.log(
+      `[VercelSandbox] passing personalAuth keys: ${Object.keys(personalAuth).join(", ") || "(none — will use OIDC/device flow)"}`,
+    );
 
     const createBaseConfig = {
       ...(name ? { name } : {}),

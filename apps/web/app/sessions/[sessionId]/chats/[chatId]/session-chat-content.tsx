@@ -2566,10 +2566,11 @@ export function SessionChatContent({
     // If we have stored sandbox state, wait for reconnect attempt first.
     if (session.sandboxState && reconnectionStatus === "idle") return;
     if (session.sandboxState && reconnectionStatus === "checking") return;
-    if (session.sandboxState && reconnectionStatus === "connected") {
-      hasAutoStartedSandboxRef.current = true;
-      return;
-    }
+    // When connected the sandboxInfo guard above (line 2564) already returns —
+    // do NOT set hasAutoStartedSandboxRef here, because if the status sync
+    // subsequently discovers the sandbox is gone (no_sandbox), the ref being
+    // true would permanently block the auto-create from re-firing.
+    if (session.sandboxState && reconnectionStatus === "connected") return;
 
     // Paused sessions require an explicit Resume action.
     if (hasSnapshot) {
