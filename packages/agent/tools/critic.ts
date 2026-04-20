@@ -4,7 +4,7 @@ import { getSandbox, shellEscape } from "./utils";
 
 const ANTHROPIC_BASE = "https://api.anthropic.com/v1";
 const DEFAULT_MODEL =
-  process.env.CRITIC_MODEL || "claude-opus-4-5-20250929";
+  process.env.CRITIC_MODEL || "claude-haiku-4-5-20251001";
 const REQUEST_TIMEOUT_MS = 120_000;
 const PASS_THRESHOLD = 85;
 
