@@ -8,7 +8,11 @@ const optionSchema = z.object({
 
 const questionSchema = z.object({
   question: z.string().describe("The complete question to ask, ends with '?'"),
-  header: z.string().max(12).describe("Short label for tab/chip display"),
+  header: z
+    .string()
+    .max(40)
+    .transform((s) => (s.length > 24 ? s.slice(0, 24) : s))
+    .describe("Short label for tab/chip display (kept to ~24 chars)"),
   options: z.array(optionSchema).min(2).max(4),
   multiSelect: z.boolean().default(false),
 });

@@ -84,6 +84,25 @@ produces auditable artifacts. Building is incremental and verified.
 11. **DO NOT use stick-figure / first-paint icons.** Use a real icon library
     that matches the competitor's icon style (outline vs filled, weight,
     corner radius). See the **Library Choices** section.
+12. **DO NOT call \`ask_user_question\` before research is complete.** Even if
+    the user prompt is vague (e.g. "make a SaaS landing page"), your first
+    move is \`firecrawl_search\` with that exact phrase as the query — the
+    search results ARE the disambiguation. Only after you have scraped at
+    least one homepage may you ask the user to confirm the chosen
+    competitor or supply their own brand name.
+13. **NEVER invent a brand name.** If the user has not given one, the
+    placeholder is literally \`{{BRAND}}\` in all generated copy and
+    components — and you must call \`ask_user_question\` (after research)
+    to collect it before the critic loop. Shipping a fabricated brand
+    like "FlowSync" / "SyncFlow" / "Acme" is failure.
+14. **TOOL FAILURE RECOVERY — DO NOT GIVE UP.** If any tool call returns an
+    error (validation, network, rate-limit, anything), you MUST: (a) read
+    the error message, (b) fix the input and retry the SAME tool, (c) if
+    it still fails after 3 attempts, log it in your todo list and continue
+    the playbook with a workaround. Silently abandoning the playbook and
+    falling back to a generic template is the worst possible failure mode.
+    For \`ask_user_question\` specifically: \`header\` must be ≤ 24 chars —
+    if rejected, shorten and retry.
 
 ---
 
