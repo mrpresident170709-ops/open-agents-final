@@ -11,45 +11,6 @@ import type { SandboxStatus } from "../types";
 import type { VercelSandboxConfig, VercelSandboxConnectConfig } from "./config";
 import type { VercelState } from "./state";
 
-/**
- * Returns explicit Vercel API credentials to pass to every SDK call.
- *
- * The @vercel/sandbox SDK does NOT auto-read VERCEL_TOKEN from env — it only
- * recognises VERCEL_OIDC_TOKEN (for Vercel-hosted envs) or credentials passed
- * directly in the params object.  Without explicit creds it falls back to an
- * interactive OAuth device-flow which hangs forever in a headless server.
- *
- * We support two common naming conventions for the personal-access token:
- *   VERCEL_TOKEN        (canonical SDK name)
- *   VERCEL_ACCESS_TOKEN (Vercel REST-API docs use this name)
- *
- * All three values (token + teamId + projectId) must be present together;
- * if any are missing we return undefined and let the SDK try OIDC or fail.
- */
-function getVercelCredentials():
-  | { token: string; teamId: string; projectId: string }
-  | undefined {
-  const token = (
-    process.env.VERCEL_TOKEN ?? process.env.VERCEL_ACCESS_TOKEN ?? ""
-  ).trim();
-  const teamId = (process.env.VERCEL_TEAM_ID ?? "").trim();
-  const projectId = (process.env.VERCEL_PROJECT_ID ?? "").trim();
-
-  if (token && teamId && projectId) {
-    return { token, teamId, projectId };
-  }
-
-  if (token || teamId || projectId) {
-    console.warn(
-      "[VercelSandbox] Partial Vercel credentials found — need all three of " +
-        "VERCEL_TOKEN/VERCEL_ACCESS_TOKEN, VERCEL_TEAM_ID, VERCEL_PROJECT_ID. " +
-        "Falling back to OIDC / device-flow.",
-    );
-  }
-
-  return undefined;
-}
-
 const MAX_OUTPUT_LENGTH = 50_000;
 const DEFAULT_WORKING_DIRECTORY = "/vercel/sandbox";
 const TIMEOUT_BUFFER_MS = 30_000; // 30 seconds buffer for beforeStop hook
@@ -572,26 +533,20 @@ ${hostLine}${portLines}${runtimeEnvLine}`;
       ...(snapshotExpiration !== undefined && { snapshotExpiration }),
     };
 
-    // Explicit credentials let the SDK skip OIDC / device-flow auth.
-    const creds = getVercelCredentials();
-
     let sdk: VercelSandboxSDK;
     if (restoreSnapshotId) {
       sdk = await VercelSandboxSDK.create({
         ...createBaseConfig,
-        ...(creds ?? {}),
         source: { type: "snapshot", snapshotId: restoreSnapshotId },
       });
     } else if (baseSnapshotId) {
       sdk = await VercelSandboxSDK.create({
         ...createBaseConfig,
-        ...(creds ?? {}),
         source: { type: "snapshot", snapshotId: baseSnapshotId },
       });
     } else if (source) {
       sdk = await VercelSandboxSDK.create({
         ...createBaseConfig,
-        ...(creds ?? {}),
         source: source.token
           ? {
               type: "git",
@@ -607,7 +562,7 @@ ${hostLine}${portLines}${runtimeEnvLine}`;
             },
       });
     } else {
-      sdk = await VercelSandboxSDK.create({ ...createBaseConfig, ...(creds ?? {}) });
+      sdk = await VercelSandboxSDK.create(createBaseConfig);
     }
 
     const workingDirectory = DEFAULT_WORKING_DIRECTORY;
@@ -767,7 +722,6 @@ ${hostLine}${portLines}${runtimeEnvLine}`;
     const sdk = await VercelSandboxSDK.get({
       name: sandboxName,
       resume: options.resume ?? false,
-      ...(getVercelCredentials() ?? {}),
     });
     await syncGitHubCredentialBrokering(sdk, options.githubToken);
     const session = sdk.currentSession();
