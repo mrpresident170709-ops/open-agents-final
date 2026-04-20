@@ -8,6 +8,23 @@ import { sanitizeUserPreferencesForSession } from "@/lib/model-access";
 import { getServerSession } from "@/lib/session/get-server-session";
 import { SessionLayoutShell } from "./session-layout-shell";
 
+// Mirror of the chat page's retry policy: with Neon serverless, the very next
+// read after a POST /api/sessions can land on a pooled connection that hasn't
+// seen the INSERT yet. Retry briefly so we don't 404 immediately after create.
+const SESSION_FETCH_RETRY_ATTEMPTS = 8;
+const SESSION_FETCH_RETRY_DELAY_MS = 100;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+async function getSessionByIdWithRetry(sessionId: string) {
+  for (let attempt = 1; attempt <= SESSION_FETCH_RETRY_ATTEMPTS; attempt++) {
+    const record = await getSessionByIdCached(sessionId);
+    if (record) return record;
+    if (attempt < SESSION_FETCH_RETRY_ATTEMPTS) {
+      await sleep(SESSION_FETCH_RETRY_DELAY_MS);
+    }
+  }
+  return undefined;
+}
+
 interface SessionLayoutProps {
   params: Promise<{ sessionId: string }>;
   children: ReactNode;
@@ -20,7 +37,7 @@ export default async function SessionLayout({
   const { sessionId } = await params;
 
   const sessionPromise = getServerSession();
-  const sessionRecordPromise = getSessionByIdCached(sessionId);
+  const sessionRecordPromise = getSessionByIdWithRetry(sessionId);
 
   const session = await sessionPromise;
   if (!session?.user) {

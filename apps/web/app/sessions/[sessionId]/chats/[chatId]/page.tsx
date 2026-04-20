@@ -47,6 +47,10 @@ function isOptimisticChatId(chatId: string): boolean {
 
 const OPTIMISTIC_CHAT_RETRY_DELAY_MS = 100;
 const OPTIMISTIC_CHAT_RETRY_ATTEMPTS = 50;
+// Server-generated chat IDs (nanoid) can also miss on the first read because
+// Neon serverless routes follow-up GETs to a different pooled connection that
+// hasn't yet seen the very recent INSERT. Retry briefly for those too.
+const SERVER_ID_RETRY_ATTEMPTS = 8;
 
 async function getInitialModels() {
   try {
@@ -62,7 +66,7 @@ async function getChatByIdWithRetry(
 ): Promise<Awaited<ReturnType<typeof getChatById>>> {
   const maxAttempts = isOptimisticChatId(chatId)
     ? OPTIMISTIC_CHAT_RETRY_ATTEMPTS
-    : 1;
+    : SERVER_ID_RETRY_ATTEMPTS;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const chat = await getChatById(chatId);
     if (chat && chat.sessionId === sessionId) {
