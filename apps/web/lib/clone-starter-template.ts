@@ -28,9 +28,9 @@ const PACKAGE_JSON = `{
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "15.0.3",
-    "react": "19.0.0-rc-66855b96-20241106",
-    "react-dom": "19.0.0-rc-66855b96-20241106",
+    "next": "14.2.18",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.5.4",
     "class-variance-authority": "^0.7.0",
@@ -45,7 +45,8 @@ const PACKAGE_JSON = `{
     "tailwindcss": "^3.4.14",
     "postcss": "^8.4.49",
     "autoprefixer": "^10.4.20"
-  }
+  },
+  "packageManager": "pnpm@9.12.3"
 }
 `;
 
@@ -274,7 +275,14 @@ To add a font: edit \`app/layout.tsx\` and add \`next/font/google\` (or local).
 The font CSS variable name MUST be \`--font-sans\` and/or \`--font-display\`
 so the existing Tailwind config picks it up.
 
-The first dev-server start should be \`npm install && npm run dev\`.
+The first dev-server start should be \`pnpm install && pnpm dev\`.
+
+## Package manager
+
+This sandbox uses **pnpm**. \`npm install\` and \`bun install\` will fail
+(npm chokes on peer deps of some libs and bun is not installed). Always
+run \`pnpm install\`, \`pnpm add <pkg>\`, \`pnpm dev\`, \`pnpm build\`.
+
 `;
 
 const STARTER_FILES: StarterFile[] = [

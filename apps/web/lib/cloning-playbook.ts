@@ -37,6 +37,58 @@ produces auditable artifacts. Building is incremental and verified.
 
 ---
 
+## ⚙️ SEEDED SCAFFOLD CONTRACT — READ THIS FIRST ⚙️
+
+**The sandbox you are working in has ALREADY been pre-seeded with a working
+Next.js 14 + Tailwind v3 + shadcn baseline.** These files exist at the
+repository root and you must treat them as the starting point:
+
+- \`package.json\` — Next 14.2.18, React 18.3.1, Tailwind 3.4, lucide-react,
+  framer-motion, clsx, tailwind-merge, class-variance-authority. Pinned.
+  \`packageManager\` is set to pnpm.
+- \`tailwind.config.ts\` — content globs: \`./app\`, \`./components\`,
+  \`./lib\`. CSS-variable color tokens already wired (background, foreground,
+  primary, secondary, muted, accent, card, border, input, ring, radius).
+- \`postcss.config.mjs\` — tailwindcss + autoprefixer (already correct).
+- \`app/globals.css\` — \`@tailwind base/components/utilities\` plus the
+  \`:root\` CSS variables for light + dark mode.
+- \`app/layout.tsx\` — root layout with \`<html className="dark">\`.
+- \`app/page.tsx\` — placeholder homepage to be replaced.
+- \`lib/utils.ts\` — \`cn()\` helper.
+- \`tsconfig.json\`, \`next.config.mjs\`, \`.gitignore\`, \`README.md\`.
+
+**You are FORBIDDEN from any of the following — every one of these wastes a
+build cycle and has caused a previous run to fail:**
+
+- ❌ \`bash npx create-next-app …\` (scaffold already exists — exit 1 will
+  happen because the directory is non-empty)
+- ❌ \`bash npm install …\` (the seeded \`package.json\` uses peer-deps
+  that npm rejects — npm install exits 1 here)
+- ❌ \`bash bun install …\` (bun is NOT installed in the sandbox — exit 127)
+- ❌ Rewriting \`package.json\`, \`tailwind.config.ts\`,
+  \`postcss.config.mjs\`, \`tsconfig.json\`, or \`app/globals.css\` from
+  scratch (extend them, don't replace the foundations).
+- ❌ Reinstalling \`tailwindcss\`, \`postcss\`, \`autoprefixer\`, \`react\`,
+  \`react-dom\`, \`next\` — they are already present.
+
+**Use \`pnpm\` for EVERYTHING.** \`pnpm install\`, \`pnpm add <pkg>\`,
+\`pnpm dev\`, \`pnpm build\`. No exceptions.
+
+**To extend the scaffold for the cloned site:**
+- Add new dependencies → \`bash pnpm add <pkg>\`.
+- Add fonts → edit \`app/layout.tsx\` to import from \`next/font/google\`
+  (or \`next/font/local\`) and expose them as the CSS variables
+  \`--font-sans\` / \`--font-display\` (the existing Tailwind config
+  already references those variables).
+- Add color tokens → edit the \`:root\` block in \`app/globals.css\` and
+  the \`extend.colors\` block in \`tailwind.config.ts\`.
+- Add sections → create \`components/sections/<Name>.tsx\`.
+- Add page routes → create \`app/<slug>/page.tsx\`.
+- Replace the placeholder homepage in \`app/page.tsx\` only after at least
+  one section component exists.
+
+---
+
 ## ABSOLUTE HARD RULES — NO EXCEPTIONS
 
 1. **Your FIRST tool call MUST be \`firecrawl_search\`** to find the top
@@ -286,16 +338,28 @@ Create \`docs/research/\` and write these files using \`write\`:
   hover, theme transition, smooth-scroll library you spotted in the HTML/JS.
 
 ### Phase 3 — Foundation build (sequential, do it yourself)
-1. Scaffold the project (default: \`bash npx create-next-app@latest\` with
-   TypeScript + Tailwind, App Router, no eslint prompt). Match the target's
-   stack only if it differs meaningfully.
-2. Update \`app/globals.css\` and Tailwind config with the actual color
-   tokens, fonts, and global behaviors from \`DESIGN_TOKENS.md\`.
-3. Update \`app/layout.tsx\` with the actual fonts (next/font).
-4. Create \`src/components/icons.tsx\` and seed with the SVGs you can
-   already extract from the homepage HTML.
-5. Create \`public/cloned-assets/\`.
-6. \`bash npm run build\` → verify clean.
+**The Next.js + Tailwind scaffold already exists** — see the **Seeded
+Scaffold Contract** at the top. Do NOT scaffold again. Your job in this
+phase is to install, theme, and font the existing scaffold:
+
+1. \`bash pnpm install\` once, at the repo root, to materialize
+   \`node_modules\` from the seeded \`package.json\`.
+2. Add any extra libraries the cloned site needs (smooth-scroll, carousel,
+   icon set beyond lucide, etc.) with \`bash pnpm add <pkg>\`. See
+   **Library Choices** below.
+3. **Extend** \`app/globals.css\`: replace the placeholder \`:root\` and
+   \`.dark\` CSS-variable values with the real color tokens from
+   \`DESIGN_TOKENS.md\`. Keep the variable names; only change the values.
+4. **Extend** \`tailwind.config.ts\` ONLY if you need new tokens (extra
+   colors, fontFamilies, animations) — do not rewrite the file.
+5. **Edit** \`app/layout.tsx\` to load the competitor's actual fonts via
+   \`next/font/google\` or \`next/font/local\`. Expose them as the CSS
+   variables \`--font-sans\` and \`--font-display\` so the seeded Tailwind
+   config picks them up automatically.
+6. \`bash mkdir -p components/sections public/cloned-assets\`.
+7. Create \`components/icons.tsx\` and seed with SVGs you can already
+   extract from the homepage HTML.
+8. \`bash pnpm build\` → verify clean before dispatching any section build.
 
 ### Phase 4 — Section-by-section: extract → spec → build → critique
 For each section in PAGE_TOPOLOGY.md, in order:
@@ -384,10 +448,10 @@ pricing-page sections, etc., per \`SITE_MAP.md\`). Shared sections (nav,
 footer) go in \`app/layout.tsx\` or a shared layout group, not duplicated
 into each route.
 
-**Step E — Verify build.** \`bash npm run build\` must pass.
+**Step E — Verify build.** \`bash pnpm build\` must pass.
 
 **Step F — Critic loop.**
-- Start the dev server (\`bash npm run dev\` in the background) if not
+- Start the dev server (\`bash pnpm dev\` in the background) if not
   already up.
 - \`firecrawl_scrape\` your live URL with \`fullPage: false\` to capture
   just the section's screenshot.
@@ -409,7 +473,7 @@ After all section components exist:
 - Wire global behaviors from \`BEHAVIORS.md\` (smooth scroll lib,
   scroll-snap, dark-to-light transitions, etc.) in \`app/layout.tsx\`.
 - Verify nav links resolve to actual routes (no dead \`href="#"\`).
-- \`bash npm run build\` clean.
+- \`bash pnpm build\` clean.
 
 ### Phase 6 — Visual QA diff
 Do not declare done. Take a final \`firecrawl_scrape\` of your live site
@@ -438,7 +502,9 @@ Before writing ANY component code, verify each box. If you can't, scrape more.
 
 ## What NOT to Do (each one cost a previous session hours)
 
-- ❌ \`bash npx create-next-app …\` before any \`firecrawl_*\` call.
+- ❌ \`bash npx create-next-app …\` at any time. The scaffold already
+  exists; create-next-app will exit 1 because the directory is non-empty.
+- ❌ \`bash npm install\` or \`bash bun install\`. **Always \`pnpm\`.**
 - ❌ A todo list of "hero / features / pricing / testimonials / footer"
   before scraping — that's a template, not a clone.
 - ❌ Building a click-based tab UI when the original is scroll-driven.
