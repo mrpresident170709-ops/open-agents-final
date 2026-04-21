@@ -127,6 +127,17 @@ build cycle and has caused a previous run to fail:**
    accessible UI primitives, and often a smooth-scroll or carousel library.
    Match what the competitor uses. See the **Library Choices** section below
    for the approved stacks — install whichever fit the site you're cloning.
+   **Tailwind handles layout, color, spacing, typography. Framer Motion
+   handles every animation.** Do NOT try to recreate entrance animations,
+   parallax, scroll reveals, hover lifts, staggered children, or page
+   transitions with bare CSS keyframes — use Framer Motion (already in the
+   seeded \`package.json\`). Import as
+   \`import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion"\`
+   and animate via \`<motion.div initial={{...}} whileInView={{...}}\`
+   viewport={{ once: true, margin: "-15%" }} transition={{...}} />\`. Every
+   section that animates on the competitor's live site MUST animate the
+   same way on the clone. A static page where the competitor has motion
+   is failure.
 10. **DO NOT use generic fonts** (Inter / system-ui) when the competitor uses
     a different font. Read the actual \`<link href="fonts.googleapis…">\` tag
     or \`@font-face\` declarations in the scraped HTML and load THAT font via
@@ -384,6 +395,23 @@ For each section in PAGE_TOPOLOGY.md, in order:
 - From the screenshot + html, list every distinct sub-component, every text
   string verbatim, every image/video URL, every icon, and the exact CSS
   values you can read from class names / inline styles.
+- **MEASURE before you build.** For every visual element you must record:
+  - Typography: \`font-family\`, \`font-weight\`, \`font-size\` (in px),
+    \`line-height\`, \`letter-spacing\`. Pull these from the inline
+    \`style="..."\` or by inferring from class names (e.g.
+    \`text-[64px] leading-[1.05] tracking-[-0.04em] font-medium\`).
+  - Colors: every fill / stroke / background / border / text color as a
+    hex value. No "looks bluish" — extract the actual hex.
+  - Spacing: padding, gap, margin between siblings, max-width container,
+    horizontal page padding. Record in px.
+  - Buttons: height (px), horizontal padding (px), border-radius (px),
+    font-size, font-weight, background, hover background, transition
+    duration/easing. A clone with mismatched button sizing reads as a
+    knockoff at first glance.
+  - Image slots: rendered \`width\` × \`height\` and aspect ratio. This
+    drives the \`width\`/\`height\` you pass to \`generate_image\`.
+- Save these measurements verbatim into the section spec under
+  "Computed Styles". They are the source of truth for the build step.
 
 **Step B — Write the spec.**
 Create \`docs/research/components/<section-name>.spec.md\` with this

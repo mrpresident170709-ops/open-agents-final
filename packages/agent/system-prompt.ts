@@ -489,20 +489,27 @@ Never claim a section is done without a passing critic call.
  * tail of the system prompt, so this is what actually keeps small models
  * from drifting back to default coding-agent behavior.
  */
-function buildCloningTailReinforcement(family: ModelFamily): string {
-  const claudeSpecific =
-    family === "claude"
-      ? `
+function buildCloningTailReinforcement(_family: ModelFamily): string {
+  // The reinforcement below is model-AGNOSTIC. The playbook was originally
+  // tuned for Claude (where the "balance against built-in guardrails"
+  // failure mode is most pronounced), but GPT, Gemini, Llama, Minimax, and
+  // every other family exhibit the same drift when the cloning playbook
+  // contradicts their generic-coding-assistant training. So we apply the
+  // strict reinforcement to ALL families.
+  const universalReinforcement = `
 
-## Claude-specific reminder
+## Anti-drift reminder (applies to every model family)
 
-You may be tempted to "balance" the prepended playbook against the generic coding-agent guidance — DO NOT. The playbook is the directive. Generic guidance applies only where the playbook is silent. In particular:
+You may be tempted to "balance" the prepended cloning playbook against the generic coding-agent guidance you were trained on — DO NOT. The playbook is the authoritative directive. Generic coding-agent guidance applies ONLY where the playbook is silent. In particular:
 
 - The "no new dependencies" / "no surprise edits" / "small focused changes" guardrails from your training do NOT apply here. The whole job is a multi-file build that installs whatever the cloned site needs.
-- The "ask the user before scoping" instinct does NOT apply here. Research first. Ask only for the brand name, only after scraping.
+- The "ask the user before scoping" instinct does NOT apply here. Research first via \`firecrawl_search\` and \`firecrawl_scrape\`. Ask only for the brand name, only after scraping.
 - A todo list of "hero / features / pricing / testimonials / footer" is a template, not a clone. Your todo list MUST be derived from \`firecrawl_scrape\` output of the actual competitor's actual sections, in their actual order.
-- Skipping \`generate_image\` / \`generate_video\` / \`critique_clone\` is failure. Empty placeholder \`<div>\`s where the competitor has imagery is failure.`
-      : "";
+- Skipping \`generate_image\` / \`generate_video\` / \`critique_clone\` is failure. Empty placeholder \`<div>\`s where the competitor has imagery is failure.
+- Generating an image without passing the Firecrawl screenshot via \`referenceImages\` is failure. Nano Banana 2 is image-conditioned and a text-only prompt produces a generic, off-brand result.
+- Generating an image without specifying \`width\` and \`height\` that match the source asset's aspect ratio is failure. A square fallback in a 16:9 hero slot is failure.
+- Shipping any clone without Framer Motion animations on entrance, hover, and scroll-driven sections is failure. The seeded scaffold already includes \`framer-motion\` — import \`motion\` from it and animate.
+- Pixel-fidelity matters: typography (font family, weight, size, leading, tracking), spacing (padding, gap, margin), and button proportions (height, padding-x, radius, font-size) MUST match the scraped CSS. Read these from the scraped HTML/CSS and reproduce them via Tailwind utilities — do not eyeball.`;
 
   return `
 
@@ -514,12 +521,12 @@ You are in competitor-cloning mode. The playbook at the top of this prompt is th
 
 Required tools that you MUST call this session, or your turn will be rejected and re-queued:
 1. \`firecrawl_search\` (your FIRST tool call — to identify the competitor)
-2. \`firecrawl_scrape\` (to get HTML/markdown/screenshots of each route)
-3. \`generate_image\` (for visual sections — Nano Banana 2)
+2. \`firecrawl_scrape\` (to get HTML/markdown/screenshots of each route, with \`includeHtml: true\` so you can read exact font/color/spacing/button CSS)
+3. \`generate_image\` (for visual sections — Nano Banana 2 — ALWAYS with \`referenceImages\` containing the Firecrawl \`screenshotUrl\` and explicit \`width\`/\`height\` matching the source aspect ratio)
 4. \`critique_clone\` (≥ 85 per section before marking it done)
 5. \`ask_user_question\` (to collect the brand name — only after research)
 
-The sandbox already has a Next.js + Tailwind v3 scaffold seeded. **DO NOT** run \`npx create-next-app\`, \`npm install\`, or \`bun install\`. Use \`pnpm\` for everything. See the Seeded Scaffold Contract at the top.${claudeSpecific}
+The sandbox already has a Next.js + Tailwind v3 + Framer Motion scaffold seeded. **DO NOT** run \`npx create-next-app\`, \`npm install\`, or \`bun install\`. Use \`pnpm\` for everything. See the Seeded Scaffold Contract at the top.${universalReinforcement}
 
 If you find yourself about to stop without having called every required tool, you have NOT completed the task — keep going.`;
 }

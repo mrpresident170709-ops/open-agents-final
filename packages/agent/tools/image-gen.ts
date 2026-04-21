@@ -55,18 +55,43 @@ CRITICAL — ALWAYS pass reference images when cloning:
   \`referenceImages\`. The model will then match composition, palette, lighting,
   and style instead of guessing from words.
 - Workflow: \`firecrawl_scrape({ url, fullPage: true })\` → take
-  \`screenshotUrl\` → call \`generate_image({ prompt, referenceImages: [screenshotUrl], ... })\`.
+  \`screenshotUrl\` → call \`generate_image({ prompt, referenceImages: [screenshotUrl], width, height, ... })\`.
 - For section-level cloning (hero bg, feature illustration, testimonial bg)
   pass the section screenshot. For full-page recreation pass the full-page
   screenshot. You may pass up to 4 reference URLs (e.g., the section + an
   inspiration crop + a brand-asset reference).
 
+CRITICAL — ALWAYS pass exact width and height:
+- The default 1024×1024 is almost NEVER what the source uses. A square
+  asset shoved into a 16:9 hero slot, or a 21:9 banner stretched into a
+  square, will look broken regardless of how good the pixels are.
+- Before calling, READ the source asset's natural dimensions from the
+  scraped HTML (e.g., \`<img width="1600" height="900">\`,
+  \`background-size\`, the rendered slot's CSS aspect-ratio, or measure
+  from the screenshot). Then pass matching \`width\` and \`height\`.
+- Common slots: hero background → 1920×1080 or 2400×1200. Feature card
+  illustration → 800×600. Avatar → 512×512. Logo / icon → 512×512 with
+  transparent intent. Full-bleed banner → 2560×900.
+
+CRITICAL — Prompt content rules (the prompt is NOT optional fluff):
+- Open the prompt with the EXACT visual specification extracted from the
+  source: dominant hex colors, lighting direction, depth of field,
+  texture, subject placement (e.g. "subject centered-left, 60% of frame
+  height, isolated on solid #0B0F19 background, soft top-left key light").
+- Name the typeface family if any text is rendered ("Inter Bold", "Söhne",
+  "GT Walsheim Medium").
+- Specify button/UI element proportions if the asset contains UI mockups
+  (e.g. "primary CTA button 48px tall, 24px horizontal padding, 8px
+  border-radius, white text on #6366F1").
+- End with negative directives ("no watermark, no extra UI chrome, no
+  generic stock-photo people, no Apple/Google product imagery").
+
 USAGE:
-- Provide a detailed prompt describing the desired image (style, colors, mood, composition)
 - The image is saved as a PNG in the project (default: public/cloned-assets/<filename>.png)
 - The agent's app code can then reference it via a public path
-
-The model generates square (1024x1024) images by default; pass width/height to override.`,
+- Pair the asset with Framer Motion entrance animation in the rendering
+  component (initial opacity/translate → animate, viewport-triggered) so
+  the result matches the live competitor's motion, not a static page.`,
   inputSchema: z.object({
     prompt: z.string().describe("Detailed description of the image to generate"),
     filePath: z
