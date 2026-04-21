@@ -12,7 +12,7 @@ import {
 } from "../subagents/registry";
 import { SUBAGENT_STEP_LIMIT } from "../subagents/constants";
 import { sumLanguageModelUsage } from "../usage";
-import { getSandboxContext, getSubagentModel } from "./utils";
+import { getModel, getSandboxContext, getSubagentModel } from "./utils";
 
 const subagentTypeSchema = z.enum(SUBAGENT_TYPES);
 
@@ -90,7 +90,15 @@ IMPORTANT:
     { experimental_context, abortSignal },
   ) {
     const sandboxContext = getSandboxContext(experimental_context, "task");
-    const model = getSubagentModel(experimental_context, "task");
+    // The `design` subagent always runs on the user-selected main model so
+    // that visual quality tracks the model the user explicitly chose in the
+    // chat selector. All other subagents (explorer, executor) honor the
+    // optional "Default Subagent Model" preference via getSubagentModel,
+    // which falls back to the main model when no override is set.
+    const model =
+      subagentType === "design"
+        ? getModel(experimental_context, "task")
+        : getSubagentModel(experimental_context, "task");
     const subagentModelId = typeof model === "string" ? model : model.modelId;
 
     const subagent = SUBAGENT_REGISTRY[subagentType].agent;
