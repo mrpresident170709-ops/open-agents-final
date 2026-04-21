@@ -847,11 +847,38 @@ const runAgentStep = async (
     let totalMessageUsage = existingTotalMessageUsage;
     let totalMessageCost = existingTotalMessageCost;
 
-    const result = await webAgent.stream({
-      messages,
-      options: agentOptions,
-      abortSignal: abortController.signal,
-    });
+    // Wrap the upstream stream call with a single silent retry for transient
+    // provider errors. opencode zen / OpenRouter / Vercel AI Gateway
+    // occasionally surface "Provider returned error" or 5xx hiccups when an
+    // upstream provider has a momentary blip — these clear on a clean retry.
+    // We ONLY retry if zero parts have been written to the writer yet,
+    // because retrying mid-stream would emit duplicate tokens / tool calls.
+    let partsWritten = 0;
+    let attempt = 0;
+    const MAX_ATTEMPTS = 2;
+    let result: Awaited<ReturnType<typeof webAgent.stream>>;
+
+    while (true) {
+      attempt += 1;
+      try {
+        result = await webAgent.stream({
+          messages,
+          options: agentOptions,
+          abortSignal: abortController.signal,
+        });
+        break;
+      } catch (streamError) {
+        if (
+          attempt < MAX_ATTEMPTS &&
+          isTransientUpstreamError(streamError) &&
+          !abortController.signal.aborted
+        ) {
+          await delay(750);
+          continue;
+        }
+        throw streamError;
+      }
+    }
 
     for await (const part of result.toUIMessageStream<WebAgentUIMessage>({
       originalMessages,
@@ -899,11 +926,13 @@ const runAgentStep = async (
       const writer = writable.getWriter();
       await writer.write(part);
       writer.releaseLock();
+      partsWritten += 1;
     }
 
     if (responseMessage == null) {
       throw new Error("Agent stream finished without a response message");
     }
+    void partsWritten;
 
     responseMessage = {
       ...responseMessage,
@@ -1194,6 +1223,44 @@ function sanitizeAgentStepError(message: string, modelId?: string): string {
 
 function isAbortError(error: unknown) {
   return error instanceof Error && error.name === "AbortError";
+}
+
+/**
+ * Returns true for transient upstream provider errors that are safe to retry
+ * once at stream-setup time. Covers:
+ *  - "Provider returned error" (opencode zen / OpenRouter wrapper around an
+ *    upstream provider hiccup)
+ *  - 5xx gateway errors (502/503/504)
+ *  - "Bad gateway", "Service unavailable", "upstream timeout", "Cloudflare"
+ *    error pages
+ *  - Generic fetch failures ("ECONNRESET", "fetch failed", "network")
+ *
+ * Does NOT match auth (401/403), not-found (404), validation (400),
+ * rate-limit (429), or aborts.
+ */
+function isTransientUpstreamError(error: unknown): boolean {
+  if (isAbortError(error)) return false;
+  const message =
+    error instanceof Error ? error.message : String(error ?? "");
+  if (!message) return false;
+  const lower = message.toLowerCase();
+
+  if (
+    lower.includes("provider returned error") ||
+    lower.includes("bad gateway") ||
+    lower.includes("gateway time") ||
+    lower.includes("service unavailable") ||
+    lower.includes("upstream") ||
+    lower.includes("cloudflare") ||
+    lower.includes("econnreset") ||
+    lower.includes("etimedout") ||
+    lower.includes("fetch failed") ||
+    lower.includes("network error") ||
+    /\b50[234]\b/.test(lower)
+  ) {
+    return true;
+  }
+  return false;
 }
 
 async function sendStart(writable: Writable, messageId: string) {
