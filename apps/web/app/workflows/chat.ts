@@ -1054,8 +1054,24 @@ const runAgentStep = async (
       };
     }
 
-    const errorWithStepTiming =
+    const rawError =
       error instanceof Error ? error : new Error(String(error));
+
+    // Sanitize the error message before it reaches the chat UI.
+    // The Vercel AI Gateway (and other upstream proxies) sometimes return an
+    // HTML error page on 5xx / timeout / cold-start. The AI SDK surfaces the
+    // raw response body as `error.message`, which then renders as a wall of
+    // `<!DOCTYPE html>...` in the chat. Replace it with a short, retryable
+    // message and stash the original on the cause for server-side debugging.
+    const cleanedMessage = sanitizeAgentStepError(rawError.message, modelId);
+    const errorWithStepTiming =
+      cleanedMessage === rawError.message
+        ? rawError
+        : Object.assign(new Error(cleanedMessage), {
+            name: rawError.name,
+            cause: rawError,
+          });
+
     Object.assign(errorWithStepTiming, {
       stepTiming: buildStepTiming(
         stepNumber,
@@ -1114,6 +1130,66 @@ function delay(ms: number) {
   return new Promise<void>((resolve) => {
     setTimeout(resolve, ms);
   });
+}
+
+/**
+ * Convert raw upstream-gateway error bodies into short, user-friendly messages.
+ * The most common offender is the AI Gateway returning an HTML 5xx page during
+ * long Claude Haiku 4.5 thinking runs — the AI SDK surfaces the raw HTML as
+ * `error.message`, which then renders verbatim in the chat. Other shapes we
+ * normalize: Cloudflare error pages, plain "Bad Gateway" / "Gateway Timeout"
+ * strings, and raw stringified JSON envelopes. Anything we don't recognize is
+ * passed through unchanged.
+ */
+function sanitizeAgentStepError(message: string, modelId?: string): string {
+  if (!message) return "The model request failed. Please retry.";
+  const lower = message.toLowerCase().trim();
+  const modelHint = modelId ? ` (model: ${modelId})` : "";
+
+  // HTML body — almost always a gateway 5xx / Cloudflare / nginx error page.
+  // Require BOTH an HTML marker AND a gateway/status indicator to avoid
+  // misclassifying a legitimate error string that happens to mention "<html"
+  // (e.g. an HTML-validation tool error from the agent itself).
+  const looksLikeHtml =
+    lower.startsWith("<!doctype") ||
+    lower.startsWith("<html") ||
+    /<head[\s>]/.test(lower) ||
+    /<title>/.test(lower);
+  const hasGatewaySignal =
+    /\b50[234]\b/.test(lower) ||
+    lower.includes("bad gateway") ||
+    lower.includes("gateway time") ||
+    lower.includes("cloudflare") ||
+    lower.includes("nginx") ||
+    lower.includes("service unavailable") ||
+    lower.includes("upstream");
+
+  if (looksLikeHtml && hasGatewaySignal) {
+    return `Upstream model gateway returned an error page${modelHint}. This is usually a transient 502/503/504 from the AI gateway during a long response — please retry.`;
+  }
+
+  // Plain-text gateway/timeout strings (no HTML wrapper).
+  if (
+    !looksLikeHtml &&
+    (lower.includes("bad gateway") ||
+      lower.includes("gateway time") ||
+      /\b50[234]\b/.test(lower))
+  ) {
+    return `Upstream model gateway timed out${modelHint}. Please retry.`;
+  }
+
+  if (lower.includes("rate limit") || lower.includes("rate_limit_exceeded")) {
+    return `Model rate limit hit${modelHint}. Wait a moment and retry, or switch models.`;
+  }
+
+  // Last resort: an HTML body without any gateway hint is still useless to
+  // show in chat. Truncate to keep the UI usable but flag it as raw.
+  if (looksLikeHtml && message.length > 600) {
+    return `Upstream returned an HTML error body${modelHint} (no gateway hint). Please retry.`;
+  }
+
+  // Pass-through unchanged for everything else — preserves diagnostics.
+  return message;
 }
 
 function isAbortError(error: unknown) {
