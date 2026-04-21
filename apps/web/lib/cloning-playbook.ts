@@ -189,6 +189,19 @@ Extract the actual text and assets from the live site:
 - **Backgrounds, gradients, illustrations, AI-painted scenes, hero photos**
   that aren't trivially downloadable → \`generate_image\` (Together AI's
   Nano Banana 2 / \`google/flash-image-3.1\`).
+  **MANDATORY: pass the Firecrawl screenshot of the section as a reference.**
+  Nano Banana 2 is image-conditioned — text-only prompts produce generic
+  output that won't match the competitor's composition, palette, or style.
+  Always invoke as:
+  \`\`\`
+  generate_image({
+    prompt: "<detailed description of the asset>",
+    referenceImages: ["<screenshotUrl from firecrawl_scrape of this section>"],
+    filePath: "public/cloned-assets/<name>.png",
+  })
+  \`\`\`
+  When recreating a layered hero, you may pass up to 4 references (the full
+  section screenshot + cropped inspiration + brand asset).
 - **Animated backgrounds, hero loops, motion that is too complex to code in
   CSS/JS** → \`generate_video\` (Sora 2) and embed the MP4.
 - **Inline SVGs** (icons, decorative shapes) → copy the \`<svg>\` directly
