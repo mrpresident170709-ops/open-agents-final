@@ -144,6 +144,7 @@ export const openHarnessAgent = new ToolLoopAgent({
       currentBranch: sandbox.currentBranch,
       customInstructions,
       priorityInstructions,
+      cloningPlaybookActive: options.cloningPlaybookActive === true,
       environmentDetails: sandbox.environmentDetails,
       skills,
       modelId: mainSelection.id,
