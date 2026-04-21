@@ -197,6 +197,21 @@ function resolveBaseModel(
     return openai.responses(openaiModelId) as unknown as LanguageModel;
   }
 
+  // Route opencode zen models (OpenAI-compatible Chat Completions API).
+  // Free models like "big-pickle" are hosted at opencode.ai/zen and require a
+  // free API key from opencode.ai/auth, exposed via OPENCODE_API_KEY
+  // (OPENCODE_ZEN_API_KEY also accepted for compatibility).
+  if (id.startsWith("opencode/")) {
+    const opencodeModelId = id.slice("opencode/".length);
+    const opencode = createOpenAI({
+      apiKey:
+        process.env.OPENCODE_API_KEY ?? process.env.OPENCODE_ZEN_API_KEY ?? "",
+      baseURL: "https://opencode.ai/zen/v1",
+      name: "opencode-zen",
+    });
+    return opencode.chat(opencodeModelId) as unknown as LanguageModel;
+  }
+
   // Fall back to Vercel AI Gateway for all other models
   const baseGateway = config
     ? createGateway({ baseURL: config.baseURL, apiKey: config.apiKey })

@@ -263,6 +263,7 @@ const providerDisplayNames: Record<string, string> = {
   fireworks: "Fireworks",
   meta: "Meta",
   zai: "ZAI",
+  opencode: "opencode zen",
 };
 
 /** Prefixes in model display names that match the provider brand (stripped in compact UI). */

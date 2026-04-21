@@ -215,13 +215,32 @@ async function fetchGatewayModels(): Promise<GatewayModel[]> {
   }
 }
 
+/**
+ * Custom models that are not exposed through the Vercel AI Gateway and need
+ * to be injected manually into the available-models list. Routing for these
+ * IDs is handled in `packages/agent/models.ts` (`resolveBaseModel`).
+ */
+const CUSTOM_LANGUAGE_MODELS: GatewayModel[] = [
+  {
+    id: "opencode/big-pickle",
+    name: "Big Pickle",
+    description: "Free model from opencode zen",
+    modelType: "language",
+  },
+];
+
 export async function fetchAvailableLanguageModels(): Promise<
   AvailableModel[]
 > {
   const models = await fetchGatewayModels();
-  return filterDisabledModels(
+  const languageModels = filterDisabledModels(
     models.filter((model) => model.modelType === "language"),
   );
+  const existingIds = new Set(languageModels.map((model) => model.id));
+  const extras = CUSTOM_LANGUAGE_MODELS.filter(
+    (model) => !existingIds.has(model.id),
+  );
+  return [...languageModels, ...extras];
 }
 
 export async function fetchAvailableLanguageModelsWithContext(): Promise<
