@@ -2,6 +2,7 @@
 
 import type { AskUserQuestionInput } from "@open-harness/agent";
 import { formatTokens } from "@open-harness/shared";
+import { formatStreamError } from "@/lib/format-stream-error";
 import {
   isReasoningUIPart,
   isToolUIPart,
@@ -3323,7 +3324,7 @@ export function SessionChatContent({
               {/* Transient error banner (e.g. iOS "Load failed" after sleep) */}
               {error && (
                 <div className="flex items-center justify-between gap-3 border-b border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive">
-                  <p className="min-w-0 truncate">{error.message}</p>
+                  <p className="min-w-0 truncate">{formatStreamError(error)}</p>
                   <Button
                     variant="outline"
                     size="sm"

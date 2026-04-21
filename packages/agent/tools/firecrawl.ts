@@ -86,15 +86,36 @@ Returns a list of search results with title, URL, and a short description.`,
   ]),
   execute: async ({ query, limit = 5 }, { abortSignal }) => {
     try {
+      // Firecrawl /v2/search response shape has shifted across versions:
+      //   - { web: [...] }
+      //   - { data: [...] }
+      //   - { data: { web: [...] } }
+      //   - { results: [...] }
+      // Probe each shape.
+      type Hit = { title?: string; url?: string; description?: string };
       const data = await firecrawlRequest<{
-        data?: Array<{ title?: string; url?: string; description?: string }>;
-        web?: Array<{ title?: string; url?: string; description?: string }>;
+        web?: Hit[];
+        data?: Hit[] | { web?: Hit[]; results?: Hit[] };
+        results?: Hit[];
       }>("/v2/search", { query, limit }, abortSignal);
-      const items = data.web ?? data.data ?? [];
+
+      const arr = (v: unknown): Hit[] | undefined =>
+        Array.isArray(v) ? (v as Hit[]) : undefined;
+      const nested =
+        data.data && !Array.isArray(data.data) ? data.data : undefined;
+
+      const items: Hit[] =
+        arr(data.web) ??
+        arr(data.results) ??
+        arr(data.data) ??
+        arr(nested?.web) ??
+        arr(nested?.results) ??
+        [];
+
       return {
         success: true as const,
         results: items
-          .filter((r): r is { url: string } & typeof r => Boolean(r.url))
+          .filter((r): r is { url: string } & Hit => Boolean(r && r.url))
           .map((r) => ({
             title: r.title ?? null,
             url: r.url,
