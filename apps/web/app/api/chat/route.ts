@@ -222,12 +222,25 @@ export async function POST(req: Request) {
       })
     : undefined;
 
-  // Cloning mode is active on the very first turn AND on any follow-up turn
-  // of a chat that already shows clone-workflow tool activity (e.g. user is
-  // replying to an `ask_user_question` for the brand name). This keeps the
-  // enforcement loop alive across multi-turn cloning flows.
-  const cloningModeActive =
+  // Cloning mode is ALWAYS active in this product: every session is a
+  // competitor-cloning session by design. We previously gated this on
+  // `isFirstUserMessageOfSession || chatHasCloneSignals(...)`, but that
+  // caused two silent failures:
+  //   1. On any follow-up turn where the agent had not yet emitted a
+  //      clone-signal tool call (e.g. it asked a clarifying question
+  //      first), cloningModeActive collapsed to false and the playbook
+  //      reinforcement was dropped from the system prompt entirely.
+  //   2. The playbook itself (`priorityInstructions`) was only attached on
+  //      the very first turn — so as soon as detection failed on turn 2,
+  //      the agent had neither the playbook nor the cloning guardrails.
+  // Detection is kept available below for telemetry, but the enforcement
+  // path is unconditional.
+  const cloningModeActive = true;
+  const cloneSignalsDetected =
     isFirstUserMessageOfSession || chatHasCloneSignals(existingChatMessages);
+  console.log(
+    `[clone-mode] session=${sessionId} chat=${chatId} firstTurn=${isFirstUserMessageOfSession} signalsDetected=${cloneSignalsDetected} mode=ALWAYS_ON`,
+  );
 
   // Seed the sandbox with a known-good Next.js + Tailwind v3 + shadcn
   // baseline. The seeder is idempotent (marker file) so calling on every
@@ -279,13 +292,12 @@ export async function POST(req: Request) {
           : {}),
         ...(skills.length > 0 && { skills }),
         customInstructions: assistantFileLinkPrompt,
-        // Inject the playbook only on the very first turn (model has it once,
-        // then prompt-cache reuses it). Enforcement, however, must stay on
-        // for the duration of the cloning workflow.
-        ...(isFirstUserMessageOfSession && {
-          priorityInstructions: COMPETITOR_CLONING_PLAYBOOK,
-        }),
-        ...(cloningModeActive && { cloningPlaybookActive: true }),
+        // Always inject the cloning playbook into the system prompt. The
+        // model anchors on it for tool selection (firecrawl → image gen →
+        // critic loop) and brand-intake behavior. Prompt-caching keeps the
+        // cost of re-sending it negligible across turns.
+        priorityInstructions: COMPETITOR_CLONING_PLAYBOOK,
+        cloningPlaybookActive: true,
       },
       ...(shouldAutoCommitPush &&
         sessionRecord.repoOwner &&
