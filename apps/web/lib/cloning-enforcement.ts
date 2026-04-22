@@ -120,6 +120,43 @@ function tallyToolUsage(modelMessages: ModelMessage[]): ToolUsage {
 }
 
 /**
+ * Detect whether the user's first message is requesting a landing page clone.
+ * Used to gate the cloning playbook so it only activates for landing-page
+ * requests, not general coding tasks.
+ */
+export function isLandingPageRequest(text: string): boolean {
+  const lower = text.toLowerCase();
+
+  // Direct landing-page mentions
+  if (lower.includes("landing page") || lower.includes("landing-page"))
+    return true;
+  if (lower.includes("hero section") || lower.includes("hero banner"))
+    return true;
+  if (lower.includes("single page website") || lower.includes("single-page"))
+    return true;
+
+  // Clone / copy / replicate intent combined with a site reference
+  const hasCloneVerb =
+    /\b(clone|copy|replicate|recreate|re-create|build like|look like|similar to)\b/.test(
+      lower,
+    );
+  const hasSiteNoun =
+    /\b(website|site|landing|homepage|home page)\b/.test(lower) ||
+    /https?:\/\//.test(lower);
+
+  if (hasCloneVerb && hasSiteNoun) return true;
+
+  // Explicit URL + build/create/make intent
+  if (
+    /https?:\/\/\S+/.test(lower) &&
+    /\b(clone|copy|build|create|make)\b/.test(lower)
+  )
+    return true;
+
+  return false;
+}
+
+/**
  * Heuristic: detect whether a chat is mid-clone-workflow based on prior
  * assistant tool calls. Used to keep enforcement active on follow-up turns
  * (e.g. after `ask_user_question` returns the brand name) since the
