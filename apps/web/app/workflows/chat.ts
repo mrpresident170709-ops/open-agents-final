@@ -570,29 +570,6 @@ export async function runAgentWorkflow(options: Options) {
       await refreshLifecycleActivity(options.sessionId);
     }
 
-    // If the model bailed with finishReason "other" (no stop, no tool call —
-    // a provider-side glitch we've seen with cheap models like big-pickle/
-    // minimax mid-stream), the user otherwise just sees a half-typed message
-    // and a stuck UI. Append a clear notice so they know what happened and
-    // can retry or switch models.
-    if (
-      !wasAborted &&
-      finalFinishReason === "other" &&
-      pendingAssistantResponse
-    ) {
-      pendingAssistantResponse = {
-        ...pendingAssistantResponse,
-        parts: [
-          ...pendingAssistantResponse.parts,
-          {
-            type: "text",
-            text: "\n\n_⚠️ The model stopped responding unexpectedly (this can happen with smaller/cheaper models on complex tasks). Please retry, or switch to a stronger model from the dropdown above._",
-            state: "done",
-          },
-        ],
-      };
-    }
-
     if (totalUsage) {
       pendingAssistantResponse = {
         ...pendingAssistantResponse,
