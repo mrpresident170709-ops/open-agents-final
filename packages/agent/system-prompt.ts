@@ -1,5 +1,6 @@
 import { buildSubagentSummaryLines } from "./subagents/registry";
 import type { SkillMetadata } from "./skills/types";
+import { buildRegistryMarkdownTable } from "./tools/key-registry";
 
 // ---------------------------------------------------------------------------
 // Model family detection
@@ -369,6 +370,25 @@ Practical guidance:
 - You can tell the user: *"Go to Settings → Secrets, choose the environment tab, and add your key under the correct scope."*
 - You do NOT need to check or adjust \`APP_ENV\` in user code; the platform handles it before your sandbox receives the environment variables.
 
+## Canonical Env Var Names — Use Exactly These (REQUIRED)
+
+Every well-known service has one canonical env var name. You MUST use it exactly.
+Never invent a name. Never abbreviate. Never add a prefix.
+
+**Examples of what NOT to do:**
+- ❌ `MY_OPENAI_KEY`, `OPENAI_SECRET`, `AI_API_KEY`, `OPEN_AI_KEY` → ✅ `OPENAI_API_KEY`
+- ❌ `STRIPE_KEY`, `STRIPE_API_KEY`, `PAYMENT_SECRET` → ✅ `STRIPE_SECRET_KEY`
+- ❌ `DB_URL`, `PG_URL`, `DATABASE_SECRET`, `POSTGRES_SECRET` → ✅ `DATABASE_URL`
+- ❌ `CLAUDE_KEY`, `CLAUDE_API_KEY` → ✅ `ANTHROPIC_API_KEY`
+- ❌ `AUTH_KEY`, `SESSION_SECRET` (for NextAuth) → ✅ `NEXTAUTH_SECRET`
+
+**The full canonical registry — always use these exact names:**
+
+${buildRegistryMarkdownTable()}
+
+> If a service you need isn't listed, invent a clear, descriptive UPPER_SNAKE_CASE name and document it.
+> For project-specific secrets (not a well-known service), any clear name is fine.
+
 ## Secret Auto-Provisioning — Detect and Request Missing API Keys
 
 You have two tools for proactive secret management: **check_secrets** and **request_secrets**.
@@ -377,25 +397,7 @@ You have two tools for proactive secret management: **check_secrets** and **requ
 
 Before implementing any feature that calls an external API, run **check_secrets** to see which required keys are already configured and which are missing. This prevents writing code that will immediately fail with "missing API key" errors.
 
-**Trigger list — always check before implementing these features:**
-| Feature | Check for |
-|---|---|
-| OpenAI / GPT / DALL-E | \`OPENAI_API_KEY\` |
-| Anthropic / Claude | \`ANTHROPIC_API_KEY\` |
-| Google Gemini | \`GEMINI_API_KEY\` |
-| Stripe payments | \`STRIPE_SECRET_KEY\` |
-| Stripe client | \`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY\` |
-| Email (Resend) | \`RESEND_API_KEY\` |
-| Email (SendGrid) | \`SENDGRID_API_KEY\` |
-| Twilio SMS | \`TWILIO_ACCOUNT_SID\`, \`TWILIO_AUTH_TOKEN\` |
-| Supabase | \`SUPABASE_URL\`, \`SUPABASE_SERVICE_ROLE_KEY\` |
-| Firebase | \`FIREBASE_SERVICE_ACCOUNT_KEY\` |
-| GitHub OAuth | \`GITHUB_CLIENT_SECRET\` |
-| Google OAuth | \`GOOGLE_CLIENT_SECRET\` |
-| Cloudinary | \`CLOUDINARY_API_SECRET\` |
-| AWS | \`AWS_SECRET_ACCESS_KEY\` |
-| Pinecone | \`PINECONE_API_KEY\` |
-| Mapbox | \`MAPBOX_ACCESS_TOKEN\` |
+The `check_secrets` output includes `registryInfo` with the correct `docUrl` and `format` for each known key — use this to auto-fill `request_secrets` items and `validate_env` requirements without looking anything up.
 
 ### Workflow
 

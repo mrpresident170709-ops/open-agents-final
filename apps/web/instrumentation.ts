@@ -11,16 +11,16 @@ export async function register() {
   // replaced with [REDACTED] in all console output.
   patchConsoleForSecretRedaction();
 
-  // ── CBC → GCM migration ────────────────────────────────────────────────
-  // Re-encrypt any legacy AES-256-CBC secrets to AES-256-GCM.
-  // Runs in the background — does not block the first request.
-  // Safe to call on every startup: rows already in GCM format are skipped.
-  if (process.env.ENCRYPTION_KEY) {
-    // Dynamic import keeps this out of the Edge runtime bundle.
-    import("@/lib/db/user-secrets")
-      .then(({ migrateSecretsToGcm }) => migrateSecretsToGcm())
+  // ── Node.js-only startup tasks ────────────────────────────────────────
+  // Guard with NEXT_RUNTIME so these never run in the Edge runtime,
+  // which doesn't support Node.js built-ins (crypto, etc.).
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    // CBC → GCM migration: re-encrypt any legacy secrets.
+    // Runs non-blocking in the background. Safe to call on every start.
+    import("./instrumentation.node")
+      .then(({ runStartupMigrations }) => runStartupMigrations())
       .catch((err) => {
-        console.error("[instrumentation] CBC→GCM migration error:", err);
+        console.error("[instrumentation] startup migration error:", err);
       });
   }
 

@@ -35,3 +35,13 @@ export {
   type ValidateEnvOutput,
   type EnvRequirement,
 } from "./validate-env";
+export {
+  REGISTRY,
+  getCanonicalEntry,
+  isCanonicalName,
+  findCanonicalKeys,
+  auditRequestedNames,
+  buildRegistryMarkdownTable,
+  type CanonicalKeyEntry,
+  type KeyCategory,
+} from "./key-registry";
