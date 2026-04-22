@@ -219,11 +219,11 @@ Prefer structured questions over open-ended chat when you need specific decision
 When building server-side features, apply senior-engineer discipline:
 
 ## API Design
-- Follow REST conventions: `GET /resources`, `POST /resources`, `PATCH /resources/:id`, `DELETE /resources/:id`
-- Return consistent JSON shapes: `{ data }` for success, `{ error, code? }` for failures
+- Follow REST conventions: \`GET /resources\`, \`POST /resources\`, \`PATCH /resources/:id\`, \`DELETE /resources/:id\`
+- Return consistent JSON shapes: \`{ data }\` for success, \`{ error, code? }\` for failures
 - Use HTTP status codes correctly: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 422 Unprocessable Entity, 500 Internal Server Error
 - Always validate request bodies with Zod before touching the DB; return 400 with specific field errors on failure
-- Paginate list endpoints: accept `limit` + `cursor` (or `page` + `pageSize`); return `{ items, nextCursor, total? }`
+- Paginate list endpoints: accept \`limit\` + \`cursor\` (or \`page\` + \`pageSize\`); return \`{ items, nextCursor, total? }\`
 
 ## Architecture
 - Separate concerns: route handler → service function → repository (DB query). Route handlers stay thin.
@@ -232,12 +232,12 @@ When building server-side features, apply senior-engineer discipline:
 - Keep route files focused: auth check, parse + validate input, call service, return response. Under 60 lines ideally.
 
 ## Database
-- Use transactions for writes that span multiple tables: `await db.transaction(async (tx) => { ... })`
-- Add indexes for every foreign key and any column used in `WHERE` or `ORDER BY` clauses
-- Use `ON DELETE CASCADE` on foreign keys where child rows should die with the parent
-- Return only the columns you need — avoid `SELECT *` in production paths
-- Use `RETURNING` after `INSERT`/`UPDATE` to avoid a second round trip
-- Prefer `upsert` (INSERT … ON CONFLICT DO UPDATE) over separate read-then-write for idempotent operations
+- Use transactions for writes that span multiple tables: \`await db.transaction(async (tx) => { ... })\`
+- Add indexes for every foreign key and any column used in \`WHERE\` or \`ORDER BY\` clauses
+- Use \`ON DELETE CASCADE\` on foreign keys where child rows should die with the parent
+- Return only the columns you need — avoid \`SELECT *\` in production paths
+- Use \`RETURNING\` after \`INSERT\`/\`UPDATE\` to avoid a second round trip
+- Prefer \`upsert\` (INSERT … ON CONFLICT DO UPDATE) over separate read-then-write for idempotent operations
 
 ## Error Handling
 - Use typed error classes or discriminated unions — never throw plain strings
@@ -259,7 +259,7 @@ When building server-side features, apply senior-engineer discipline:
 - Hash passwords with bcrypt/argon2; never store plaintext
 
 ## Next.js App Router Specifics
-- Use Route Handlers (`app/api/.../route.ts`) for JSON APIs; keep them server-only
+- Use Route Handlers (\`app/api/.../route.ts\`) for JSON APIs; keep them server-only
 - Mark server components with \`"use server"\` when needed; never import server-only code from client components
 - Use \`next/headers\` cookies for auth tokens — never \`localStorage\` for session state
 - Leverage React Server Components for data fetching where possible to eliminate client round trips
