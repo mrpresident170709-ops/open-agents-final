@@ -6,10 +6,20 @@ const IV_LENGTH = 16;
 const getEncryptionKey = (): Buffer | null => {
   const key = process.env.ENCRYPTION_KEY;
   if (!key) return null;
-  const keyBuffer = Buffer.from(key, "hex");
+
+  // Accept either a 64-char hex string (64 hex chars = 32 bytes)
+  // or a base64-encoded string (44 chars = 32 bytes, the output of
+  // `openssl rand -base64 32` which is the most common generation method).
+  let keyBuffer: Buffer;
+  if (/^[0-9a-fA-F]{64}$/.test(key)) {
+    keyBuffer = Buffer.from(key, "hex");
+  } else {
+    keyBuffer = Buffer.from(key, "base64");
+  }
+
   if (keyBuffer.length !== 32) {
     throw new Error(
-      "ENCRYPTION_KEY must be a 32-byte hex string (64 characters)",
+      "ENCRYPTION_KEY must be a 32-byte value: either a 64-char hex string or a base64-encoded 32-byte key (e.g. from `openssl rand -base64 32`)",
     );
   }
   return keyBuffer;
