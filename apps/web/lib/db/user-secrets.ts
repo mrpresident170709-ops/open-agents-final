@@ -1,6 +1,6 @@
 import { eq, and, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { encrypt, decrypt } from "@/lib/crypto";
+import { encrypt, decrypt, makeSecretAad, isLegacyCiphertext } from "@/lib/crypto";
 import { db } from "./client";
 import {
   userSecrets,
@@ -91,6 +91,10 @@ export async function getUserSecretNames(
  *  2. Overlay env-specific secrets — they take precedence over 'all'
  *
  * If no environment is specified, returns all secrets without merging.
+ *
+ * AAD note: every decrypt call passes (userId, name) as Additional Authenticated
+ * Data. The GCM auth tag covers this context, so a row cannot be decrypted under
+ * a different userId or different secret name without throwing.
  */
 export async function getUserSecretsDecrypted(
   userId: string,
@@ -121,14 +125,21 @@ export async function getUserSecretsDecrypted(
 
   for (const row of rows) {
     try {
-      const value = decrypt(row.encryptedValue);
+      // Pass userId + name as AAD for v2 rows.
+      // Legacy CBC rows ignore the AAD parameter.
+      const aad = makeSecretAad({ userId: row.userId, name: row.name });
+      const value = decrypt(row.encryptedValue, aad);
+
       if (row.environment === "all") {
         result[row.name] = value;
       } else {
         envSpecific[row.name] = value;
       }
-    } catch {
-      console.error(`[user-secrets] failed to decrypt secret ${row.name} (${row.environment})`);
+    } catch (err) {
+      console.error(
+        `[user-secrets] failed to decrypt secret "${row.name}" (env: ${row.environment}, format: ${isLegacyCiphertext(row.encryptedValue) ? "legacy-cbc" : "v2-gcm"})`,
+        err instanceof Error ? err.message : err,
+      );
     }
   }
 
@@ -142,7 +153,11 @@ export async function upsertUserSecret(
   value: string,
   environment: SecretEnvironment = "all",
 ): Promise<SecretEntry> {
-  const encryptedValue = encrypt(value);
+  // Always encrypt with GCM + AAD binding — this is the write path.
+  // AAD binds the ciphertext to (userId, name) so it cannot be used under
+  // a different user's record or a different key name.
+  const aad = makeSecretAad({ userId, name });
+  const encryptedValue = encrypt(value, aad);
   const now = new Date();
 
   const [existing] = await db
@@ -197,4 +212,81 @@ export async function deleteUserSecret(
     )
     .returning({ id: userSecrets.id });
   return result.length > 0;
+}
+
+// ─── Migration: CBC → GCM ─────────────────────────────────────────────────────
+
+export interface MigrationResult {
+  total: number;
+  migrated: number;
+  skipped: number;
+  failed: number;
+  errors: Array<{ id: string; name: string; error: string }>;
+}
+
+/**
+ * One-pass migration: re-encrypt all legacy AES-256-CBC secrets to AES-256-GCM.
+ *
+ * This is safe to call multiple times — rows already in GCM format are detected
+ * via the `v2:` prefix and skipped without any DB writes.
+ *
+ * Run this once after deploying the GCM upgrade to ensure all stored secrets
+ * gain authentication tags and AAD binding. After migration, the CBC code path
+ * is never exercised on new data.
+ */
+export async function migrateSecretsToGcm(): Promise<MigrationResult> {
+  const result: MigrationResult = {
+    total: 0,
+    migrated: 0,
+    skipped: 0,
+    failed: 0,
+    errors: [],
+  };
+
+  // Fetch every row (migration is a one-time background operation)
+  const rows = await db.select().from(userSecrets);
+  result.total = rows.length;
+
+  for (const row of rows) {
+    if (!isLegacyCiphertext(row.encryptedValue)) {
+      result.skipped++;
+      continue;
+    }
+
+    try {
+      // Decrypt with the legacy CBC path (no AAD)
+      const plaintext = decrypt(row.encryptedValue);
+
+      // Re-encrypt with GCM + AAD bound to (userId, name)
+      const aad = makeSecretAad({ userId: row.userId, name: row.name });
+      const newCiphertext = encrypt(plaintext, aad);
+
+      await db
+        .update(userSecrets)
+        .set({ encryptedValue: newCiphertext, updatedAt: new Date() })
+        .where(eq(userSecrets.id, row.id));
+
+      result.migrated++;
+    } catch (err) {
+      result.failed++;
+      result.errors.push({
+        id: row.id,
+        name: row.name,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      console.error(
+        `[user-secrets] migration failed for secret "${row.name}" (id: ${row.id}):`,
+        err,
+      );
+    }
+  }
+
+  if (result.migrated > 0 || result.failed > 0) {
+    console.info(
+      `[user-secrets] CBC→GCM migration complete: ` +
+        `${result.migrated} migrated, ${result.skipped} already GCM, ${result.failed} failed`,
+    );
+  }
+
+  return result;
 }
