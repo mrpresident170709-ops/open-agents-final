@@ -487,13 +487,20 @@ function buildSecretsPrompt(names: string[]): string {
   return `
 # User Secrets (Environment Variables)
 
-The following secrets have been injected into the sandbox process environment by the user. They are available as \`process.env.SECRET_NAME\` in any code you run or generate:
+The following secrets have been injected by the user and are available in TWO places:
+1. As process environment variables in every shell command you run (\`process.env.SECRET_NAME\`)
+2. Written into \`.env.local\` at the workspace root, inside a managed block — this means Next.js, Vite, and any tool that reads \`.env.local\` will pick them up automatically
+
+Available secrets:
 
 ${nameList}
 
 Rules for working with these secrets:
+- They are ALREADY available — do NOT ask the user to create a \`.env\` file or paste keys; do NOT run \`cp .env.example .env.local\`
+- If a dev server you started earlier doesn't see a newly-added secret, simply restart that server (kill + start again) — the secret is already in \`.env.local\`
 - Reference them as \`process.env.SECRET_NAME\` in your code — never hardcode the values
-- Never log, print, or expose secret values in any output, comment, or file
+- Never log, print, echo, or expose secret values in any output, comment, or file
+- Never modify or remove the managed block in \`.env.local\` (lines between \`# >>> Open Harness managed secrets >>>\` and \`# <<< Open Harness managed secrets <<<\`)
 - When the user asks to use a service (e.g. "add AI chat using my OpenAI key"), check this list first — if the key is here, use it directly without asking the user to provide it again
 - If a required secret is missing from this list, ask the user to add it via the Secrets panel in the sidebar
 - In \`.env.example\` or documentation, reference only the variable name (e.g. \`OPENAI_KEY=\`) — never a real value`;

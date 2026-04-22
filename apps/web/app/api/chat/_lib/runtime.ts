@@ -2,6 +2,7 @@ import { discoverSkills } from "@open-harness/agent";
 import { connectSandbox } from "@open-harness/sandbox";
 import { getUserGitHubToken } from "@/lib/github/user-token";
 import { DEFAULT_SANDBOX_PORTS } from "@/lib/sandbox/config";
+import { injectSecretsAsEnvFile } from "@/lib/sandbox/inject-secrets-env-file";
 import { getSandboxSkillDirectories } from "@/lib/skills/directories";
 import { getCachedSkills, setCachedSkills } from "@/lib/skills-cache";
 import {
@@ -65,6 +66,14 @@ export async function createChatRuntime(params: {
     // The agent receives only the names (not values) via the system prompt so
     // it can reference process.env.SECRET_NAME without ever seeing the value.
     ...(Object.keys(userEnv).length > 0 && { env: userEnv }),
+  });
+
+  // Also write secrets into `.env.local` in the workspace so that already-running
+  // dev servers (Next.js, Vite, etc.) and any subprocess pick them up reliably,
+  // even if env injection through the sandbox SDK doesn't propagate to detached
+  // processes started in earlier turns.
+  await injectSecretsAsEnvFile(sandbox, userEnv).catch((err) => {
+    console.error("[runtime] failed to write secrets to .env.local:", err);
   });
 
   const skills = await loadSessionSkills(sessionId, sandboxState, sandbox);
