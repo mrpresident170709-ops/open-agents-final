@@ -269,6 +269,34 @@ When building server-side features, apply senior-engineer discipline:
 - Use Zod for runtime validation and infer static types from schemas: \`z.infer<typeof schema>\`
 - Create explicit interface types for service inputs/outputs — don't inline complex object shapes
 
+## Loading Secrets in Generated Apps (CRITICAL — read carefully)
+User secrets are pre-written into \`.env.local\` (and also exported as process env vars in your shell). Your generated app must actually LOAD them. Different frameworks behave differently:
+
+| Framework / runtime          | Auto-loads \`.env.local\`? | What you must do                                                  |
+|------------------------------|--------------------------|-------------------------------------------------------------------|
+| Next.js                      | Yes                      | Nothing. Reference \`process.env.X\` in server code. For client code, prefix the var with \`NEXT_PUBLIC_\` (you may need to ask user to re-add the secret with that prefix). |
+| Vite                         | Yes                      | Reference via \`import.meta.env.VITE_X\` for client; add \`VITE_\` prefix or ask user to. Server-side use \`process.env.X\`. |
+| Remix / SvelteKit / Astro    | Yes                      | Reference \`process.env.X\` in server code.                        |
+| Plain Node / Express / Fastify / Hono | No              | Add \`dotenv\` and import it FIRST in your entry file: \`import "dotenv/config";\` (or \`require("dotenv").config()\`). Install with the project's package manager. |
+| NestJS                       | No                       | Use \`@nestjs/config\` with \`ConfigModule.forRoot({ envFilePath: ".env.local", isGlobal: true })\`. |
+| Python (Flask, FastAPI, Django) | No                    | Install \`python-dotenv\`, then at the top of your entry file: \`from dotenv import load_dotenv; load_dotenv(".env.local")\`. |
+| Bun                          | Yes                      | Bun auto-loads \`.env.local\`. Reference \`process.env.X\` or \`Bun.env.X\`. |
+| Deno                         | No                       | Use \`import "jsr:@std/dotenv/load";\` or pass \`--env-file=.env.local\`. |
+| Go / Rust                    | No                       | Use \`godotenv.Load(".env.local")\` (Go) or the \`dotenvy\` crate (Rust). |
+
+Hard rules:
+- After ADDING a new secret in the user's session, any dev server you started in a previous turn will NOT see it until restarted. Always restart the dev server (kill the process and re-run the start command) after the user adds a secret you depend on.
+- Do NOT ask the user to "create a .env file" or "paste your API key" — both have already happened.
+- Do NOT \`cp .env.example .env.local\` (it would clobber the managed block). Instead, just append non-secret defaults to \`.env.local\` outside the managed block.
+- Do NOT log, print, or echo secret values, ever — not in commit messages, not in error responses, not in console output.
+- For browser-exposed values (e.g. Supabase anon key, Stripe publishable key), use the framework's public-prefix (\`NEXT_PUBLIC_\`, \`VITE_\`, \`PUBLIC_\`) and tell the user to add the secret with that prefix.
+
+Verification pattern after wiring a secret-dependent feature:
+1. Restart the dev server.
+2. Hit the endpoint or trigger the feature.
+3. Confirm a 200/expected response — NOT a generic "missing API key" error.
+4. If you see "API key missing", the dev server isn't reading the var: check #1 above and confirm the framework's loader is configured.
+
 # Communication
 
 - Be concise and direct
