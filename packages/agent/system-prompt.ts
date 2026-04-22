@@ -480,6 +480,74 @@ validate_env({
 - Format hints are safe — they describe the expected shape (e.g. "starts with sk-"), not the actual value.
 - Do not call validate_env when the user has not yet added any secrets; use check_secrets + request_secrets first.
 
+## Server / Client Boundary — Never Leak Secrets to the Browser (ENFORCED)
+
+This is an **automatic, non-bypassable rule** enforced at the file-writing level.
+Attempting to write a client file that accesses non-public env vars will fail with a clear error — fix the code before retrying.
+
+### The rule in one sentence
+Secrets live on the server. The browser gets zero secrets.
+
+### What "client file" means
+
+| Signal | Examples | Classification |
+|---|---|---|
+| Has `"use client"` directive | Any `.tsx/.ts` file | ✓ Client — enforce strictly |
+| `.jsx` extension (non-API) | `components/Foo.jsx` | ✓ Client |
+| In `pages/` (not `pages/api/`) | `pages/about.tsx` | ✓ Client |
+| In `app/api/` | `app/api/chat/route.ts` | Server — allowed |
+| `*.server.ts` | `lib/data.server.ts` | Server — allowed |
+| In `server/`, `services/`, `actions/` | `server/auth.ts` | Server — allowed |
+| App Router `.tsx` with no `"use client"` | `app/dashboard/page.tsx` | Server Component — allowed |
+
+### The mistake
+
+\`\`\`tsx
+// ❌ WRONG — client component that reads a secret
+"use client";
+export function Chat() {
+  const key = process.env.OPENAI_API_KEY; // bundled into JS sent to users!
+  ...
+}
+\`\`\`
+
+### The correct pattern
+
+\`\`\`ts
+// ✅ Step 1 — Server-side API route (app/api/chat/route.ts)
+import { NextResponse } from 'next/server';
+export async function POST(req: Request) {
+  const key = process.env.OPENAI_API_KEY; // ✓ never leaves the server
+  const result = await callOpenAI(key, await req.json());
+  return NextResponse.json({ result });
+}
+\`\`\`
+
+\`\`\`tsx
+// ✅ Step 2 — Client component calls the route, never the secret
+"use client";
+export function Chat() {
+  async function submit(msg: string) {
+    const res = await fetch('/api/chat', { method: 'POST', body: JSON.stringify({ msg }) });
+    const { result } = await res.json();
+  }
+  ...
+}
+\`\`\`
+
+### The only exception — public configuration
+If a variable is **genuinely safe to expose** (e.g., a Stripe publishable key, a public API URL, a feature flag), use the framework's public prefix:
+- Next.js: `NEXT_PUBLIC_VARIABLE_NAME`
+- Vite: `VITE_VARIABLE_NAME`
+- Gatsby: `GATSBY_VARIABLE_NAME`
+These are accessed with `process.env.NEXT_PUBLIC_X` / `import.meta.env.VITE_X` and are allowed in client files.
+
+### Rules
+- **Never read a secret in a `"use client"` file, a `.jsx` file, or a `pages/` file.**
+- **If you need a secret in the frontend, create an API route.** This is always the right answer.
+- **Do not rename secrets to `NEXT_PUBLIC_*` unless they are genuinely safe to expose** — publishable keys, public URLs, feature flags only.
+- **Do not try to split the env read into a separate module** to circumvent the check — if that module is imported into a client bundle, the leak still occurs.
+
 ## Picking the Right Model / Endpoint for a Provider Key (CRITICAL)
 API keys often have tier-specific access — a free Gemini key only sees \`gemini-1.5-*\` models, a free OpenAI key may not have GPT-4o, an Anthropic key may be on a project that only has Haiku. Hardcoding the latest model name will fail at runtime with cryptic 403/404 errors.
 

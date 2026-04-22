@@ -2,6 +2,7 @@ import { tool } from "ai";
 import { z } from "zod";
 import * as path from "path";
 import { getSandbox, toDisplayPath } from "./utils";
+import { checkFrontendSecretLeak } from "./frontend-secret-guard";
 
 const writeInputSchema = z.object({
   filePath: z
@@ -62,6 +63,14 @@ EXAMPLES:
 - Replace a script after reading it: filePath: "scripts/build.sh", content: "<entire updated script>"`,
     inputSchema: writeInputSchema,
     execute: async ({ filePath, content }, { experimental_context }) => {
+      // ── Frontend secret guard ──────────────────────────────────────────────
+      // Runs BEFORE any I/O — if the file would expose a secret to the browser
+      // bundle, block the write and return an actionable error.
+      const leakReport = checkFrontendSecretLeak(filePath, content);
+      if (leakReport.blocked) {
+        return { success: false, error: leakReport.errorMessage! };
+      }
+
       const sandbox = await getSandbox(experimental_context, "write");
       const workingDirectory = sandbox.workingDirectory;
 
@@ -166,6 +175,14 @@ EXAMPLES:
         const newContent = replaceAll
           ? content.replaceAll(oldString, newString)
           : content.replace(oldString, newString);
+
+        // ── Frontend secret guard ────────────────────────────────────────────
+        // Check the RESULTING file content — catches cases where newString
+        // introduces a secret access into a "use client" file.
+        const leakReport = checkFrontendSecretLeak(filePath, newContent);
+        if (leakReport.blocked) {
+          return { success: false, error: leakReport.errorMessage! };
+        }
 
         await sandbox.writeFile(absolutePath, newContent, "utf-8");
 
