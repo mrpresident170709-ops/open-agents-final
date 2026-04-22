@@ -13,13 +13,8 @@ import { buildSystemPrompt } from "./system-prompt";
 import {
   askUserQuestionTool,
   bashTool,
-  critiqueCloneTool,
   editFileTool,
-  exaFindSimilarTool,
   exaSearchTool,
-  firecrawlMapTool,
-  firecrawlScrapeTool,
-  firecrawlSearchTool,
   generateImageTool,
   generateVideoTool,
   globTool,
@@ -54,12 +49,6 @@ const callOptionsSchema = z.object({
   customInstructions: z.string().optional(),
   priorityInstructions: z.string().optional(),
   skills: z.custom<SkillMetadata[]>().optional(),
-  /**
-   * When true, the chat workflow runs an enforcement pass before letting the
-   * agent stop, ensuring required cloning playbook tools (image gen, critic
-   * loop, brand intake) actually fired. Set on first user message of a session.
-   */
-  cloningPlaybookActive: z.boolean().optional(),
 });
 
 export type OpenHarnessAgentCallOptions = z.infer<typeof callOptionsSchema>;
@@ -90,14 +79,9 @@ const tools = {
   ask_user_question: askUserQuestionTool,
   skill: skillTool,
   web_fetch: webFetchTool,
-  firecrawl_search: firecrawlSearchTool,
-  firecrawl_map: firecrawlMapTool,
-  firecrawl_scrape: firecrawlScrapeTool,
   exa_search: exaSearchTool,
-  exa_find_similar: exaFindSimilarTool,
   generate_image: generateImageTool,
   generate_video: generateVideoTool,
-  critique_clone: critiqueCloneTool,
   get_google_fonts: googleFontsTool,
 } satisfies ToolSet;
 
@@ -146,7 +130,6 @@ export const openHarnessAgent = new ToolLoopAgent({
       currentBranch: sandbox.currentBranch,
       customInstructions,
       priorityInstructions,
-      cloningPlaybookActive: options.cloningPlaybookActive === true,
       environmentDetails: sandbox.environmentDetails,
       skills,
       modelId: mainSelection.id,

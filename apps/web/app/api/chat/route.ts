@@ -24,12 +24,6 @@ import {
 import { getAllVariants } from "@/lib/model-variants";
 import { createCancelableReadableStream } from "@/lib/chat/create-cancelable-readable-stream";
 import { assistantFileLinkPrompt } from "@/lib/assistant-file-links";
-import { COMPETITOR_CLONING_PLAYBOOK } from "@/lib/cloning-playbook";
-import { seedCloneStarterIfNeeded } from "@/lib/clone-starter-template";
-import {
-  chatHasCloneSignals,
-  isLandingPageRequest,
-} from "@/lib/cloning-enforcement";
 import { getServerSession } from "@/lib/session/get-server-session";
 import {
   isManagedTemplateTrialUser,
@@ -60,18 +54,6 @@ function getLatestUserMessage(messages: WebAgentUIMessage[]) {
   }
 
   return null;
-}
-
-function getFirstUserMessageText(messages: WebAgentUIMessage[]): string {
-  for (const msg of messages) {
-    if (msg.role === "user") {
-      return msg.parts
-        .filter((p) => p.type === "text")
-        .map((p) => ("text" in p ? String(p.text) : ""))
-        .join(" ");
-    }
-  }
-  return "";
 }
 
 export async function POST(req: Request) {
@@ -237,37 +219,6 @@ export async function POST(req: Request) {
       })
     : undefined;
 
-  // Cloning mode activates only for landing-page requests.
-  // We check the first user message in the conversation (so follow-up turns
-  // stay in the same mode as the first turn) OR detect that cloning tools
-  // have already fired (covers the case where the agent asked a clarifying
-  // question on turn 1 before calling any clone tools).
-  const firstUserMessageText = getFirstUserMessageText(messages);
-  const cloneSignalsDetected = chatHasCloneSignals(existingChatMessages);
-  const cloningModeActive =
-    isLandingPageRequest(firstUserMessageText) || cloneSignalsDetected;
-  console.log(
-    `[clone-mode] session=${sessionId} chat=${chatId} firstTurn=${isFirstUserMessageOfSession} signalsDetected=${cloneSignalsDetected} landingPage=${isLandingPageRequest(firstUserMessageText)} active=${cloningModeActive}`,
-  );
-
-  // Seed the sandbox with a known-good Next.js + Tailwind v3 + shadcn
-  // baseline. The seeder is idempotent (marker file) so calling on every
-  // cloning turn lets a transient first-turn failure self-heal instead of
-  // leaving the agent stranded with no scaffold.
-  if (cloningModeActive) {
-    try {
-      const result = await seedCloneStarterIfNeeded(sandbox);
-      console.log(
-        `[clone-starter] session=${sessionId} seeded=${result.seeded} reason=${result.reason}`,
-      );
-    } catch (error) {
-      console.error(
-        `[clone-starter] failed to seed session=${sessionId}:`,
-        error,
-      );
-    }
-  }
-
   // Determine if auto-commit and auto-PR should run after a natural finish.
   const shouldAutoCommitPush =
     sessionRecord.autoCommitPushOverride ??
@@ -300,13 +251,6 @@ export async function POST(req: Request) {
           : {}),
         ...(skills.length > 0 && { skills }),
         customInstructions: assistantFileLinkPrompt,
-        // Only inject the cloning playbook when this is a landing-page
-        // request. For general coding tasks the playbook adds cost and
-        // forces the agent down the wrong workflow.
-        ...(cloningModeActive && {
-          priorityInstructions: COMPETITOR_CLONING_PLAYBOOK,
-          cloningPlaybookActive: true,
-        }),
       },
       ...(shouldAutoCommitPush &&
         sessionRecord.repoOwner &&
