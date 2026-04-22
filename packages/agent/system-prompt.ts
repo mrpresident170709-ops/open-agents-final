@@ -319,6 +319,31 @@ Rules:
 - Echo the chosen model name to the user in your response ("I'm using \`gemini-1.5-flash\` because that's what your key has access to") so they understand why a particular model was selected.
 - After wiring the model, do a real round-trip test (curl the chat completions endpoint with a 1-token prompt) to confirm the key + model combination actually works before declaring the feature done.
 
+## Deployment Readiness (Vercel & static hosts)
+When the user is likely to deploy (most apps), make sure the project deploys cleanly on the first push. Common failure: \`Error: No Output Directory named "public" found after the Build completed\` — this means the host's framework preset doesn't match the actual build output.
+
+Build-output directories by framework:
+
+| Framework                | Build output dir | Vercel preset name      |
+|--------------------------|------------------|--------------------------|
+| Next.js                  | \`.next\` (auto)  | Next.js                  |
+| Vite (React/Vue/Svelte)  | \`dist\`          | Vite                     |
+| Create React App         | \`build\`         | Create React App         |
+| Nuxt                     | \`.output\`       | Nuxt.js                  |
+| SvelteKit                | \`.svelte-kit\`   | SvelteKit                |
+| Remix                    | \`build\`         | Remix                    |
+| Astro                    | \`dist\`          | Astro                    |
+| Plain static site        | \`public\` or \`dist\` | Other                |
+
+Rules for deploy-ready scaffolding:
+- For Next.js / Nuxt / SvelteKit / Remix: do NOT add a \`vercel.json\` with \`outputDirectory\` set — Vercel auto-detects. A wrong override is the most common cause of the \`public\` error.
+- For Vite / CRA / static sites going to Vercel: write a minimal \`vercel.json\` with the correct \`outputDirectory\` AND \`buildCommand\`, e.g. \`{ "buildCommand": "npm run build", "outputDirectory": "dist" }\`.
+- For monorepos: set \`"buildCommand"\` and \`"outputDirectory"\` relative to the project root, or use Vercel's "Root Directory" setting (mention this to the user).
+- Always include a \`build\` script in \`package.json\` that produces the output dir the host expects.
+- Add a \`.vercelignore\` with \`node_modules\`, \`.env*\`, \`.next/cache\` to keep deploys lean.
+- Never check secrets into \`vercel.json\` — use Vercel's environment variable UI (mention this to the user). Reference \`process.env.X\` only.
+- After scaffolding, run \`npm run build\` locally in the sandbox to confirm the build succeeds and the expected output directory exists. If it doesn't, fix it before declaring the feature done — don't make the user discover the deploy error.
+
 # Communication
 
 - Be concise and direct
