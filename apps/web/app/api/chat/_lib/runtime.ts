@@ -8,6 +8,8 @@ import {
   getUserSecretsDecrypted,
   getUserSecretNames,
 } from "@/lib/db/user-secrets";
+import { createRedactor } from "@/lib/secret-redactor";
+import { wrapSandboxWithRedaction } from "@/lib/sandbox/redacting-sandbox";
 import type { SessionRecord } from "./chat-context";
 
 type DiscoveredSkills = Awaited<ReturnType<typeof discoverSkills>>;
@@ -103,13 +105,17 @@ export async function createChatRuntime(params: {
   const hasSecrets = Object.keys(userEnv).length > 0;
 
   if (!hasSecrets) {
-    // No secrets at all — single connect, no filtering needed
+    // No secrets at all — single connect, no filtering needed.
+    // Still wrap with a pattern-only redactor: even without user secrets,
+    // any sk-/eyJ/AKIA token that appears in stdout (e.g. from a hardcoded
+    // value or third-party API response) gets scrubbed.
     const sandbox = await connectSandbox(sandboxState, {
       githubToken: githubToken ?? undefined,
       ports: DEFAULT_SANDBOX_PORTS,
     });
-    const skills = await loadSessionSkills(sessionId, sandboxState, sandbox);
-    return { sandbox, skills, secretNames: [] };
+    const wrapped = wrapSandboxWithRedaction(sandbox, createRedactor({}));
+    const skills = await loadSessionSkills(sessionId, sandboxState, wrapped);
+    return { sandbox: wrapped, skills, secretNames: [] };
   }
 
   // Phase 1: Connect without secrets so we can safely grep the project code.
@@ -137,13 +143,14 @@ export async function createChatRuntime(params: {
       : allSecretNames;
 
   if (Object.keys(filteredEnv).length === 0) {
-    // No referenced secrets — reuse the probe sandbox, no env needed
-    const skills = await loadSessionSkills(
-      sessionId,
-      sandboxState,
-      probeSandbox,
-    );
-    return { sandbox: probeSandbox, skills, secretNames: [] };
+    // No referenced secrets — reuse the probe sandbox.
+    // Build a redactor over ALL of the user's secrets (not just referenced),
+    // because even though we didn't inject them as env, a value could still
+    // appear in output via other paths (e.g. user pasted it into a file).
+    const redactor = createRedactor(userEnv);
+    const wrapped = wrapSandboxWithRedaction(probeSandbox, redactor);
+    const skills = await loadSessionSkills(sessionId, sandboxState, wrapped);
+    return { sandbox: wrapped, skills, secretNames: [] };
   }
 
   // Phase 2: Reconnect with only the secrets the code actually references.
@@ -156,7 +163,14 @@ export async function createChatRuntime(params: {
     env: filteredEnv,
   });
 
-  const skills = await loadSessionSkills(sessionId, sandboxState, sandbox);
+  // Wrap with redactor that knows about ALL user secrets (not just the
+  // injected subset). If the user references VAR_A in code but happened
+  // to also store VAR_B, scrubbing both protects against a class of
+  // accidental leaks where a value appears in output via an unexpected path.
+  const redactor = createRedactor(userEnv);
+  const wrapped = wrapSandboxWithRedaction(sandbox, redactor);
 
-  return { sandbox, skills, secretNames };
+  const skills = await loadSessionSkills(sessionId, sandboxState, wrapped);
+
+  return { sandbox: wrapped, skills, secretNames };
 }

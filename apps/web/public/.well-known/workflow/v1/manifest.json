@@ -17,6 +17,17 @@
         "stepId": "step//workflow@4.2.0-beta.74//fetch"
       }
     },
+    "app/workflows/sandbox-lifecycle.ts": {
+      "clearLifecycleRunIdIfOwned": {
+        "stepId": "step//./app/workflows/sandbox-lifecycle//clearLifecycleRunIdIfOwned"
+      },
+      "computeLifecycleWakeDecision": {
+        "stepId": "step//./app/workflows/sandbox-lifecycle//computeLifecycleWakeDecision"
+      },
+      "runLifecycleEvaluation": {
+        "stepId": "step//./app/workflows/sandbox-lifecycle//runLifecycleEvaluation"
+      }
+    },
     "app/workflows/chat-post-finish.ts": {
       "clearActiveStream": {
         "stepId": "step//./app/workflows/chat-post-finish//clearActiveStream"
@@ -47,17 +58,6 @@
       },
       "runAutoCreatePrStep": {
         "stepId": "step//./app/workflows/chat-post-finish//runAutoCreatePrStep"
-      }
-    },
-    "app/workflows/sandbox-lifecycle.ts": {
-      "clearLifecycleRunIdIfOwned": {
-        "stepId": "step//./app/workflows/sandbox-lifecycle//clearLifecycleRunIdIfOwned"
-      },
-      "computeLifecycleWakeDecision": {
-        "stepId": "step//./app/workflows/sandbox-lifecycle//computeLifecycleWakeDecision"
-      },
-      "runLifecycleEvaluation": {
-        "stepId": "step//./app/workflows/sandbox-lifecycle//runLifecycleEvaluation"
       }
     },
     "app/workflows/chat.ts": {

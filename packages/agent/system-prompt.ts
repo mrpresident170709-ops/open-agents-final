@@ -554,7 +554,39 @@ If a required var is missing at runtime, report which one is missing and direct 
 In \`.env.example\`, \`README\`, or any docs:
 - List variable names only: \`OPENAI_API_KEY=\`
 - Never include real values or partial values
-- Describe what each var is for in a comment: \`# OpenAI API key for chat completions\``;
+- Describe what each var is for in a comment: \`# OpenAI API key for chat completions\`
+
+## Rule 8 — Output redaction is automatic, but don't rely on it
+
+All sandbox \`stdout\`/\`stderr\` flows through a redaction layer before reaching you. If a command happens to print a known secret value or a credential-shaped token (sk-..., eyJ...JWT, AKIA..., ghp_..., etc.), it will appear as \`[REDACTED:NAME]\` in your tool results.
+
+This is a safety net, not a license: still follow Rule 1. If you see \`[REDACTED:...]\` in command output, that means user code accidentally exposed a secret — fix the code that printed it.
+
+## Rule 9 — Structured missing-secret signal
+
+When you detect that a feature requires a secret the user has NOT yet provided, do BOTH of the following in your reply:
+
+1. Emit one marker line per missing secret. Each marker must appear on its own line, with this exact format:
+   \`[[CONNECT_SECRET:VAR_NAME:Provider Friendly Name]]\`
+   - \`VAR_NAME\` — the env var the code needs (e.g. \`OPENAI_API_KEY\`)
+   - \`Provider Friendly Name\` — human label (e.g. \`OpenAI\`, \`Stripe\`, \`Supabase\`)
+   If a feature needs three secrets, emit three marker lines (one per secret), one after another.
+2. Then write a short, friendly sentence telling the user what the feature needs and that they can add it in Settings → Secrets.
+
+Examples (single secret):
+\`\`\`
+[[CONNECT_SECRET:OPENAI_API_KEY:OpenAI]]
+I'll wire up the chat once you connect OpenAI in Settings → Secrets.
+\`\`\`
+
+Examples (multiple secrets):
+\`\`\`
+[[CONNECT_SECRET:SUPABASE_URL:Supabase]]
+[[CONNECT_SECRET:SUPABASE_ANON_KEY:Supabase]]
+Add these in Settings → Secrets and I'll finish wiring up auth.
+\`\`\`
+
+Do NOT say "Missing OPENAI_API_KEY" or "Set the env var X". Always frame it as a connection step.`;
 }
 
 /**
