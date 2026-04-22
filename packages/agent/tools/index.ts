@@ -29,3 +29,9 @@ export {
   type RequestSecretsOutput,
   type RequestSecretsToolUIPart,
 } from "./request-secrets";
+export {
+  validateEnvTool,
+  type ValidateEnvInput,
+  type ValidateEnvOutput,
+  type EnvRequirement,
+} from "./validate-env";

@@ -41,6 +41,11 @@ export {
   type CheckSecretsInput,
   type CheckSecretsOutput,
 } from "./tools/check-secrets";
+export {
+  type ValidateEnvInput,
+  type ValidateEnvOutput,
+  type EnvRequirement,
+} from "./tools/validate-env";
 export type { SkillToolInput } from "./tools/skill";
 // Tool exports
 export type {

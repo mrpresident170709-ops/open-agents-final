@@ -21,6 +21,7 @@ import { TaskRenderer } from "./renderers/task-renderer";
 import { TodoRenderer } from "./renderers/todo-renderer";
 import { AskUserQuestionRenderer } from "./renderers/ask-user-question-renderer";
 import { RequestSecretsRenderer } from "./renderers/request-secrets-renderer";
+import { ValidateEnvRenderer } from "./renderers/validate-env-renderer";
 import { FetchRenderer } from "./renderers/fetch-renderer";
 import { SkillRenderer } from "./renderers/skill-renderer";
 
@@ -88,6 +89,8 @@ export function ToolCall({
           onSkip={onSkipSecrets}
         />
       );
+    case "tool-validate_env":
+      return <ValidateEnvRenderer part={part} state={state} />;
     case "tool-web_fetch":
       return <FetchRenderer part={part} state={state} {...approvalProps} />;
     case "tool-skill":

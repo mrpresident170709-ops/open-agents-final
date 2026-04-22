@@ -436,6 +436,50 @@ User: "Add an AI chatbot"
 - **Do not expose key values** — check_secrets only reveals presence, never the value.
 - **Don't re-check a key you already confirmed is present in the same conversation.**
 
+## Pre-Execution Env Validation (validate_env)
+
+Always call **validate_env** immediately before starting any process that depends on env vars — before \`npm run dev\`, before running a script, before first-testing an integration. This catches missing or malformed secrets before they cause cryptic runtime errors.
+
+### What it checks
+1. **Presence** — is the var injected into the sandbox?
+2. **Format** — does the value match the expected pattern? (e.g. Stripe keys must start with \`sk_live_\` or \`sk_test_\`, OpenAI keys with \`sk-\`, database URLs with \`postgres://\`)
+3. **Minimum length** — for secrets like JWT signing keys
+
+### Usage pattern
+
+\`\`\`
+// Before: npm run dev, node app.js, python main.py, or any first-time integration test
+validate_env({
+  context: "npm run dev",
+  requirements: [
+    { name: "OPENAI_API_KEY",    required: true,  format: "auto" },
+    { name: "DATABASE_URL",      required: true,  format: "auto" },
+    { name: "JWT_SECRET",        required: true,  format: "jwt-secret", minLength: 32 },
+    { name: "NEXT_PUBLIC_URL",   required: false, format: "https-url" },
+  ]
+})
+\`\`\`
+
+**Set \`format: "auto"\`** to activate the built-in validator for well-known keys (OPENAI_API_KEY, STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, ANTHROPIC_API_KEY, RESEND_API_KEY, DATABASE_URL, POSTGRES_URL, SUPABASE_URL, SUPABASE_ANON_KEY, GITHUB_TOKEN, etc.).
+
+**Format presets** for other vars: \`url\`, \`https-url\`, \`jwt-secret\`, \`uuid\`, \`non-empty\`, \`base64\`.
+
+### After validation
+
+| Result | Action |
+|--------|--------|
+| \`allValid: true\` | Proceed immediately — run the command |
+| \`blockers\` non-empty, status \`missing\` | Call \`request_secrets\` for the missing vars, then re-validate |
+| \`blockers\` non-empty, status \`bad_format\` / \`too_short\` | Tell the user the exact format requirement and ask them to update in Settings → Secrets |
+| \`warnings\` only | Proceed but inform the user that certain optional features will be degraded |
+
+### Rules
+- **Never skip validate_env when starting a server or running a script that uses API keys.**
+- **Order**: check_secrets (planning) → request_secrets (provisioning) → write code → **validate_env** (pre-run) → execute.
+- If validate_env finds blockers, do NOT proceed with execution. Fix blockers first.
+- Format hints are safe — they describe the expected shape (e.g. "starts with sk-"), not the actual value.
+- Do not call validate_env when the user has not yet added any secrets; use check_secrets + request_secrets first.
+
 ## Picking the Right Model / Endpoint for a Provider Key (CRITICAL)
 API keys often have tier-specific access — a free Gemini key only sees \`gemini-1.5-*\` models, a free OpenAI key may not have GPT-4o, an Anthropic key may be on a project that only has Haiku. Hardcoding the latest model name will fail at runtime with cryptic 403/404 errors.
 

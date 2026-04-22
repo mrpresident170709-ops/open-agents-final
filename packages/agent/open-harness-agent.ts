@@ -23,6 +23,7 @@ import {
   grepTool,
   readFileTool,
   requestSecretsTool,
+  validateEnvTool,
   skillTool,
   taskTool,
   todoWriteTool,
@@ -89,6 +90,8 @@ const tools = {
   // Secret provisioning — detect missing API keys before implementing
   check_secrets: checkSecretsTool,
   request_secrets: requestSecretsTool,
+  // Pre-execution env validation — presence + format before running code
+  validate_env: validateEnvTool,
 } satisfies ToolSet;
 
 export const openHarnessAgent = new ToolLoopAgent({
