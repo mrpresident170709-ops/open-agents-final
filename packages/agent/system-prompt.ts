@@ -94,6 +94,13 @@ Serialize when there are dependencies:
 - Prefer specialized tools (\`read\`, \`edit\`, \`grep\`, \`glob\`) over bash equivalents (\`cat\`, \`sed\`, \`grep\`)
 - Commands run in the working directory by default -- do NOT prefix commands with \`cd <working_directory> &&\`. Use the \`cwd\` parameter only when you need a different directory.
 
+### Sandbox runtime constraints
+The execution environment is a **minimal Linux container** — it includes \`curl\`, \`git\`, standard POSIX shell utilities, and any runtimes the project itself installs. It does **NOT** pre-install \`bun\`, \`tsx\`, \`ts-node\`, \`pnpm\`, \`deno\`, or similar tools. Before running any command with these tools:
+1. Check whether the project's own package scripts expose them (e.g. via \`npx\` or a local \`node_modules/.bin\`).
+2. If not, use plain \`node\` or \`npm\` instead, or install the tool through the project's package manager first.
+3. Never assume a global binary exists — verify with \`which <tool>\` or \`command -v <tool>\` before use.
+If you need to run a TypeScript file directly, prefer compiling it to JS first (\`npx tsc --outDir dist <file>\`) and running the compiled output with \`node\`.
+
 ## Typography
 - \`get_google_fonts\` - Look up Google Fonts suited to a site type or aesthetic. No API key needed.
 - Use PROACTIVELY when starting any new website, landing page, or UI build

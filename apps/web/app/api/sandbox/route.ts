@@ -85,6 +85,7 @@ async function installSessionGlobalSkills(params: {
 }
 
 export async function POST(req: Request) {
+  console.log("[sandbox/POST] received request");
   let body: CreateSandboxRequest;
   try {
     body = (await req.json()) as CreateSandboxRequest;
@@ -105,7 +106,9 @@ export async function POST(req: Request) {
   }
 
   const botVerification = await checkBotId(botIdConfig);
+  console.log("[sandbox/POST] botId check:", botVerification.isBot ? "BOT" : "human");
   if (botVerification.isBot) {
+    console.warn("[sandbox/POST] blocked by botId");
     return Response.json({ error: "Access denied" }, { status: 403 });
   }
 
@@ -170,23 +173,41 @@ export async function POST(req: Request) {
       }
     : undefined;
 
-  const sandbox = await connectSandbox({
-    state: {
-      type: "vercel",
-      ...(sandboxName ? { sandboxName } : {}),
-      source,
-    },
-    options: {
-      githubToken: githubToken ?? undefined,
-      gitUser,
-      timeout: DEFAULT_SANDBOX_TIMEOUT_MS,
-      ports: DEFAULT_SANDBOX_PORTS,
-      baseSnapshotId: DEFAULT_SANDBOX_BASE_SNAPSHOT_ID,
-      persistent: !!sandboxName,
-      resume: !!sandboxName,
-      createIfMissing: !!sandboxName,
-    },
+  console.log("[sandbox/POST] calling connectSandbox", {
+    sessionId,
+    sandboxName,
+    hasSource: !!source,
+    hasGitHubToken: !!githubToken,
+    vercelToken: process.env.VERCEL_TOKEN ? "set" : "missing",
+    baseSnapshotId: DEFAULT_SANDBOX_BASE_SNAPSHOT_ID,
   });
+
+  let sandbox: Awaited<ReturnType<typeof connectSandbox>>;
+  try {
+    sandbox = await connectSandbox({
+      state: {
+        type: "vercel",
+        ...(sandboxName ? { sandboxName } : {}),
+        source,
+      },
+      options: {
+        githubToken: githubToken ?? undefined,
+        gitUser,
+        timeout: DEFAULT_SANDBOX_TIMEOUT_MS,
+        ports: DEFAULT_SANDBOX_PORTS,
+        baseSnapshotId: DEFAULT_SANDBOX_BASE_SNAPSHOT_ID,
+        persistent: !!sandboxName,
+        resume: !!sandboxName,
+        createIfMissing: !!sandboxName,
+      },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[sandbox/POST] connectSandbox failed:", message);
+    return Response.json({ error: `Sandbox creation failed: ${message}` }, { status: 502 });
+  }
+
+  console.log("[sandbox/POST] connectSandbox succeeded");
 
   if (sessionId && sandbox.getState) {
     const nextState = sandbox.getState() as SandboxState;
