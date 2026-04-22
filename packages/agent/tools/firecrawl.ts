@@ -190,23 +190,18 @@ Returns a flat list of URLs found on the site.`,
 // firecrawl_scrape
 // ---------------------------------------------------------------------------
 
-const MAX_MARKDOWN = 30_000;
+const MAX_MARKDOWN = 15_000;
+const MAX_HTML = 40_000;
 
 export const firecrawlScrapeTool = tool({
-  description: `Scrape a single URL with Firecrawl. Returns markdown content, a screenshot URL, and discovered links.
+  description: `Scrape a single URL with Firecrawl. Returns markdown content and discovered links.
 
 USE FOR:
-- Extracting a competitor section's design (markdown + screenshot for visual reference)
-- Pulling hex colors, fonts, copy, and layout cues from a page
-- Capturing the full-page screenshot used by the critic loop
-
-The screenshot URL is hosted by Firecrawl and can be passed directly to critique_clone.`,
+- Reading a live web page to understand its structure, content, or API docs
+- Extracting design cues (copy, layout descriptions) from a competitor page
+- Verifying a running dev server by fetching its URL`,
   inputSchema: z.object({
     url: z.string().url().describe("URL to scrape"),
-    fullPage: z
-      .boolean()
-      .optional()
-      .describe("Capture a full-page screenshot. Default: true"),
     includeLinks: z
       .boolean()
       .optional()
@@ -215,7 +210,7 @@ The screenshot URL is hosted by Firecrawl and can be passed directly to critique
       .boolean()
       .optional()
       .describe(
-        "Include the rendered HTML so you can read class names, inline styles, font links, and SVG sources. Default: false. Set true when you are extracting design tokens.",
+        "Include rendered HTML for extracting class names, inline styles, font links, and SVG sources. Default: false.",
       ),
     actions: z
       .array(
@@ -228,12 +223,11 @@ The screenshot URL is hosted by Firecrawl and can be passed directly to critique
           z.object({ type: z.literal("click"), selector: z.string() }),
           z.object({ type: z.literal("hover"), selector: z.string() }),
           z.object({ type: z.literal("press"), key: z.string() }),
-          z.object({ type: z.literal("screenshot"), fullPage: z.boolean().optional() }),
         ]),
       )
       .optional()
       .describe(
-        "Optional Firecrawl browser actions executed BEFORE the final scrape. Use to trigger hover/click/scroll states (e.g. open a tab, scroll past a sticky-nav threshold) so the captured HTML/screenshot reflects the post-interaction state.",
+        "Optional browser actions executed before scraping (click, scroll, wait, etc.).",
       ),
   }),
   outputSchema: z.union([
@@ -243,7 +237,6 @@ The screenshot URL is hosted by Firecrawl and can be passed directly to critique
       title: z.string().nullable(),
       markdown: z.string(),
       truncated: z.boolean(),
-      screenshotUrl: z.string().nullable(),
       html: z.string().optional(),
       htmlTruncated: z.boolean().optional(),
       links: z.array(z.string()).optional(),
@@ -251,20 +244,11 @@ The screenshot URL is hosted by Firecrawl and can be passed directly to critique
     z.object({ success: z.literal(false), error: z.string() }),
   ]),
   execute: async (
-    {
-      url,
-      fullPage = true,
-      includeLinks = true,
-      includeHtml = false,
-      actions,
-    },
+    { url, includeLinks = true, includeHtml = false, actions },
     { abortSignal },
   ) => {
     try {
-      const formats: Array<unknown> = [
-        "markdown",
-        { type: "screenshot", fullPage },
-      ];
+      const formats: string[] = ["markdown"];
       if (includeLinks) formats.push("links");
       if (includeHtml) formats.push("html");
       const body: Record<string, unknown> = { url, formats };
@@ -273,7 +257,6 @@ The screenshot URL is hosted by Firecrawl and can be passed directly to critique
         data?: {
           markdown?: string;
           html?: string;
-          screenshot?: string;
           links?: string[];
           metadata?: { title?: string; sourceURL?: string };
         };
@@ -281,7 +264,6 @@ The screenshot URL is hosted by Firecrawl and can be passed directly to critique
       const d = data.data ?? {};
       const md = d.markdown ?? "";
       const truncated = md.length > MAX_MARKDOWN;
-      const MAX_HTML = 60_000;
       const html = d.html ?? "";
       const htmlTruncated = html.length > MAX_HTML;
       return {
@@ -290,7 +272,6 @@ The screenshot URL is hosted by Firecrawl and can be passed directly to critique
         title: d.metadata?.title ?? null,
         markdown: truncated ? md.slice(0, MAX_MARKDOWN) : md,
         truncated,
-        screenshotUrl: d.screenshot ?? null,
         ...(includeHtml
           ? {
               html: htmlTruncated ? html.slice(0, MAX_HTML) : html,

@@ -50,16 +50,12 @@ USE FOR (during cloning):
 
 CRITICAL — ALWAYS pass reference images when cloning:
 - Nano Banana 2 is an *image-conditioned* model. Text-only prompts produce
-  generic results. To accurately clone a competitor's visual, you MUST pass
-  the Firecrawl screenshot URL (or any reference URL/path) via
-  \`referenceImages\`. The model will then match composition, palette, lighting,
-  and style instead of guessing from words.
-- Workflow: \`firecrawl_scrape({ url, fullPage: true })\` → take
-  \`screenshotUrl\` → call \`generate_image({ prompt, referenceImages: [screenshotUrl], width, height, ... })\`.
-- For section-level cloning (hero bg, feature illustration, testimonial bg)
-  pass the section screenshot. For full-page recreation pass the full-page
-  screenshot. You may pass up to 4 reference URLs (e.g., the section + an
-  inspiration crop + a brand-asset reference).
+  generic results. To accurately clone a visual, you MUST pass a reference
+  image URL or workspace file path via \`referenceImages\`. The model will then
+  match composition, palette, lighting, and style instead of guessing from words.
+- Use existing public image URLs from the scraped page (logo URLs, CDN assets,
+  etc.) or workspace-relative paths to local image files as reference inputs.
+- You may pass up to 4 reference URLs (e.g., brand asset + inspiration crop).
 
 CRITICAL — ALWAYS pass exact width and height:
 - The default 1024×1024 is almost NEVER what the source uses. A square
