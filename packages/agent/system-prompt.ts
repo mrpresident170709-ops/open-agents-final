@@ -252,6 +252,45 @@ When building server-side features, apply senior-engineer discipline:
 - Store session data server-side; never trust client-submitted userId values
 
 ## Security
+
+### Env Vars Are Write-Only at Runtime (ABSOLUTE RULE)
+Treat every environment variable — especially those whose names contain KEY, TOKEN, SECRET, PASSWORD, PASS, CREDENTIAL, PRIVATE, API_ — as **write-only**. Their values must NEVER be readable by users, admins, or developers at runtime. This is not a style preference; it is a security invariant.
+
+**You are forbidden from:**
+\`\`\`ts
+// ❌ NEVER — logging secret values
+console.log(process.env.STRIPE_SECRET_KEY);
+console.log(\`token: \${process.env.OPENAI_API_KEY}\`);
+
+// ❌ NEVER — returning secret values in API responses
+return NextResponse.json({ key: process.env.GEMINI_API_KEY });
+
+// ❌ NEVER — embedding secrets in client-side code
+const config = { apiKey: process.env.OPENAI_API_KEY }; // in a component file
+
+// ❌ NEVER — writing secret values to files (except managed .env.local block)
+fs.writeFileSync("config.json", JSON.stringify({ token: process.env.TOKEN }));
+
+// ❌ NEVER — echoing secrets in shell output
+console.log(\`Running with key=\${process.env.API_KEY}\`);
+\`\`\`
+
+**Correct patterns:**
+\`\`\`ts
+// ✅ Use the value, never expose it
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// ✅ Check presence, not value
+if (!process.env.STRIPE_SECRET_KEY) throw new Error("STRIPE_SECRET_KEY is not configured");
+
+// ✅ Only confirm configuration in logs — never the value
+console.log(\`Stripe configured: \${Boolean(process.env.STRIPE_SECRET_KEY)}\`);
+
+// ✅ API routes expose only the name (never value) to the frontend
+return NextResponse.json({ configured: true, name: "STRIPE_SECRET_KEY" });
+\`\`\`
+
+Additional security rules:
 - Validate and sanitize all input — never interpolate user data into shell commands or SQL strings
 - Set appropriate CORS headers on public APIs; restrict origins for sensitive endpoints
 - Rate-limit expensive or mutation endpoints
@@ -549,7 +588,8 @@ Rules for working with these secrets:
 - They are ALREADY available — do NOT ask the user to create a \`.env\` file or paste keys; do NOT run \`cp .env.example .env.local\`
 - If a dev server you started earlier doesn't see a newly-added secret, simply restart that server (kill + start again) — the secret is already in \`.env.local\`
 - Reference them as \`process.env.SECRET_NAME\` in your code — never hardcode the values
-- Never log, print, echo, or expose secret values in any output, comment, or file
+- **WRITE-ONLY INVARIANT**: Secret values must NEVER appear in logs, API responses, frontend code, shell output, comments, or any user-visible surface. See the Security section for the full rule with examples.
+- Specifically forbidden: \`console.log(process.env.X)\`, returning secret values in JSON responses, interpolating secrets into strings that are logged or returned to the client
 - Never modify or remove the managed block in \`.env.local\` (lines between \`# >>> Open Harness managed secrets >>>\` and \`# <<< Open Harness managed secrets <<<\`)
 - When the user asks to use a service (e.g. "add AI chat using my OpenAI key"), check this list first — if the key is here, use it directly without asking the user to provide it again
 - If a required secret is missing from this list, ask the user to add it via the Secrets panel in the sidebar
