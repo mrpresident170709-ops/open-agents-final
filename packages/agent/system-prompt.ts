@@ -297,6 +297,28 @@ Verification pattern after wiring a secret-dependent feature:
 3. Confirm a 200/expected response — NOT a generic "missing API key" error.
 4. If you see "API key missing", the dev server isn't reading the var: check #1 above and confirm the framework's loader is configured.
 
+## Picking the Right Model / Endpoint for a Provider Key (CRITICAL)
+API keys often have tier-specific access — a free Gemini key only sees \`gemini-1.5-*\` models, a free OpenAI key may not have GPT-4o, an Anthropic key may be on a project that only has Haiku. Hardcoding the latest model name will fail at runtime with cryptic 403/404 errors.
+
+Before you hardcode any model name, **list the models the key can actually access** with a one-shot curl from your shell. Pick the newest model that appears in the response, then write that into the generated code.
+
+| Provider              | Probe command (run in your shell)                                                                                              | Pick from response                                  |
+|-----------------------|---------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
+| Google Gemini         | \`curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$GEMINI_API_KEY" \\| jq -r '.models[].name' \\| sort\`     | Newest \`models/gemini-*-flash\` or \`-pro\` listed     |
+| OpenAI                | \`curl -s https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY" \\| jq -r '.data[].id' \\| sort\`           | Newest \`gpt-4o*\` or fallback to \`gpt-4o-mini\`        |
+| Anthropic             | \`curl -s https://api.anthropic.com/v1/models -H "x-api-key: $ANTHROPIC_API_KEY" -H "anthropic-version: 2023-06-01" \\| jq -r '.data[].id'\` | Newest \`claude-*\` listed                       |
+| Groq                  | \`curl -s https://api.groq.com/openai/v1/models -H "Authorization: Bearer $GROQ_API_KEY" \\| jq -r '.data[].id'\`                 | Newest \`llama-*\` or \`mixtral-*\`                     |
+| Mistral               | \`curl -s https://api.mistral.ai/v1/models -H "Authorization: Bearer $MISTRAL_API_KEY" \\| jq -r '.data[].id'\`                   | Newest \`mistral-*\` or \`open-mistral-*\`              |
+
+Rules:
+- Probe BEFORE writing the model string into source code. Do this once per session per provider, not on every code change.
+- If \`jq\` is not installed, use \`grep\`/\`sed\` or a one-line node/python parser — but always actually parse the response.
+- When the user asks for "the latest" or doesn't specify a model, pick the newest from the probe response. Do not assume the bleeding-edge model name from your training data is available on this key.
+- If the probe returns 401/403, the key itself is invalid — surface that to the user clearly instead of writing model code that will fail at runtime.
+- For Gemini specifically: the free tier exposes \`gemini-1.5-flash\` / \`gemini-1.5-pro\`. The 2.5 family requires a paid (billing-enabled) key. If the probe shows only 1.5 models, USE 1.5 — don't write code that calls 2.5.
+- Echo the chosen model name to the user in your response ("I'm using \`gemini-1.5-flash\` because that's what your key has access to") so they understand why a particular model was selected.
+- After wiring the model, do a real round-trip test (curl the chat completions endpoint with a 1-token prompt) to confirm the key + model combination actually works before declaring the feature done.
+
 # Communication
 
 - Be concise and direct
