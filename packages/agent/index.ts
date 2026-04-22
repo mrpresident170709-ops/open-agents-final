@@ -31,6 +31,16 @@ export {
   type AskUserQuestionOutput,
   type AskUserQuestionToolUIPart,
 } from "./tools/ask-user-question";
+export {
+  type RequestSecretsInput,
+  type RequestSecretsItem,
+  type RequestSecretsOutput,
+  type RequestSecretsToolUIPart,
+} from "./tools/request-secrets";
+export {
+  type CheckSecretsInput,
+  type CheckSecretsOutput,
+} from "./tools/check-secrets";
 export type { SkillToolInput } from "./tools/skill";
 // Tool exports
 export type {

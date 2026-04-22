@@ -21,3 +21,11 @@ export { exaSearchTool, exaFindSimilarTool } from "./exa";
 export { generateImageTool } from "./image-gen";
 export { generateVideoTool } from "./video-gen";
 export { googleFontsTool } from "./google-fonts";
+export { checkSecretsTool, type CheckSecretsInput, type CheckSecretsOutput } from "./check-secrets";
+export {
+  requestSecretsTool,
+  type RequestSecretsInput,
+  type RequestSecretsItem,
+  type RequestSecretsOutput,
+  type RequestSecretsToolUIPart,
+} from "./request-secrets";
