@@ -738,10 +738,19 @@ export function useSessionChats(
       method: "POST",
     });
 
-    const responseData = (await res.json()) as {
-      success?: boolean;
-      error?: string;
-    };
+    // Guard against empty/truncated bodies (server restart, brief network blip).
+    // markChatRead is best-effort — a parse failure should not surface as a
+    // visible error; we just treat it as a non-success and move on.
+    let responseData: { success?: boolean; error?: string } = {};
+    try {
+      const text = await res.text();
+      if (text.trim()) {
+        responseData = JSON.parse(text) as typeof responseData;
+      }
+    } catch {
+      // Empty or malformed body — server may have been restarting.
+      // Treat as non-fatal; the unread badge will refresh on next poll.
+    }
 
     if (!res.ok || !responseData.success) {
       throw new Error(responseData.error ?? "Failed to mark chat as read");
