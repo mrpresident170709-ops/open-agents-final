@@ -23,6 +23,7 @@ import {
   generateImageTool,
   generateVideoTool,
   globTool,
+  googleFontsTool,
   grepTool,
   readFileTool,
   skillTool,
@@ -97,6 +98,7 @@ const tools = {
   generate_image: generateImageTool,
   generate_video: generateVideoTool,
   critique_clone: critiqueCloneTool,
+  get_google_fonts: googleFontsTool,
 } satisfies ToolSet;
 
 export const openHarnessAgent = new ToolLoopAgent({

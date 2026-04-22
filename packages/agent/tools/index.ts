@@ -26,3 +26,4 @@ export { exaSearchTool, exaFindSimilarTool } from "./exa";
 export { generateImageTool } from "./image-gen";
 export { generateVideoTool } from "./video-gen";
 export { critiqueCloneTool } from "./critic";
+export { googleFontsTool } from "./google-fonts";

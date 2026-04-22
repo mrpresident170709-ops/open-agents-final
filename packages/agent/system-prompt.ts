@@ -93,6 +93,13 @@ Serialize when there are dependencies:
 - Prefer specialized tools (\`read\`, \`edit\`, \`grep\`, \`glob\`) over bash equivalents (\`cat\`, \`sed\`, \`grep\`)
 - Commands run in the working directory by default -- do NOT prefix commands with \`cd <working_directory> &&\`. Use the \`cwd\` parameter only when you need a different directory.
 
+## Typography
+- \`get_google_fonts\` - Look up Google Fonts suited to a site type or aesthetic. No API key needed.
+- Use PROACTIVELY when starting any new website, landing page, or UI build
+- Pick 1–2 fonts: one for body copy + one contrasting font for headings (e.g. geometric sans body + serif heading)
+- Integrate via \`next/font/google\` in \`layout.tsx\` — pass the font's \`.variable\` class to \`<html>\`; reference the CSS variable in Tailwind classes or globals.css
+- Match font tone to the site: elegant serifs for luxury/fashion, geometric sans for tech/SaaS, bold condensed for sports/fitness, rounded for children/education
+
 ## Planning
 - \`todo_write\` - Create/update task list. Use FREQUENTLY to plan and track progress.
 - Use when: 3+ distinct steps, multiple files, or user gives a list of tasks
