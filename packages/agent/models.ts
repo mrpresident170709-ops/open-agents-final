@@ -16,9 +16,19 @@ function supportsAdaptiveAnthropicThinking(modelId: string): boolean {
   return modelId.includes("4.6") || modelId.includes("4.7");
 }
 
+// Haiku-class models are optimised for speed and low cost — skip thinking.
+function isHaikuModel(modelId: string): boolean {
+  return modelId.toLowerCase().includes("haiku");
+}
+
 // Models with adaptive thinking support use effort control.
 // Older models use the legacy extended thinking API with a budget.
+// Haiku models skip thinking entirely to keep costs low.
 function getAnthropicSettings(modelId: string): AnthropicLanguageModelOptions {
+  if (isHaikuModel(modelId)) {
+    return {};
+  }
+
   if (supportsAdaptiveAnthropicThinking(modelId)) {
     return {
       effort: "medium",
