@@ -2,32 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-export const SECRET_ENVIRONMENTS = ["all", "development", "preview", "production"] as const;
-export type SecretEnvironment = (typeof SECRET_ENVIRONMENTS)[number];
-
 export interface SecretEntry {
   id: string;
   name: string;
-  environment: SecretEnvironment;
   createdAt: string;
   updatedAt: string;
 }
 
-export const ENV_LABELS: Record<SecretEnvironment, string> = {
-  all: "All Environments",
-  development: "Development",
-  preview: "Preview",
-  production: "Production",
-};
-
-export const ENV_BADGE_COLORS: Record<SecretEnvironment, string> = {
-  all: "bg-muted text-muted-foreground",
-  development: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  preview: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-  production: "bg-green-500/10 text-green-600 dark:text-green-400",
-};
-
-export function useUserSecrets(environmentFilter?: SecretEnvironment) {
+export function useUserSecrets() {
   const [secrets, setSecrets] = useState<SecretEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,10 +18,7 @@ export function useUserSecrets(environmentFilter?: SecretEnvironment) {
     try {
       setIsLoading(true);
       setError(null);
-      const url = environmentFilter
-        ? `/api/secrets?environment=${environmentFilter}`
-        : "/api/secrets";
-      const res = await fetch(url);
+      const res = await fetch("/api/secrets");
       if (!res.ok) throw new Error("Failed to load secrets");
       const data = (await res.json()) as { secrets: SecretEntry[] };
       setSecrets(data.secrets);
@@ -48,23 +27,19 @@ export function useUserSecrets(environmentFilter?: SecretEnvironment) {
     } finally {
       setIsLoading(false);
     }
-  }, [environmentFilter]);
+  }, []);
 
   useEffect(() => {
     void load();
   }, [load]);
 
   const addSecret = useCallback(
-    async (
-      name: string,
-      value: string,
-      environment: SecretEnvironment = "all",
-    ): Promise<{ error?: string }> => {
+    async (name: string, value: string): Promise<{ error?: string }> => {
       try {
         const res = await fetch("/api/secrets", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, value, environment }),
+          body: JSON.stringify({ name, value }),
         });
         const data = (await res.json()) as { secret?: SecretEntry; error?: string };
         if (!res.ok) return { error: data.error ?? "Failed to save secret" };
@@ -78,23 +53,18 @@ export function useUserSecrets(environmentFilter?: SecretEnvironment) {
   );
 
   const deleteSecret = useCallback(
-    async (
-      name: string,
-      environment: SecretEnvironment = "all",
-    ): Promise<{ error?: string }> => {
+    async (name: string): Promise<{ error?: string }> => {
       try {
         const res = await fetch("/api/secrets", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, environment }),
+          body: JSON.stringify({ name }),
         });
         if (!res.ok) {
           const data = (await res.json()) as { error?: string };
           return { error: data.error ?? "Failed to delete secret" };
         }
-        setSecrets((prev) =>
-          prev.filter((s) => !(s.name === name && s.environment === environment)),
-        );
+        setSecrets((prev) => prev.filter((s) => s.name !== name));
         return {};
       } catch {
         return { error: "Network error" };

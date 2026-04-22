@@ -21,8 +21,6 @@ export interface AgentContext {
   skills?: SkillMetadata[];
   model: LanguageModel;
   subagentModel?: LanguageModel;
-  /** Names of secrets currently injected into the sandbox (used by check_secrets tool). */
-  availableSecrets?: string[];
 }
 
 export interface SandboxExecutionContext {

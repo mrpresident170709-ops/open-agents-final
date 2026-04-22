@@ -2728,30 +2728,6 @@ export function SessionChatContent({
     }
   }, [questionToolCallId, addToolOutput]);
 
-  // Handle request_secrets tool confirmation — user has added the secrets
-  const handleConfirmSecrets = useCallback(
-    (toolCallId: string) => {
-      addToolOutput({
-        tool: "request_secrets",
-        toolCallId,
-        output: { confirmed: true as const },
-      });
-    },
-    [addToolOutput],
-  );
-
-  // Handle request_secrets tool skip — user wants to proceed without adding secrets
-  const handleSkipSecrets = useCallback(
-    (toolCallId: string) => {
-      addToolOutput({
-        tool: "request_secrets",
-        toolCallId,
-        output: { skipped: true as const },
-      });
-    },
-    [addToolOutput],
-  );
-
   // Stable empty array so the hook doesn't reset on every render when there's no question
   const emptyQuestions = useMemo(
     () => [] as AskUserQuestionInput["questions"],
@@ -3678,8 +3654,6 @@ export function SessionChatContent({
                                             reason,
                                           })
                                         }
-                                        onConfirmSecrets={handleConfirmSecrets}
-                                        onSkipSecrets={handleSkipSecrets}
                                       />
                                     </div>
                                   );

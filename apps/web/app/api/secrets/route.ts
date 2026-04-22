@@ -3,8 +3,6 @@ import {
   getUserSecrets,
   upsertUserSecret,
   deleteUserSecret,
-  SECRET_ENVIRONMENTS,
-  type SecretEnvironment,
 } from "@/lib/db/user-secrets";
 
 const SECRET_NAME_REGEX = /^[A-Z][A-Z0-9_]*$/;
@@ -21,24 +19,13 @@ function validateName(name: unknown): name is string {
   );
 }
 
-function validateEnvironment(env: unknown): env is SecretEnvironment {
-  return (
-    typeof env === "string" &&
-    (SECRET_ENVIRONMENTS as readonly string[]).includes(env)
-  );
-}
-
-export async function GET(req: Request) {
+export async function GET() {
   const session = await getServerSession();
   if (!session?.user) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const url = new URL(req.url);
-  const envParam = url.searchParams.get("environment");
-  const environment = envParam && validateEnvironment(envParam) ? envParam : undefined;
-
-  const secrets = await getUserSecrets(session.user.id, environment);
+  const secrets = await getUserSecrets(session.user.id);
   return Response.json({ secrets });
 }
 
@@ -59,8 +46,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const { name, value, environment: envRaw } = body as Record<string, unknown>;
-  const environment: SecretEnvironment = validateEnvironment(envRaw) ? envRaw : "all";
+  const { name, value } = body as Record<string, unknown>;
 
   if (!validateName(name)) {
     return Response.json(
@@ -82,7 +68,7 @@ export async function POST(req: Request) {
 
   // Enforce per-user limit on new secrets (not updates)
   const existing = await getUserSecrets(session.user.id);
-  const isUpdate = existing.some((s) => s.name === name && s.environment === environment);
+  const isUpdate = existing.some((s) => s.name === name);
   if (!isUpdate && existing.length >= MAX_SECRETS) {
     return Response.json(
       { error: `Maximum of ${MAX_SECRETS} secrets allowed` },
@@ -92,7 +78,7 @@ export async function POST(req: Request) {
 
   let secret;
   try {
-    secret = await upsertUserSecret(session.user.id, name, value, environment);
+    secret = await upsertUserSecret(session.user.id, name, value);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to save secret";
     return Response.json({ error: message }, { status: 500 });
@@ -113,14 +99,13 @@ export async function DELETE(req: Request) {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { name, environment: envRaw } = (body as Record<string, unknown>) ?? {};
-  const environment: SecretEnvironment = validateEnvironment(envRaw) ? envRaw : "all";
+  const { name } = (body as Record<string, unknown>) ?? {};
 
   if (!validateName(name)) {
     return Response.json({ error: "Invalid secret name" }, { status: 400 });
   }
 
-  const deleted = await deleteUserSecret(session.user.id, name, environment);
+  const deleted = await deleteUserSecret(session.user.id, name);
   if (!deleted) {
     return Response.json({ error: "Secret not found" }, { status: 404 });
   }

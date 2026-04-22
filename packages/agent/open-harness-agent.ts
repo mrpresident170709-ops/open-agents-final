@@ -13,7 +13,6 @@ import { buildSystemPrompt } from "./system-prompt";
 import {
   askUserQuestionTool,
   bashTool,
-  checkSecretsTool,
   editFileTool,
   exaSearchTool,
   generateImageTool,
@@ -22,8 +21,6 @@ import {
   googleFontsTool,
   grepTool,
   readFileTool,
-  requestSecretsTool,
-  validateEnvTool,
   skillTool,
   taskTool,
   todoWriteTool,
@@ -87,11 +84,6 @@ const tools = {
   generate_image: generateImageTool,
   generate_video: generateVideoTool,
   get_google_fonts: googleFontsTool,
-  // Secret provisioning — detect missing API keys before implementing
-  check_secrets: checkSecretsTool,
-  request_secrets: requestSecretsTool,
-  // Pre-execution env validation — presence + format before running code
-  validate_env: validateEnvTool,
 } satisfies ToolSet;
 
 export const openHarnessAgent = new ToolLoopAgent({
@@ -158,7 +150,6 @@ export const openHarnessAgent = new ToolLoopAgent({
         skills,
         model: callModel,
         subagentModel,
-        availableSecrets: options.availableSecrets ?? [],
       },
     };
   },

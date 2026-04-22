@@ -20,8 +20,6 @@ import { GrepRenderer } from "./renderers/grep-renderer";
 import { TaskRenderer } from "./renderers/task-renderer";
 import { TodoRenderer } from "./renderers/todo-renderer";
 import { AskUserQuestionRenderer } from "./renderers/ask-user-question-renderer";
-import { RequestSecretsRenderer } from "./renderers/request-secrets-renderer";
-import { ValidateEnvRenderer } from "./renderers/validate-env-renderer";
 import { FetchRenderer } from "./renderers/fetch-renderer";
 import { SkillRenderer } from "./renderers/skill-renderer";
 
@@ -32,10 +30,6 @@ export type ToolCallProps = {
   isStreaming?: boolean;
   onApprove?: (id: string) => void;
   onDeny?: (id: string, reason?: string) => void;
-  /** Called when user confirms they have added the requested secrets */
-  onConfirmSecrets?: (toolCallId: string) => void;
-  /** Called when user skips the secret request */
-  onSkipSecrets?: (toolCallId: string) => void;
 };
 
 /**
@@ -48,8 +42,6 @@ export function ToolCall({
   isStreaming = false,
   onApprove,
   onDeny,
-  onConfirmSecrets,
-  onSkipSecrets,
 }: ToolCallProps) {
   const state = extractRenderState(part, activeApprovalId, isStreaming);
   const approvalProps = { onApprove, onDeny };
@@ -80,17 +72,6 @@ export function ToolCall({
     case "tool-ask_user_question":
       // AskUserQuestion tool doesn't require approval, handled separately
       return <AskUserQuestionRenderer part={part} state={state} />;
-    case "tool-request_secrets":
-      return (
-        <RequestSecretsRenderer
-          part={part}
-          state={state}
-          onConfirm={onConfirmSecrets}
-          onSkip={onSkipSecrets}
-        />
-      );
-    case "tool-validate_env":
-      return <ValidateEnvRenderer part={part} state={state} />;
     case "tool-web_fetch":
       return <FetchRenderer part={part} state={state} {...approvalProps} />;
     case "tool-skill":
