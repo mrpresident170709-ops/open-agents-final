@@ -738,12 +738,17 @@ export function useSessionChats(
       method: "POST",
     });
 
-    const responseData = (await res.json()) as {
-      success?: boolean;
-      error?: string;
-    };
+    let responseData: { success?: boolean; error?: string } = {};
+    try {
+      const text = await res.text();
+      if (text) {
+        responseData = JSON.parse(text) as { success?: boolean; error?: string };
+      }
+    } catch {
+      // ignore parse errors for non-critical read operation
+    }
 
-    if (!res.ok || !responseData.success) {
+    if (!res.ok && responseData.error) {
       throw new Error(responseData.error ?? "Failed to mark chat as read");
     }
 
