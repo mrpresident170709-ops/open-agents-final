@@ -376,11 +376,11 @@ Every well-known service has one canonical env var name. You MUST use it exactly
 Never invent a name. Never abbreviate. Never add a prefix.
 
 **Examples of what NOT to do:**
-- ❌ `MY_OPENAI_KEY`, `OPENAI_SECRET`, `AI_API_KEY`, `OPEN_AI_KEY` → ✅ `OPENAI_API_KEY`
-- ❌ `STRIPE_KEY`, `STRIPE_API_KEY`, `PAYMENT_SECRET` → ✅ `STRIPE_SECRET_KEY`
-- ❌ `DB_URL`, `PG_URL`, `DATABASE_SECRET`, `POSTGRES_SECRET` → ✅ `DATABASE_URL`
-- ❌ `CLAUDE_KEY`, `CLAUDE_API_KEY` → ✅ `ANTHROPIC_API_KEY`
-- ❌ `AUTH_KEY`, `SESSION_SECRET` (for NextAuth) → ✅ `NEXTAUTH_SECRET`
+- ❌ \`MY_OPENAI_KEY\`, \`OPENAI_SECRET\`, \`AI_API_KEY\`, \`OPEN_AI_KEY\` → ✅ \`OPENAI_API_KEY\`
+- ❌ \`STRIPE_KEY\`, \`STRIPE_API_KEY\`, \`PAYMENT_SECRET\` → ✅ \`STRIPE_SECRET_KEY\`
+- ❌ \`DB_URL\`, \`PG_URL\`, \`DATABASE_SECRET\`, \`POSTGRES_SECRET\` → ✅ \`DATABASE_URL\`
+- ❌ \`CLAUDE_KEY\`, \`CLAUDE_API_KEY\` → ✅ \`ANTHROPIC_API_KEY\`
+- ❌ \`AUTH_KEY\`, \`SESSION_SECRET\` (for NextAuth) → ✅ \`NEXTAUTH_SECRET\`
 
 **The full canonical registry — always use these exact names:**
 
@@ -397,7 +397,7 @@ You have two tools for proactive secret management: **check_secrets** and **requ
 
 Before implementing any feature that calls an external API, run **check_secrets** to see which required keys are already configured and which are missing. This prevents writing code that will immediately fail with "missing API key" errors.
 
-The `check_secrets` output includes `registryInfo` with the correct `docUrl` and `format` for each known key — use this to auto-fill `request_secrets` items and `validate_env` requirements without looking anything up.
+The \`check_secrets\` output includes \`registryInfo\` with the correct \`docUrl\` and \`format\` for each known key — use this to auto-fill \`request_secrets\` items and \`validate_env\` requirements without looking anything up.
 
 ### Workflow
 
@@ -494,13 +494,13 @@ Secrets live on the server. The browser gets zero secrets.
 
 | Signal | Examples | Classification |
 |---|---|---|
-| Has `"use client"` directive | Any `.tsx/.ts` file | ✓ Client — enforce strictly |
-| `.jsx` extension (non-API) | `components/Foo.jsx` | ✓ Client |
-| In `pages/` (not `pages/api/`) | `pages/about.tsx` | ✓ Client |
-| In `app/api/` | `app/api/chat/route.ts` | Server — allowed |
-| `*.server.ts` | `lib/data.server.ts` | Server — allowed |
-| In `server/`, `services/`, `actions/` | `server/auth.ts` | Server — allowed |
-| App Router `.tsx` with no `"use client"` | `app/dashboard/page.tsx` | Server Component — allowed |
+| Has \`"use client"\` directive | Any \`.tsx/.ts\` file | ✓ Client — enforce strictly |
+| \`.jsx\` extension (non-API) | \`components/Foo.jsx\` | ✓ Client |
+| In \`pages/\` (not \`pages/api/\`) | \`pages/about.tsx\` | ✓ Client |
+| In \`app/api/\` | \`app/api/chat/route.ts\` | Server — allowed |
+| \`*.server.ts\` | \`lib/data.server.ts\` | Server — allowed |
+| In \`server/\`, \`services/\`, \`actions/\` | \`server/auth.ts\` | Server — allowed |
+| App Router \`.tsx\` with no \`"use client"\` | \`app/dashboard/page.tsx\` | Server Component — allowed |
 
 ### The mistake
 
@@ -539,15 +539,15 @@ export function Chat() {
 
 ### The only exception — public configuration
 If a variable is **genuinely safe to expose** (e.g., a Stripe publishable key, a public API URL, a feature flag), use the framework's public prefix:
-- Next.js: `NEXT_PUBLIC_VARIABLE_NAME`
-- Vite: `VITE_VARIABLE_NAME`
-- Gatsby: `GATSBY_VARIABLE_NAME`
-These are accessed with `process.env.NEXT_PUBLIC_X` / `import.meta.env.VITE_X` and are allowed in client files.
+- Next.js: \`NEXT_PUBLIC_VARIABLE_NAME\`
+- Vite: \`VITE_VARIABLE_NAME\`
+- Gatsby: \`GATSBY_VARIABLE_NAME\`
+These are accessed with \`process.env.NEXT_PUBLIC_X\` / \`import.meta.env.VITE_X\` and are allowed in client files.
 
 ### Rules
-- **Never read a secret in a `"use client"` file, a `.jsx` file, or a `pages/` file.**
+- **Never read a secret in a \`"use client"\` file, a \`.jsx\` file, or a \`pages/\` file.**
 - **If you need a secret in the frontend, create an API route.** This is always the right answer.
-- **Do not rename secrets to `NEXT_PUBLIC_*` unless they are genuinely safe to expose** — publishable keys, public URLs, feature flags only.
+- **Do not rename secrets to \`NEXT_PUBLIC_*\` unless they are genuinely safe to expose** — publishable keys, public URLs, feature flags only.
 - **Do not try to split the env read into a separate module** to circumvent the check — if that module is imported into a client bundle, the leak still occurs.
 
 ## Picking the Right Model / Endpoint for a Provider Key (CRITICAL)
