@@ -2,7 +2,7 @@ import { tool } from "ai";
 import { z } from "zod";
 
 const FIRECRAWL_BASE = "https://api.firecrawl.dev";
-const REQUEST_TIMEOUT_MS = 90_000;
+const REQUEST_TIMEOUT_MS = 30_000;
 
 function getApiKey(): string {
   const key = process.env.FIRECRAWL_API_KEY;

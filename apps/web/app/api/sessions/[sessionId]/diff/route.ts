@@ -18,6 +18,8 @@ import {
 
 export type { DiffFile, DiffResponse } from "@/lib/diff/compute-diff";
 
+const FRESH_CACHE_TTL_MS = 30_000;
+
 type RouteContext = {
   params: Promise<{ sessionId: string }>;
 };
@@ -44,6 +46,15 @@ export async function GET(_req: NextRequest, context: RouteContext) {
   const sandboxState = sessionRecord.sandboxState;
   if (!sandboxState) {
     return Response.json({ error: "Sandbox not initialized" }, { status: 400 });
+  }
+
+  if (
+    sessionRecord.cachedDiff &&
+    sessionRecord.cachedDiffUpdatedAt &&
+    Date.now() - new Date(sessionRecord.cachedDiffUpdatedAt).getTime() <
+      FRESH_CACHE_TTL_MS
+  ) {
+    return Response.json(sessionRecord.cachedDiff);
   }
 
   try {

@@ -172,9 +172,10 @@ export async function computeAndCacheDiff(params: {
     .filter(isGeneratedFile)
     .map((p) => `":(exclude)${p}"`)
     .join(" ");
+  const MAX_RAW_DIFF_BYTES = 2_000_000;
   const diffCmd = generatedExcludes
-    ? `git diff ${diffRef} -- . ${generatedExcludes}`
-    : `git diff ${diffRef}`;
+    ? `git diff ${diffRef} -- . ${generatedExcludes} | head -c ${MAX_RAW_DIFF_BYTES}`
+    : `git diff ${diffRef} | head -c ${MAX_RAW_DIFF_BYTES}`;
   const diffResult = await sandbox.exec(diffCmd, cwd, 60000);
   const untrackedResult = await sandbox.exec(
     "git ls-files --others --exclude-standard",
@@ -255,13 +256,19 @@ export async function computeAndCacheDiff(params: {
     return "unstaged";
   }
 
+  const diffTruncated = diffResult.stdout.length >= MAX_RAW_DIFF_BYTES;
+
   // Collect files whose diffs are missing from the bulk output (e.g. due
   // to output truncation when the full diff is very large).
   // Skip generated/lock files — we intentionally omit their diff content.
+  // Skip entirely when the bulk diff was already truncated; individual fetches
+  // would add even more latency for little gain.
   const missingDiffPaths: string[] = [];
-  for (const [path] of fileStatuses) {
-    if (!fileDiffs.has(path) && !isGeneratedFile(path)) {
-      missingDiffPaths.push(path);
+  if (!diffTruncated) {
+    for (const [path] of fileStatuses) {
+      if (!fileDiffs.has(path) && !isGeneratedFile(path)) {
+        missingDiffPaths.push(path);
+      }
     }
   }
 
@@ -328,20 +335,23 @@ export async function computeAndCacheDiff(params: {
   }
 
   // Fetch local-only diffs (uncommitted changes vs HEAD) for files with
-  // local modifications. This runs `git diff HEAD -- <file>` sequentially
-  // for each file that has unstaged or partially staged changes.
-  for (const file of files) {
-    if (
-      !file.generated &&
-      (file.stagingStatus === "unstaged" || file.stagingStatus === "partial")
-    ) {
-      const localResult = await sandbox.exec(
-        `git diff HEAD -- ${JSON.stringify(file.path)}`,
-        cwd,
-        30000,
-      );
-      if (localResult.success && localResult.stdout.trim()) {
-        file.localDiff = localResult.stdout.trim();
+  // local modifications. Skip when the diff is already truncated — the
+  // per-file requests would further delay a session that already has a
+  // very large changeset.
+  if (!diffTruncated) {
+    for (const file of files) {
+      if (
+        !file.generated &&
+        (file.stagingStatus === "unstaged" || file.stagingStatus === "partial")
+      ) {
+        const localResult = await sandbox.exec(
+          `git diff HEAD -- ${JSON.stringify(file.path)}`,
+          cwd,
+          30000,
+        );
+        if (localResult.success && localResult.stdout.trim()) {
+          file.localDiff = localResult.stdout.trim();
+        }
       }
     }
   }
