@@ -1391,10 +1391,20 @@ export function SessionChatContent({
     },
     [chatInfo.id, markChatRead, refreshChats, session.id, setMessages],
   );
-  const renderMessages = useMemo(
-    () => (hasMounted ? messages : initialMessages),
-    [hasMounted, messages, initialMessages],
-  );
+  const renderMessages = useMemo(() => {
+    const source = hasMounted ? messages : initialMessages;
+    // The AI SDK can transiently produce duplicate IDs (e.g. a persisted
+    // server message and its in-flight streaming counterpart both in the list
+    // during a retry). Keep only the last occurrence of each ID so React's
+    // key constraint is satisfied and the UI renders the most-recent copy.
+    const seen = new Map<string, (typeof source)[number]>();
+    for (const msg of source) {
+      seen.set(msg.id, msg);
+    }
+    return source.length === seen.size
+      ? source
+      : Array.from(seen.values());
+  }, [hasMounted, messages, initialMessages]);
   // Track explicit user-initiated stops so the UI can immediately reflect the
   // idle state even if the AI SDK `status` is stuck (common on iOS/Safari where
   // fetch abort doesn't cleanly settle the hook status).

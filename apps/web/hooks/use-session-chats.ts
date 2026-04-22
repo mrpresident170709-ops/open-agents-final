@@ -738,22 +738,32 @@ export function useSessionChats(
       method: "POST",
     });
 
-    // Guard against empty/truncated bodies (server restart, brief network blip).
-    // markChatRead is best-effort — a parse failure should not surface as a
-    // visible error; we just treat it as a non-success and move on.
-    let responseData: { success?: boolean; error?: string } = {};
+    // markChatRead is best-effort — transient failures (server restart,
+    // empty body, network blip) must not surface as console errors.
+    // Only throw if the server returned an explicit error message string.
+    let errorMessage: string | undefined;
     try {
       const text = await res.text();
       if (text.trim()) {
-        responseData = JSON.parse(text) as typeof responseData;
+        const parsed = JSON.parse(text) as {
+          success?: boolean;
+          error?: string;
+        };
+        if (parsed.success) {
+          // Happy path — fall through to cache update below.
+        } else if (parsed.error) {
+          errorMessage = parsed.error;
+        }
+        // No explicit error and no success means ambiguous — treat as ok.
       }
+      // Empty body (server restarting) → treat as ok, badge refreshes next poll.
     } catch {
-      // Empty or malformed body — server may have been restarting.
-      // Treat as non-fatal; the unread badge will refresh on next poll.
+      // Parse failure → server was restarting or network hiccupped; ignore.
+      return;
     }
 
-    if (!res.ok || !responseData.success) {
-      throw new Error(responseData.error ?? "Failed to mark chat as read");
+    if (errorMessage) {
+      throw new Error(errorMessage);
     }
 
     await mutate(
