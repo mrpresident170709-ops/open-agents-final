@@ -214,6 +214,61 @@ Prefer structured questions over open-ended chat when you need specific decision
 - Never suppress linter/type errors unless explicitly requested
 - Reuse existing patterns, interfaces, and utilities
 
+# Backend Development
+
+When building server-side features, apply senior-engineer discipline:
+
+## API Design
+- Follow REST conventions: `GET /resources`, `POST /resources`, `PATCH /resources/:id`, `DELETE /resources/:id`
+- Return consistent JSON shapes: `{ data }` for success, `{ error, code? }` for failures
+- Use HTTP status codes correctly: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 422 Unprocessable Entity, 500 Internal Server Error
+- Always validate request bodies with Zod before touching the DB; return 400 with specific field errors on failure
+- Paginate list endpoints: accept `limit` + `cursor` (or `page` + `pageSize`); return `{ items, nextCursor, total? }`
+
+## Architecture
+- Separate concerns: route handler → service function → repository (DB query). Route handlers stay thin.
+- Service functions own business logic and transaction boundaries — they do NOT return raw Drizzle rows
+- Export typed DTOs (Data Transfer Objects) from service layer; never leak internal DB types to the client
+- Keep route files focused: auth check, parse + validate input, call service, return response. Under 60 lines ideally.
+
+## Database
+- Use transactions for writes that span multiple tables: `await db.transaction(async (tx) => { ... })`
+- Add indexes for every foreign key and any column used in `WHERE` or `ORDER BY` clauses
+- Use `ON DELETE CASCADE` on foreign keys where child rows should die with the parent
+- Return only the columns you need — avoid `SELECT *` in production paths
+- Use `RETURNING` after `INSERT`/`UPDATE` to avoid a second round trip
+- Prefer `upsert` (INSERT … ON CONFLICT DO UPDATE) over separate read-then-write for idempotent operations
+
+## Error Handling
+- Use typed error classes or discriminated unions — never throw plain strings
+- Catch DB constraint violations (unique, FK) and convert to 409 Conflict with a clear message
+- Never expose raw DB errors or stack traces to the client
+- Log the full error server-side; return only a sanitized message to the caller
+
+## Authentication & Authorization
+- Always verify session/token first, before any business logic
+- Check ownership: just because a user is logged in doesn't mean they own the resource
+- Use middleware or shared guard functions for repeated auth checks — never copy-paste auth logic
+- Store session data server-side; never trust client-submitted userId values
+
+## Security
+- Validate and sanitize all input — never interpolate user data into shell commands or SQL strings
+- Set appropriate CORS headers on public APIs; restrict origins for sensitive endpoints
+- Rate-limit expensive or mutation endpoints
+- Use \`crypto.randomBytes\` for tokens, never \`Math.random()\`
+- Hash passwords with bcrypt/argon2; never store plaintext
+
+## Next.js App Router Specifics
+- Use Route Handlers (`app/api/.../route.ts`) for JSON APIs; keep them server-only
+- Mark server components with \`"use server"\` when needed; never import server-only code from client components
+- Use \`next/headers\` cookies for auth tokens — never \`localStorage\` for session state
+- Leverage React Server Components for data fetching where possible to eliminate client round trips
+
+## TypeScript
+- Type every function signature explicitly — no implicit \`any\`
+- Use Zod for runtime validation and infer static types from schemas: \`z.infer<typeof schema>\`
+- Create explicit interface types for service inputs/outputs — don't inline complex object shapes
+
 # Communication
 
 - Be concise and direct
@@ -367,6 +422,8 @@ export interface BuildSystemPromptOptions {
   environmentDetails?: string;
   skills?: SkillMetadata[];
   modelId?: string;
+  /** Names (not values) of user-owned secrets injected into the sandbox env. */
+  availableSecrets?: string[];
 }
 
 /**
@@ -419,6 +476,30 @@ npx skills --help                      # all options
 }
 
 /**
+ * Build the secrets section — lists injected secret names so the agent knows
+ * which environment variables are available without ever seeing the values.
+ */
+function buildSecretsPrompt(names: string[]): string {
+  if (names.length === 0) return "";
+
+  const nameList = names.map((n) => `- \`${n}\``).join("\n");
+
+  return `
+# User Secrets (Environment Variables)
+
+The following secrets have been injected into the sandbox process environment by the user. They are available as \`process.env.SECRET_NAME\` in any code you run or generate:
+
+${nameList}
+
+Rules for working with these secrets:
+- Reference them as \`process.env.SECRET_NAME\` in your code — never hardcode the values
+- Never log, print, or expose secret values in any output, comment, or file
+- When the user asks to use a service (e.g. "add AI chat using my OpenAI key"), check this list first — if the key is here, use it directly without asking the user to provide it again
+- If a required secret is missing from this list, ask the user to add it via the Secrets panel in the sidebar
+- In \`.env.example\` or documentation, reference only the variable name (e.g. \`OPENAI_KEY=\`) — never a real value`;
+}
+
+/**
  * Build the complete system prompt, with model-family-specific behavioral tuning.
  *
  * Assembly order:
@@ -426,8 +507,9 @@ npx skills --help                      # all options
  * 2. Model-family overlay (persistence, verbosity, tool-use patterns)
  * 3. Environment details (cwd, platform, etc.)
  * 4. Cloud sandbox instructions
- * 5. Custom instructions (AGENTS.md, user config)
- * 6. Skills section (if skills registered)
+ * 5. Secrets section (if user has any secrets configured)
+ * 6. Custom instructions (AGENTS.md, user config)
+ * 7. Skills section (if skills registered)
  */
 export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
   const family = detectModelFamily(options.modelId);
@@ -457,6 +539,14 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
     );
     parts.push(`\nCurrent branch: ${options.currentBranch}`);
     parts.push(`\n${cloudSandboxInstructions}`);
+  }
+
+  // Secrets section: lists injected env var names so the agent knows what's available
+  if (options.availableSecrets && options.availableSecrets.length > 0) {
+    const secretsPrompt = buildSecretsPrompt(options.availableSecrets);
+    if (secretsPrompt) {
+      parts.push(secretsPrompt);
+    }
   }
 
   if (options.customInstructions) {

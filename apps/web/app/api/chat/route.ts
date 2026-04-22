@@ -179,7 +179,7 @@ export async function POST(req: Request) {
     return null;
   });
 
-  const [{ sandbox, skills }, rawPreferences] = await Promise.all([
+  const [{ sandbox, skills, secretNames }, rawPreferences] = await Promise.all([
     runtimePromise,
     preferencesPromise,
   ]);
@@ -250,6 +250,7 @@ export async function POST(req: Request) {
           ? { subagentModel: subagentModelSelection }
           : {}),
         ...(skills.length > 0 && { skills }),
+        ...(secretNames.length > 0 && { availableSecrets: secretNames }),
         customInstructions: assistantFileLinkPrompt,
       },
       ...(shouldAutoCommitPush &&

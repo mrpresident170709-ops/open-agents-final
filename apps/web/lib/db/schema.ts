@@ -426,3 +426,26 @@ export const usageEvents = pgTable("usage_events", {
 
 export type UsageEvent = typeof usageEvents.$inferSelect;
 export type NewUsageEvent = typeof usageEvents.$inferInsert;
+
+// User-owned secrets that get injected into sandbox environments as env vars.
+// Values are AES-256-CBC encrypted at rest using the ENCRYPTION_KEY env var.
+export const userSecrets = pgTable(
+  "user_secrets",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    encryptedValue: text("encrypted_value").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("user_secrets_user_id_idx").on(table.userId),
+    uniqueIndex("user_secrets_user_name_idx").on(table.userId, table.name),
+  ],
+);
+
+export type UserSecret = typeof userSecrets.$inferSelect;
+export type NewUserSecret = typeof userSecrets.$inferInsert;

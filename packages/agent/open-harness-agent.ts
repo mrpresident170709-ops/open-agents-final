@@ -49,6 +49,7 @@ const callOptionsSchema = z.object({
   customInstructions: z.string().optional(),
   priorityInstructions: z.string().optional(),
   skills: z.custom<SkillMetadata[]>().optional(),
+  availableSecrets: z.array(z.string()).optional(),
 });
 
 export type OpenHarnessAgentCallOptions = z.infer<typeof callOptionsSchema>;
@@ -133,6 +134,7 @@ export const openHarnessAgent = new ToolLoopAgent({
       environmentDetails: sandbox.environmentDetails,
       skills,
       modelId: mainSelection.id,
+      availableSecrets: options.availableSecrets ?? [],
     });
 
     return {
