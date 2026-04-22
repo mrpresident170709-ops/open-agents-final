@@ -6,7 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useUserSecrets } from "@/hooks/use-user-secrets";
+import {
+  useUserSecrets,
+  SECRET_ENVIRONMENTS,
+  ENV_LABELS,
+  ENV_BADGE_COLORS,
+  type SecretEnvironment,
+} from "@/hooks/use-user-secrets";
 
 const SECRET_NAME_REGEX = /^[A-Z][A-Z0-9_]*$/;
 
@@ -18,9 +24,20 @@ function validateName(name: string): string | null {
   return null;
 }
 
+function EnvBadge({ env }: { env: SecretEnvironment }) {
+  return (
+    <span
+      className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium leading-none ${ENV_BADGE_COLORS[env]}`}
+    >
+      {env === "all" ? "all envs" : env}
+    </span>
+  );
+}
+
 function AddSecretForm({ onAdd }: { onAdd: () => void }) {
   const [name, setName] = useState("");
   const [value, setValue] = useState("");
+  const [environment, setEnvironment] = useState<SecretEnvironment>("all");
   const [showValue, setShowValue] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -47,7 +64,7 @@ function AddSecretForm({ onAdd }: { onAdd: () => void }) {
       return;
     }
     setIsSaving(true);
-    const result = await addSecret(name, value);
+    const result = await addSecret(name, value, environment);
     setIsSaving(false);
     if (result.error) {
       setSubmitError(result.error);
@@ -81,9 +98,7 @@ function AddSecretForm({ onAdd }: { onAdd: () => void }) {
             className="font-mono text-sm"
             autoComplete="off"
           />
-          {nameError && (
-            <p className="text-xs text-destructive">{nameError}</p>
-          )}
+          {nameError && <p className="text-xs text-destructive">{nameError}</p>}
         </div>
 
         <div className="space-y-1.5">
@@ -95,7 +110,10 @@ function AddSecretForm({ onAdd }: { onAdd: () => void }) {
               id="secret-value"
               type={showValue ? "text" : "password"}
               value={value}
-              onChange={(e) => { setValue(e.target.value); setSubmitError(null); }}
+              onChange={(e) => {
+                setValue(e.target.value);
+                setSubmitError(null);
+              }}
               placeholder="sk-..."
               className="pr-9 font-mono text-sm"
               autoComplete="new-password"
@@ -112,9 +130,32 @@ function AddSecretForm({ onAdd }: { onAdd: () => void }) {
         </div>
       </div>
 
-      {submitError && (
-        <p className="text-xs text-destructive">{submitError}</p>
-      )}
+      <div className="space-y-1.5">
+        <Label className="text-xs font-medium text-muted-foreground">Environment</Label>
+        <div className="flex flex-wrap gap-2">
+          {SECRET_ENVIRONMENTS.map((env) => (
+            <button
+              key={env}
+              type="button"
+              onClick={() => setEnvironment(env)}
+              className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+                environment === env
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-background text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+              }`}
+            >
+              {ENV_LABELS[env]}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          {environment === "all"
+            ? "Available in development, preview, and production."
+            : `Only injected when the app runs in ${environment} mode.`}
+        </p>
+      </div>
+
+      {submitError && <p className="text-xs text-destructive">{submitError}</p>}
 
       <div className="flex justify-end">
         <Button type="submit" size="sm" disabled={isSaving}>
@@ -127,10 +168,12 @@ function AddSecretForm({ onAdd }: { onAdd: () => void }) {
 
 function SecretRow({
   name,
+  environment,
   onDelete,
 }: {
   name: string;
-  onDelete: (name: string) => void;
+  environment: SecretEnvironment;
+  onDelete: (name: string, environment: SecretEnvironment) => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -141,16 +184,17 @@ function SecretRow({
       return;
     }
     setIsDeleting(true);
-    await onDelete(name);
+    await onDelete(name, environment);
     setIsDeleting(false);
   };
 
   return (
     <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-4 py-3">
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 items-center gap-2">
         <KeyRound className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <span className="truncate font-mono text-sm text-foreground">{name}</span>
         <span className="shrink-0 text-xs text-muted-foreground">••••••••</span>
+        <EnvBadge env={environment} />
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
         {confirming && !isDeleting && (
@@ -185,6 +229,13 @@ function SecretRow({
   );
 }
 
+const ENV_FILTER_TABS: { label: string; value: SecretEnvironment | "all" }[] = [
+  { label: "All", value: "all" },
+  { label: "Development", value: "development" },
+  { label: "Preview", value: "preview" },
+  { label: "Production", value: "production" },
+];
+
 export function SecretsSectionSkeleton() {
   return (
     <div className="space-y-4">
@@ -202,9 +253,13 @@ export function SecretsSectionSkeleton() {
 export function SecretsSection() {
   const { secrets, isLoading, error, deleteSecret, reload } = useUserSecrets();
   const [addKey, setAddKey] = useState(0);
+  const [activeTab, setActiveTab] = useState<SecretEnvironment | "all">("all");
 
-  const handleDelete = async (name: string) => {
-    await deleteSecret(name);
+  const filteredSecrets =
+    activeTab === "all" ? secrets : secrets.filter((s) => s.environment === activeTab);
+
+  const handleDelete = async (name: string, environment: SecretEnvironment) => {
+    await deleteSecret(name, environment);
   };
 
   return (
@@ -213,17 +268,41 @@ export function SecretsSection() {
         <h1 className="text-2xl font-semibold tracking-tight">Secrets</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
           API keys and tokens stored here are encrypted at rest and automatically injected into
-          your sandbox as environment variables. The agent can use them with{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs font-mono">process.env.SECRET_NAME</code>{" "}
-          without ever seeing the actual value.
+          your sandbox as environment variables. Scope secrets to a specific environment so dev
+          keys never reach production.
         </p>
       </div>
 
       <AddSecretForm key={addKey} onAdd={() => { setAddKey((k) => k + 1); reload(); }} />
 
-      <div className="space-y-2">
-        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Stored secrets ({secrets.length})
+      <div className="space-y-3">
+        {/* Environment filter tabs */}
+        <div className="flex gap-1 border-b border-border">
+          {ENV_FILTER_TABS.map((tab) => {
+            const count =
+              tab.value === "all"
+                ? secrets.length
+                : secrets.filter((s) => s.environment === tab.value).length;
+            return (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => setActiveTab(tab.value)}
+                className={`-mb-px border-b-2 px-3 pb-2 text-xs font-medium transition-colors ${
+                  activeTab === tab.value
+                    ? "border-foreground text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {tab.label}
+                {count > 0 && (
+                  <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] leading-none">
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {isLoading && (
@@ -240,22 +319,39 @@ export function SecretsSection() {
           </div>
         )}
 
-        {!isLoading && !error && secrets.length === 0 && (
+        {!isLoading && !error && filteredSecrets.length === 0 && (
           <div className="rounded-md border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
-            No secrets yet. Add your first API key above.
+            {activeTab === "all"
+              ? "No secrets yet. Add your first API key above."
+              : `No secrets scoped to ${activeTab}. Add one above or switch to All Environments.`}
           </div>
         )}
 
-        {!isLoading && secrets.map((s) => (
-          <SecretRow key={s.id} name={s.name} onDelete={handleDelete} />
-        ))}
+        {!isLoading &&
+          filteredSecrets.map((s) => (
+            <SecretRow
+              key={`${s.environment}:${s.name}`}
+              name={s.name}
+              environment={s.environment}
+              onDelete={handleDelete}
+            />
+          ))}
       </div>
 
       {!isLoading && secrets.length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          Secret values are encrypted with AES-256-CBC and never exposed in logs or responses.
-          The agent only receives the variable names, not the values.
-        </p>
+        <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1">
+          <p className="text-xs font-medium text-foreground">How environment scoping works</p>
+          <p className="text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">All Environments</span> — injected in every context (dev, preview, prod).
+            Use for shared keys that don&apos;t change between environments.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Environment-specific</span> — only injected when{" "}
+            <code className="rounded bg-muted px-1 text-[11px] font-mono">NODE_ENV</code> or{" "}
+            <code className="rounded bg-muted px-1 text-[11px] font-mono">APP_ENV</code> matches.
+            Env-specific keys override All Environments keys with the same name.
+          </p>
+        </div>
       )}
     </div>
   );

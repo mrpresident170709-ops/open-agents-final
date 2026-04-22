@@ -8,12 +8,25 @@ import { getCachedSkills, setCachedSkills } from "@/lib/skills-cache";
 import {
   getUserSecretsDecrypted,
   getUserSecretNames,
+  type SecretEnvironment,
+  SECRET_ENVIRONMENTS,
 } from "@/lib/db/user-secrets";
 import type { SessionRecord } from "./chat-context";
 
 type DiscoveredSkills = Awaited<ReturnType<typeof discoverSkills>>;
 type ConnectedSandbox = Awaited<ReturnType<typeof connectSandbox>>;
 type ActiveSandboxState = NonNullable<SessionRecord["sandboxState"]>;
+
+/**
+ * Detect the current runtime environment so env-scoped secrets are merged
+ * correctly. Falls back to "development" if unset/unknown.
+ */
+function detectSandboxEnvironment(): SecretEnvironment {
+  const raw = process.env.APP_ENV ?? process.env.NODE_ENV ?? "development";
+  return (SECRET_ENVIRONMENTS as readonly string[]).includes(raw)
+    ? (raw as SecretEnvironment)
+    : "development";
+}
 
 async function loadSessionSkills(
   sessionId: string,
@@ -49,14 +62,18 @@ export async function createChatRuntime(params: {
     throw new Error("Sandbox state is required to create chat runtime");
   }
 
+  // Resolve the sandbox environment so env-scoped secrets are merged correctly.
+  // 'all' secrets always apply; env-specific secrets overlay them when matched.
+  const sandboxEnv = detectSandboxEnvironment();
+
   // Fetch user secrets and GitHub token in parallel
   const [githubToken, userEnv, secretNames] = await Promise.all([
     getUserGitHubToken(userId),
-    getUserSecretsDecrypted(userId).catch((err) => {
+    getUserSecretsDecrypted(userId, sandboxEnv).catch((err) => {
       console.error("[runtime] failed to load user secrets:", err);
       return {} as Record<string, string>;
     }),
-    getUserSecretNames(userId).catch(() => [] as string[]),
+    getUserSecretNames(userId, sandboxEnv).catch(() => [] as string[]),
   ]);
 
   const sandbox = await connectSandbox(sandboxState, {

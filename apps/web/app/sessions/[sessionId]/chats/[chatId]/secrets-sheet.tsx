@@ -26,7 +26,14 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { type SecretEntry, useUserSecrets } from "@/hooks/use-user-secrets";
+import {
+  type SecretEntry,
+  type SecretEnvironment,
+  SECRET_ENVIRONMENTS,
+  ENV_LABELS,
+  ENV_BADGE_COLORS,
+  useUserSecrets,
+} from "@/hooks/use-user-secrets";
 
 const NAME_REGEX = /^[A-Z][A-Z0-9_]*$/;
 
@@ -37,15 +44,27 @@ function validateName(name: string): string | null {
   return null;
 }
 
+function EnvBadge({ env }: { env: SecretEnvironment }) {
+  return (
+    <span
+      className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium leading-none ${ENV_BADGE_COLORS[env]}`}
+    >
+      {env === "all" ? "all" : env}
+    </span>
+  );
+}
+
 function AddSecretRow({
   onAdd,
   onCancel,
 }: {
-  onAdd: (name: string, value: string) => Promise<{ error?: string }>;
+  onAdd: (name: string, value: string, environment: SecretEnvironment) => Promise<{ error?: string }>;
   onCancel: () => void;
 }) {
   const [name, setName] = useState("");
   const [value, setValue] = useState("");
+  const [environment, setEnvironment] = useState<SecretEnvironment>("all");
+  const [showValue, setShowValue] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -69,7 +88,7 @@ function AddSecretRow({
       return;
     }
     setSaving(true);
-    const result = await onAdd(name, value);
+    const result = await onAdd(name, value, environment);
     setSaving(false);
     if (result.error) {
       setSubmitError(result.error);
@@ -79,7 +98,7 @@ function AddSecretRow({
   };
 
   return (
-    <div className="border-b border-border bg-muted/30 px-4 py-3">
+    <div className="border-b border-border bg-muted/30 px-4 py-3 space-y-2">
       <div className="flex gap-2">
         <div className="flex-1 min-w-0">
           <Input
@@ -91,46 +110,61 @@ function AddSecretRow({
             autoComplete="off"
             autoFocus
           />
-          {nameError && (
-            <p className="mt-1 text-[10px] text-destructive">{nameError}</p>
-          )}
+          {nameError && <p className="mt-1 text-[10px] text-destructive">{nameError}</p>}
         </div>
         <div className="flex-1 min-w-0">
-          <Input
-            type="password"
-            value={value}
-            onChange={(e) => {
-              setValue(e.target.value);
-              setSubmitError(null);
-            }}
-            placeholder="Value"
-            className="h-8 font-mono text-xs"
-            autoComplete="new-password"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void handleSubmit();
-              if (e.key === "Escape") onCancel();
-            }}
-          />
-          {submitError && (
-            <p className="mt-1 text-[10px] text-destructive">{submitError}</p>
-          )}
+          <div className="relative">
+            <Input
+              type={showValue ? "text" : "password"}
+              value={value}
+              onChange={(e) => {
+                setValue(e.target.value);
+                setSubmitError(null);
+              }}
+              placeholder="Value"
+              className="h-8 pr-8 font-mono text-xs"
+              autoComplete="new-password"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void handleSubmit();
+                if (e.key === "Escape") onCancel();
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowValue((s) => !s)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              tabIndex={-1}
+            >
+              {showValue ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+            </button>
+          </div>
+          {submitError && <p className="mt-1 text-[10px] text-destructive">{submitError}</p>}
         </div>
       </div>
-      <div className="mt-2 flex justify-end gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 text-xs"
-          onClick={onCancel}
-        >
+
+      {/* Environment selector */}
+      <div className="flex flex-wrap gap-1">
+        {SECRET_ENVIRONMENTS.map((env) => (
+          <button
+            key={env}
+            type="button"
+            onClick={() => setEnvironment(env)}
+            className={`rounded border px-2 py-0.5 text-[10px] font-medium transition-colors ${
+              environment === env
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+            }`}
+          >
+            {ENV_LABELS[env]}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onCancel}>
           Cancel
         </Button>
-        <Button
-          size="sm"
-          className="h-7 text-xs"
-          onClick={handleSubmit}
-          disabled={saving}
-        >
+        <Button size="sm" className="h-7 text-xs" onClick={handleSubmit} disabled={saving}>
           {saving ? "Saving..." : "Add Secret"}
         </Button>
       </div>
@@ -143,7 +177,7 @@ function SecretRow({
   onDelete,
 }: {
   secret: SecretEntry;
-  onDelete: (name: string) => Promise<void>;
+  onDelete: (name: string, environment: SecretEnvironment) => Promise<void>;
 }) {
   const [copied, setCopied] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -160,9 +194,9 @@ function SecretRow({
 
   const handleDelete = useCallback(async () => {
     setDeleting(true);
-    await onDelete(secret.name);
+    await onDelete(secret.name, secret.environment);
     setDeleting(false);
-  }, [onDelete, secret.name]);
+  }, [onDelete, secret.name, secret.environment]);
 
   return (
     <div className="group flex items-center gap-2 border-b border-border px-4 py-2.5 transition-colors hover:bg-muted/40">
@@ -170,8 +204,9 @@ function SecretRow({
       <span className="flex-1 min-w-0 truncate font-mono text-sm font-medium">
         {secret.name}
       </span>
+      <EnvBadge env={secret.environment} />
       <span className="shrink-0 tracking-widest text-xs text-muted-foreground select-none">
-        ••••••••
+        ••••••
       </span>
 
       <button
@@ -221,19 +256,24 @@ export function SecretsSheet({
   const { secrets, isLoading, addSecret, deleteSecret } = useUserSecrets();
   const [adding, setAdding] = useState(false);
 
+  const handleAdd = useCallback(
+    async (name: string, value: string, environment: SecretEnvironment) => {
+      const result = await addSecret(name, value, environment);
+      return result;
+    },
+    [addSecret],
+  );
+
   const handleDelete = useCallback(
-    async (name: string) => {
-      await deleteSecret(name);
+    async (name: string, environment: SecretEnvironment) => {
+      await deleteSecret(name, environment);
     },
     [deleteSecret],
   );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="flex w-80 flex-col gap-0 p-0 sm:w-96"
-      >
+      <SheetContent side="right" className="flex w-80 flex-col gap-0 p-0 sm:w-96">
         <SheetHeader className="border-b border-border px-4 pb-3 pt-4">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-base font-semibold">Secrets</SheetTitle>
@@ -249,14 +289,14 @@ export function SecretsSheet({
             </Button>
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Encrypted API keys injected as env vars in your sandbox.
+            Encrypted API keys · scoped by environment · injected as env vars.
           </p>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto">
           {adding && (
             <AddSecretRow
-              onAdd={addSecret}
+              onAdd={handleAdd}
               onCancel={() => setAdding(false)}
             />
           )}
@@ -264,10 +304,7 @@ export function SecretsSheet({
           {isLoading && (
             <>
               {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 border-b border-border px-4 py-2.5"
-                >
+                <div key={i} className="flex items-center gap-3 border-b border-border px-4 py-2.5">
                   <Skeleton className="h-3.5 w-3.5 rounded" />
                   <Skeleton className="h-4 flex-1 rounded" />
                   <Skeleton className="h-4 w-16 rounded" />
@@ -280,9 +317,7 @@ export function SecretsSheet({
             <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
               <KeyRound className="h-8 w-8 text-muted-foreground/40" />
               <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  No secrets yet
-                </p>
+                <p className="text-sm font-medium text-muted-foreground">No secrets yet</p>
                 <p className="mt-1 text-xs text-muted-foreground/70">
                   Add API keys so the agent can use them in your sandbox.
                 </p>
@@ -301,15 +336,15 @@ export function SecretsSheet({
 
           {!isLoading &&
             secrets.map((s) => (
-              <SecretRow key={s.id} secret={s} onDelete={handleDelete} />
+              <SecretRow key={`${s.environment}:${s.name}`} secret={s} onDelete={handleDelete} />
             ))}
         </div>
 
         {!isLoading && secrets.length > 0 && (
           <div className="border-t border-border px-4 py-2.5">
             <p className="text-[10px] text-muted-foreground">
-              {secrets.length} secret{secrets.length !== 1 ? "s" : ""} · AES-256
-              encrypted at rest
+              {secrets.length} secret{secrets.length !== 1 ? "s" : ""} · AES-256 encrypted ·
+              env-scoped injection
             </p>
           </div>
         )}

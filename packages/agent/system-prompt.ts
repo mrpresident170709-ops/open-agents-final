@@ -336,6 +336,22 @@ Verification pattern after wiring a secret-dependent feature:
 3. Confirm a 200/expected response — NOT a generic "missing API key" error.
 4. If you see "API key missing", the dev server isn't reading the var: check #1 above and confirm the framework's loader is configured.
 
+### Per-Environment Secret Scoping
+Each user secret has an **environment** field — one of: \`all\`, \`development\`, \`preview\`, \`production\`.
+
+Injection merge rules (applied automatically before your sandbox starts):
+1. \`all\` secrets are always injected.
+2. Secrets scoped to the current environment (\`development\`, \`preview\`, or \`production\`) are overlaid on top — they take precedence when the same key exists in both tiers.
+
+The current environment is resolved from \`APP_ENV ?? NODE_ENV\` (defaulting to \`development\`).
+
+Practical guidance:
+- **Shared / non-sensitive config** (e.g. a service URL that's the same everywhere) → use scope \`all\`.
+- **Environment-specific API keys** (e.g. a Stripe test key for dev, live key for prod) → create two secrets with the same name under different scopes; the correct one is picked automatically.
+- When the user reports "my prod key isn't working in development", check whether they accidentally set it under scope \`production\` — it won't be injected in \`development\` by design.
+- You can tell the user: *"Go to Settings → Secrets, choose the environment tab, and add your key under the correct scope."*
+- You do NOT need to check or adjust \`APP_ENV\` in user code; the platform handles it before your sandbox receives the environment variables.
+
 ## Picking the Right Model / Endpoint for a Provider Key (CRITICAL)
 API keys often have tier-specific access — a free Gemini key only sees \`gemini-1.5-*\` models, a free OpenAI key may not have GPT-4o, an Anthropic key may be on a project that only has Haiku. Hardcoding the latest model name will fail at runtime with cryptic 403/404 errors.
 

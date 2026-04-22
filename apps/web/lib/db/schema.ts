@@ -427,8 +427,15 @@ export const usageEvents = pgTable("usage_events", {
 export type UsageEvent = typeof usageEvents.$inferSelect;
 export type NewUsageEvent = typeof usageEvents.$inferInsert;
 
+// Environments that a secret can be scoped to.
+// 'all' means available in every environment (development, preview, production).
+export const SECRET_ENVIRONMENTS = ["all", "development", "preview", "production"] as const;
+export type SecretEnvironment = (typeof SECRET_ENVIRONMENTS)[number];
+
 // User-owned secrets that get injected into sandbox environments as env vars.
 // Values are AES-256-CBC encrypted at rest using the ENCRYPTION_KEY env var.
+// The `environment` column scopes secrets: 'all' injects everywhere; the others
+// only inject when the sandbox environment matches.
 export const userSecrets = pgTable(
   "user_secrets",
   {
@@ -437,13 +444,15 @@ export const userSecrets = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    environment: text("environment").notNull().default("all"),
     encryptedValue: text("encrypted_value").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
     index("user_secrets_user_id_idx").on(table.userId),
-    uniqueIndex("user_secrets_user_name_idx").on(table.userId, table.name),
+    // Unique per (user, name, environment) — same name can exist in dev vs prod
+    uniqueIndex("user_secrets_user_name_env_idx").on(table.userId, table.name, table.environment),
   ],
 );
 
