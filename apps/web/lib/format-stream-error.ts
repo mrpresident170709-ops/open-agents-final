@@ -27,6 +27,30 @@ export function formatStreamError(raw: unknown): string {
 
   if (!message) return "Something went wrong. Please retry.";
 
+  const lower = message.toLowerCase();
+
+  // Server crashed or stream was cut off mid-response.
+  // "Unexpected end of JSON input" is what the AI SDK throws when the
+  // streaming response is abruptly terminated (e.g. the server process died).
+  if (
+    lower.includes("unexpected end of json") ||
+    lower.includes("unterminated string") ||
+    lower.includes("unexpected token") ||
+    lower.includes("invalid json")
+  ) {
+    return "The connection was lost mid-response (the server may have restarted). Please retry.";
+  }
+
+  // Network-level failures (offline, CORS, etc.)
+  if (lower === "failed to fetch" || lower.startsWith("networkerror")) {
+    return "Network error — could not reach the server. Check your connection and retry.";
+  }
+
+  // Stream aborted by the browser (e.g. navigated away, tab hidden).
+  if (lower.includes("aborted") || lower.includes("abort")) {
+    return "Request was cancelled.";
+  }
+
   let candidate = message.trim();
   if (candidate.startsWith("data:")) {
     candidate = candidate.slice("data:".length).trim();
