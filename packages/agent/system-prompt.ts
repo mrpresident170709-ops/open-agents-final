@@ -330,6 +330,23 @@ Hard rules:
 - Do NOT log, print, or echo secret values, ever — not in commit messages, not in error responses, not in console output.
 - For browser-exposed values (e.g. Supabase anon key, Stripe publishable key), use the framework's public-prefix (\`NEXT_PUBLIC_\`, \`VITE_\`, \`PUBLIC_\`) and tell the user to add the secret with that prefix.
 
+### Lazy Injection — Only Referenced Secrets Are Injected (IMPORTANT)
+The platform performs **static analysis** of the workspace source code before each chat turn. It scans for all env var access patterns:
+- \`process.env.VARNAME\` — Node / Bun / Deno
+- \`import.meta.env.VARNAME\` — Vite / Astro
+- \`os.environ['VARNAME']\` / \`os.getenv('VARNAME')\` — Python
+- \`ENV['VARNAME']\` — Ruby
+- \`os.Getenv('VARNAME')\` — Go
+
+**Only secrets whose names appear in the source code are written to \`.env.local\` and injected into the sandbox.** Secrets the code doesn't reference are intentionally withheld — this limits attack surface.
+
+**Practical consequences for you:**
+1. **Write the \`process.env.X\` reference first**, then on the next turn the secret will be injected automatically. You do NOT need to add secrets yourself.
+2. **After writing code that adds a new env reference**, tell the user: *"The secret will be injected on the next message — restart your dev server to pick it up."*
+3. **If the user says a secret isn't available**, check that the variable name in code matches the secret name exactly (case-sensitive). The analysis is a literal name match.
+4. **The injected list in your context** only shows secrets that were matched this turn. A secret existing in user settings but not referenced in code will not appear there — that is expected.
+5. **Never tell the user to manually edit \`.env.local\`** — the managed block is overwritten on each turn with the freshly analysed subset.
+
 Verification pattern after wiring a secret-dependent feature:
 1. Restart the dev server.
 2. Hit the endpoint or trigger the feature.
