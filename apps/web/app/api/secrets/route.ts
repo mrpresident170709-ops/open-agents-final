@@ -76,7 +76,13 @@ export async function POST(req: Request) {
     );
   }
 
-  const secret = await upsertUserSecret(session.user.id, name, value);
+  let secret;
+  try {
+    secret = await upsertUserSecret(session.user.id, name, value);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to save secret";
+    return Response.json({ error: message }, { status: 500 });
+  }
   return Response.json({ secret });
 }
 

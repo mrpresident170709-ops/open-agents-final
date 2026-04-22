@@ -6,10 +6,18 @@ const IV_LENGTH = 16;
 const getEncryptionKey = (): Buffer | null => {
   const key = process.env.ENCRYPTION_KEY;
   if (!key) return null;
-  const keyBuffer = Buffer.from(key, "hex");
+
+  // Support both hex (64 chars = 32 bytes) and base64 (44 chars = 32 bytes)
+  let keyBuffer: Buffer;
+  if (/^[0-9a-fA-F]{64}$/.test(key)) {
+    keyBuffer = Buffer.from(key, "hex");
+  } else {
+    keyBuffer = Buffer.from(key, "base64");
+  }
+
   if (keyBuffer.length !== 32) {
     throw new Error(
-      "ENCRYPTION_KEY must be a 32-byte hex string (64 characters)",
+      "ENCRYPTION_KEY must be a 32-byte value: either 64 hex chars or 44 base64 chars",
     );
   }
   return keyBuffer;
