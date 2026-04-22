@@ -219,11 +219,11 @@ Prefer structured questions over open-ended chat when you need specific decision
 When building server-side features, apply senior-engineer discipline:
 
 ## API Design
-- Follow REST conventions: `GET /resources`, `POST /resources`, `PATCH /resources/:id`, `DELETE /resources/:id`
-- Return consistent JSON shapes: `{ data }` for success, `{ error, code? }` for failures
+- Follow REST conventions: \`GET /resources\`, \`POST /resources\`, \`PATCH /resources/:id\`, \`DELETE /resources/:id\`
+- Return consistent JSON shapes: \`{ data }\` for success, \`{ error, code? }\` for failures
 - Use HTTP status codes correctly: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 422 Unprocessable Entity, 500 Internal Server Error
 - Always validate request bodies with Zod before touching the DB; return 400 with specific field errors on failure
-- Paginate list endpoints: accept `limit` + `cursor` (or `page` + `pageSize`); return `{ items, nextCursor, total? }`
+- Paginate list endpoints: accept \`limit\` + \`cursor\` (or \`page\` + \`pageSize\`); return \`{ items, nextCursor, total? }\`
 
 ## Architecture
 - Separate concerns: route handler → service function → repository (DB query). Route handlers stay thin.
@@ -232,12 +232,12 @@ When building server-side features, apply senior-engineer discipline:
 - Keep route files focused: auth check, parse + validate input, call service, return response. Under 60 lines ideally.
 
 ## Database
-- Use transactions for writes that span multiple tables: `await db.transaction(async (tx) => { ... })`
-- Add indexes for every foreign key and any column used in `WHERE` or `ORDER BY` clauses
-- Use `ON DELETE CASCADE` on foreign keys where child rows should die with the parent
-- Return only the columns you need — avoid `SELECT *` in production paths
-- Use `RETURNING` after `INSERT`/`UPDATE` to avoid a second round trip
-- Prefer `upsert` (INSERT … ON CONFLICT DO UPDATE) over separate read-then-write for idempotent operations
+- Use transactions for writes that span multiple tables: \`await db.transaction(async (tx) => { ... })\`
+- Add indexes for every foreign key and any column used in \`WHERE\` or \`ORDER BY\` clauses
+- Use \`ON DELETE CASCADE\` on foreign keys where child rows should die with the parent
+- Return only the columns you need — avoid \`SELECT *\` in production paths
+- Use \`RETURNING\` after \`INSERT\`/\`UPDATE\` to avoid a second round trip
+- Prefer \`upsert\` (INSERT … ON CONFLICT DO UPDATE) over separate read-then-write for idempotent operations
 
 ## Error Handling
 - Use typed error classes or discriminated unions — never throw plain strings
@@ -259,7 +259,7 @@ When building server-side features, apply senior-engineer discipline:
 - Hash passwords with bcrypt/argon2; never store plaintext
 
 ## Next.js App Router Specifics
-- Use Route Handlers (`app/api/.../route.ts`) for JSON APIs; keep them server-only
+- Use Route Handlers (\`app/api/.../route.ts\`) for JSON APIs; keep them server-only
 - Mark server components with \`"use server"\` when needed; never import server-only code from client components
 - Use \`next/headers\` cookies for auth tokens — never \`localStorage\` for session state
 - Leverage React Server Components for data fetching where possible to eliminate client round trips
@@ -478,6 +478,7 @@ npx skills --help                      # all options
 /**
  * Build the secrets section — lists injected secret names so the agent knows
  * which environment variables are available without ever seeing the values.
+ * Only names that are referenced in the codebase are passed here (lazy injection).
  */
 function buildSecretsPrompt(names: string[]): string {
   if (names.length === 0) return "";
@@ -487,16 +488,73 @@ function buildSecretsPrompt(names: string[]): string {
   return `
 # User Secrets (Environment Variables)
 
-The following secrets have been injected into the sandbox process environment by the user. They are available as \`process.env.SECRET_NAME\` in any code you run or generate:
+The following secrets are injected into your sandbox environment. They exist because the codebase already references them. They are available as \`process.env.SECRET_NAME\` in every bash command you run:
 
 ${nameList}
 
-Rules for working with these secrets:
-- Reference them as \`process.env.SECRET_NAME\` in your code — never hardcode the values
-- Never log, print, or expose secret values in any output, comment, or file
-- When the user asks to use a service (e.g. "add AI chat using my OpenAI key"), check this list first — if the key is here, use it directly without asking the user to provide it again
-- If a required secret is missing from this list, ask the user to add it via the Secrets panel in the sidebar
-- In \`.env.example\` or documentation, reference only the variable name (e.g. \`OPENAI_KEY=\`) — never a real value`;
+## Rule 1 — Never expose values (CRITICAL)
+
+Secret values are write-only. You must NEVER:
+- Print, log, or console.log any secret value
+- Return secret values in API responses
+- Write secret values to files (including .env files committed to git)
+- Include secrets in frontend bundle code
+- Echo or cat a secret in bash
+
+If you need to verify a secret is set, check for existence only:
+\`\`\`bash
+[ -n "$OPENAI_API_KEY" ] && echo "set" || echo "missing"
+\`\`\`
+
+## Rule 2 — Server/client boundary (CRITICAL)
+
+Environment variables are BACKEND-ONLY. Never:
+- Import or reference \`process.env.SECRET_NAME\` in client components (\`"use client"\` files)
+- Pass secret values as props from server to client components
+- Expose secrets through \`NEXT_PUBLIC_\` prefixed variables
+- Include secrets in \`window\`, \`globalThis\`, or any browser-accessible object
+
+Always keep secret usage inside: API route handlers, Server Components, server actions, and backend services.
+
+## Rule 3 — Lazy usage (only use what the code needs)
+
+Only reference secrets that the current feature actually requires. Do not:
+- Read or reference all available secrets as a precaution
+- Pass all secrets as a batch to a function that needs only one
+- Log which secrets exist unless debugging explicitly requested
+
+## Rule 4 — Naming conventions
+
+When the user asks you to name a new secret, enforce this pattern:
+\`PROVIDER_RESOURCE_TYPE\` — e.g. \`OPENAI_API_KEY\`, \`STRIPE_SECRET_KEY\`, \`SUPABASE_URL\`, \`SUPABASE_ANON_KEY\`
+
+Reject or correct bad names: \`key1\`, \`api123\`, \`secretStuff\`, \`mykey\` are not acceptable. Names must be UPPER_SNAKE_CASE, descriptive, and provider-prefixed.
+
+## Rule 5 — Detection and auto-provisioning
+
+When asked to add a feature that requires an external service (e.g. "add OpenAI chat", "add Stripe payments"):
+1. Identify all required env vars for that integration
+2. Check the list above — if the var is present, use it directly
+3. If any required var is MISSING from this list, stop and ask the user to add it via Settings → Secrets before writing any code
+
+Do not write placeholder values like \`YOUR_API_KEY_HERE\`. Do not assume a key exists and proceed anyway.
+
+## Rule 6 — Pre-run validation
+
+Before running code that depends on secrets, validate presence:
+\`\`\`bash
+for var in OPENAI_API_KEY STRIPE_SECRET_KEY; do
+  [ -z "\${!var}" ] && echo "ERROR: $var is not set" && exit 1
+done
+\`\`\`
+If a required var is missing at runtime, report which one is missing and direct the user to Settings → Secrets.
+
+## Rule 7 — Documentation hygiene
+
+In \`.env.example\`, \`README\`, or any docs:
+- List variable names only: \`OPENAI_API_KEY=\`
+- Never include real values or partial values
+- Describe what each var is for in a comment: \`# OpenAI API key for chat completions\``;
 }
 
 /**
