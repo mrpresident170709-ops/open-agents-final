@@ -114,8 +114,8 @@ export class Daytona {
     const sandbox: Sandbox = {
       id: sandboxId,
       name: sandboxName,
-      fs: this.createFileSystem(sandboxId, apiKey, apiUrl),
-      process: this.createProcess(sandboxId, apiKey, apiUrl),
+      fs: this.createFileSystem(sandboxId, apiKey!, apiUrl!),
+      process: this.createProcess(sandboxId, apiKey!, apiUrl!),
       git: {} as Git,
       getPreviewLink: (port: number) => {
         return `https://${sandboxId}-${port}.daytona.app`;
@@ -162,8 +162,10 @@ export class Daytona {
         return response.text();
       },
       uploadFile: async (content: Buffer, path: string) => {
+        const uint8Array = new Uint8Array(content);
+        const blob = new Blob([uint8Array]);
         const formData = new FormData();
-        formData.append("file", new Blob([content]), path.split("/").pop()!);
+        formData.append("file", blob, path.split("/").pop()!);
         formData.append("path", path);
         await fetch(`${apiUrl}/toolbox/${sandboxId}/file`, {
           method: "POST",
@@ -195,19 +197,20 @@ export class Daytona {
           body: JSON.stringify({ path, mode }),
         });
       },
-      listFiles: async (path: string) => {
+      listFiles: async (path: string): Promise<Array<{ name: string; isDirectory: boolean }>> => {
         const response = await fetch(
           `${apiUrl}/toolbox/${sandboxId}/files?path=${encodeURIComponent(path)}`,
           { headers: { "Authorization": `Bearer ${apiKey}` } },
         );
-        return response.json();
+        const data = await response.json();
+        return data as Array<{ name: string; isDirectory: boolean }>;
       },
     };
   }
 
   private createProcess(sandboxId: string, apiKey: string, apiUrl: string): Process {
     return {
-      executeCommand: async (command: string, cwd?: string, env?: Record<string, string>, timeout?: number) => {
+      executeCommand: async (command: string, cwd?: string, env?: Record<string, string>, timeout?: number): Promise<ExecuteResponse> => {
         const response = await fetch(`${apiUrl}/toolbox/${sandboxId}/process/execute`, {
           method: "POST",
           headers: {
@@ -221,7 +224,8 @@ export class Daytona {
             timeout,
           }),
         });
-        return response.json();
+        const data = await response.json();
+        return data as ExecuteResponse;
       },
     };
   }

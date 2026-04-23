@@ -5,9 +5,7 @@ import { connectVercel } from "./vercel/connect";
 import type { VercelState } from "./vercel/state";
 import { connectDaytona } from "./daytona/connect";
 import type { DaytonaState } from "./daytona/types";
-
-// Re-export SandboxStatus from types for convenience
-export type { SandboxStatus };
+import type { SandboxStatus } from "./types";
 
 /**
  * Unified sandbox state type.

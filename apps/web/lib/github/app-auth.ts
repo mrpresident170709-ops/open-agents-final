@@ -1,6 +1,8 @@
 import { createAppAuth } from "@octokit/auth-app";
 import { Octokit } from "@octokit/rest";
-import { getEnv, isGitHubAppConfigured } from "@/lib/env";
+import { getEnv } from "@/lib/env";
+
+export { isGitHubAppConfigured } from "@/lib/env";
 
 interface GitHubAppConfig {
   appId: number;
@@ -40,9 +42,7 @@ function getGitHubAppConfig(): GitHubAppConfig {
   return { appId, privateKey };
 }
 
-export function isGitHubAppConfigured(): boolean {
-  return isGitHubAppConfigured();
-}
+export { isGitHubAppConfigured as checkGitHubAppConfigured } from "@/lib/env";
 
 /**
  * Cached co-author trailer so we only hit the GitHub API once per process.

@@ -12,6 +12,7 @@ const agentEnvSchema = z.object({
 
   // Image generation
   TOGETHER_IMAGE_MODEL: z.string().optional(),
+  CRITIC_MODEL: z.string().optional(),
 
   // Node environment
   NODE_ENV: z.enum(["development", "production", "test"]).optional(),

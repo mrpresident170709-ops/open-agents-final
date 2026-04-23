@@ -44,7 +44,8 @@ export async function GET() {
 
   if (env.REDIS_URL || env.KV_URL) {
     try {
-      const { redis } = await import("@/lib/redis");
+      const redisModule = await import("@/lib/redis");
+      const redis = redisModule.createRedisClient("health-check");
       await redis.ping();
       redisStatus = "connected";
     } catch (error) {

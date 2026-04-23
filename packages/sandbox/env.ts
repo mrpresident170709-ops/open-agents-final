@@ -14,6 +14,7 @@ const sandboxEnvSchema = z.object({
 
   // Local sandbox
   REPL_ID: z.string().optional(),
+  REPLIT_DEV_DOMAIN: z.string().optional(),
   LOCAL_SANDBOX_ROOT: z.string().optional(),
 
   // Node environment

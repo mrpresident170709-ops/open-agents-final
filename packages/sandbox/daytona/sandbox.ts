@@ -1,6 +1,13 @@
+import type { Dirent } from "fs";
 import type { Sandbox, SandboxHooks, ExecResult, SandboxStats, SnapshotResult } from "../interface";
 import type { DaytonaSandboxConfig, DaytonaState } from "./types";
 import { Daytona } from "./daytona-client";
+
+interface DaytonaDirent {
+  name: string;
+  isDirectory: () => boolean;
+  isFile: () => boolean;
+}
 
 export class DaytonaSandbox implements Sandbox {
   readonly type: "cloud" = "cloud";
@@ -86,13 +93,18 @@ export class DaytonaSandbox implements Sandbox {
     await this.sandbox.fs.createFolder(path, "755");
   }
 
-  async readdir(path: string, options: { withFileTypes: true }): Promise<Dirent[]> {
+  async readdir(path: string, options: { withFileTypes: true }): Promise<Dirent<string>[]> {
     const files = await this.sandbox.fs.listFiles(path);
     return files.map((f: any) => ({
       name: f.name,
       isDirectory: () => f.isDirectory,
       isFile: () => !f.isDirectory,
-    })) as Dirent[];
+      isBlockDevice: () => false,
+      isCharacterDevice: () => false,
+      isSymbolicLink: () => false,
+      isFIFO: () => false,
+      isSocket: () => false,
+    })) as Dirent<string>[];
   }
 
   async exec(
@@ -147,7 +159,6 @@ export class DaytonaSandbox implements Sandbox {
     const additionalSeconds = Math.floor(additionalMs / 1000);
     await this.sandbox.setAutoStopInterval(additionalSeconds);
     const newExpiresAt = Date.now() + additionalMs;
-    this.expiresAt = newExpiresAt;
     if (this.hooks?.onTimeoutExtended) {
       await this.hooks.onTimeoutExtended(this, additionalMs);
     }
