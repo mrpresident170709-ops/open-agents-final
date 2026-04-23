@@ -1,18 +1,13 @@
 import { tool } from "ai";
 import { z } from "zod";
+import { getExaApiKey } from "../env";
 
 const EXA_BASE = "https://api.exa.ai";
 const REQUEST_TIMEOUT_MS = 60_000;
 const MAX_TEXT = 4_000;
 
 function getApiKey(): string {
-  const key = process.env.EXA_API_KEY;
-  if (!key) {
-    throw new Error(
-      "EXA_API_KEY is not configured. Add it as a secret to enable EXA tools.",
-    );
-  }
-  return key;
+  return getExaApiKey();
 }
 
 async function exaRequest<T>(

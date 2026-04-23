@@ -1,9 +1,10 @@
 import type { Sandbox, SandboxHooks } from "./interface";
 import { connectLocal } from "./local/connect";
 import type { LocalState } from "./local/state";
-import type { SandboxStatus } from "./types";
 import { connectVercel } from "./vercel/connect";
 import type { VercelState } from "./vercel/state";
+import { connectDaytona } from "./daytona/connect";
+import type { DaytonaState } from "./daytona/types";
 
 // Re-export SandboxStatus from types for convenience
 export type { SandboxStatus };
@@ -14,6 +15,7 @@ export type { SandboxStatus };
  */
 export type SandboxState =
   | ({ type: "vercel" } & VercelState)
+  | ({ type: "daytona" } & DaytonaState)
   | ({ type: "local" } & Partial<LocalState>);
 
 /**
@@ -62,6 +64,9 @@ function dispatchConnect(
 ): Promise<Sandbox> {
   if (state.type === "local") {
     return connectLocal(state, options);
+  }
+  if (state.type === "daytona") {
+    return connectDaytona(state, options);
   }
   return connectVercel(state, options);
 }

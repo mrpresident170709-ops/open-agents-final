@@ -11,6 +11,11 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import type { AnthropicLanguageModelOptions } from "@ai-sdk/anthropic";
 import type { OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
+import {
+  getAnthropicApiKey,
+  getOpenAIApiKey,
+  getAgentEnv,
+} from "./env";
 
 function supportsAdaptiveAnthropicThinking(modelId: string): boolean {
   return modelId.includes("4.6") || modelId.includes("4.7");
@@ -187,22 +192,24 @@ function resolveBaseModel(
   const id = modelId as string;
 
   // Route Claude models directly to Anthropic API when key is available
-  if (id.startsWith("anthropic/") && process.env.ANTHROPIC_API_KEY) {
+  if (id.startsWith("anthropic/")) {
+    const apiKey = getAnthropicApiKey();
     // Anthropic's API uses dashes between version segments
     // (e.g. `claude-haiku-4-5`), but the gateway-style IDs we receive use
     // dots (`claude-haiku-4.5`). Normalize before forwarding.
     const anthropicModelId = id
       .slice("anthropic/".length)
       .replace(/\./g, "-");
-    const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const anthropic = createAnthropic({ apiKey });
     return anthropic(anthropicModelId);
   }
 
   // Route OpenAI models directly to OpenAI API when key is available
-  if (id.startsWith("openai/") && process.env.OPENAI_API_KEY) {
+  if (id.startsWith("openai/")) {
+    const apiKey = getOpenAIApiKey();
     const openaiModelId = id.slice("openai/".length);
     const openai = createOpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey,
     });
     return openai.responses(openaiModelId) as unknown as LanguageModel;
   }
@@ -212,10 +219,11 @@ function resolveBaseModel(
   // free API key from opencode.ai/auth, exposed via OPENCODE_API_KEY
   // (OPENCODE_ZEN_API_KEY also accepted for compatibility).
   if (id.startsWith("opencode/")) {
+    const env = getAgentEnv();
     const opencodeModelId = id.slice("opencode/".length);
     const opencode = createOpenAI({
       apiKey:
-        process.env.OPENCODE_API_KEY ?? process.env.OPENCODE_ZEN_API_KEY ?? "",
+        env.OPENCODE_API_KEY ?? env.OPENCODE_ZEN_API_KEY ?? "",
       baseURL: "https://opencode.ai/zen/v1",
       name: "opencode-zen",
     });

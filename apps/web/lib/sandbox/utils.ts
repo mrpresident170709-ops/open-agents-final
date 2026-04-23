@@ -136,7 +136,7 @@ export function clearSandboxState(
   const sandboxId = sandboxName ? null : getLegacySandboxId(state);
 
   return {
-    type: state.type,
+    type: state.type, // Preserve "vercel" or "daytona"
     ...(sandboxName ? { sandboxName } : {}),
     ...(sandboxId ? { sandboxId } : {}),
   } as SandboxState;

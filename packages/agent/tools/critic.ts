@@ -1,21 +1,16 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { getSandbox, shellEscape } from "./utils";
+import { getAnthropicApiKey, getAgentEnv } from "../env";
 
 const ANTHROPIC_BASE = "https://api.anthropic.com/v1";
 const DEFAULT_MODEL =
-  process.env.CRITIC_MODEL || "claude-haiku-4-5-20251001";
+  getAgentEnv().CRITIC_MODEL || "claude-haiku-4-5-20251001";
 const REQUEST_TIMEOUT_MS = 120_000;
 const PASS_THRESHOLD = 85;
 
 function getApiKey(): string {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) {
-    throw new Error(
-      "ANTHROPIC_API_KEY is not configured. Required for the critic loop.",
-    );
-  }
-  return key;
+  return getAnthropicApiKey();
 }
 
 type ImageRef =

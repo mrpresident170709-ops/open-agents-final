@@ -4,6 +4,7 @@ import { decrypt, encrypt } from "@/lib/crypto";
 import { db } from "@/lib/db/client";
 import { users } from "@/lib/db/schema";
 import { refreshVercelToken } from "./oauth";
+import { getEnv, isVercelOAuthConfigured } from "@/lib/env";
 
 interface UserVercelAuthRow {
   accessToken: string;
@@ -55,11 +56,13 @@ async function refreshUserVercelAuthInfo(
     return null;
   }
 
-  const clientId = process.env.NEXT_PUBLIC_VERCEL_APP_CLIENT_ID;
-  const clientSecret = process.env.VERCEL_APP_CLIENT_SECRET;
-  if (!clientId || !clientSecret) {
+  if (!isVercelOAuthConfigured()) {
     return null;
   }
+
+  const env = getEnv();
+  const clientId = env.NEXT_PUBLIC_VERCEL_APP_CLIENT_ID!;
+  const clientSecret = env.VERCEL_APP_CLIENT_SECRET!;
 
   const decryptedRefresh = decrypt(row.refreshToken);
   const tokens = await refreshVercelToken({

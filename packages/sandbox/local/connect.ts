@@ -3,10 +3,12 @@ import * as path from "path";
 import type { Sandbox, SandboxHooks } from "../interface";
 import { LocalSandbox, type LocalSandboxOptions } from "./sandbox";
 import type { LocalState } from "./state";
+import { getSandboxEnv } from "../env";
 
 function sandboxRoot(): string {
+  const env = getSandboxEnv();
   return (
-    process.env.LOCAL_SANDBOX_ROOT ||
+    env.LOCAL_SANDBOX_ROOT ||
     path.join(process.env.HOME ?? "/tmp", ".open-harness-sandboxes")
   );
 }

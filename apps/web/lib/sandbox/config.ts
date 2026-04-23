@@ -1,13 +1,20 @@
+import { getEnv } from "@/lib/env";
+
 /**
  * Sandbox timeout configuration.
  * All timeout values are in milliseconds.
  */
 
 /** Default timeout for new cloud sandboxes (45 minutes — Vercel plan max).
- * Override with VERCEL_SANDBOX_TIMEOUT_MS if your plan allows longer. */
-export const DEFAULT_SANDBOX_TIMEOUT_MS = process.env.VERCEL_SANDBOX_TIMEOUT_MS
-  ? Number(process.env.VERCEL_SANDBOX_TIMEOUT_MS)
-  : 44 * 60 * 1000;
+ * Override with VERCEL_SANDBOX_TIMEOUT_MS or DAYTONA_SANDBOX_TIMEOUT_MS if your plan allows longer. */
+export const DEFAULT_SANDBOX_TIMEOUT_MS = (() => {
+  const env = getEnv();
+  return env.DAYTONA_SANDBOX_TIMEOUT_MS
+    ? Number(env.DAYTONA_SANDBOX_TIMEOUT_MS)
+    : env.VERCEL_SANDBOX_TIMEOUT_MS
+    ? Number(env.VERCEL_SANDBOX_TIMEOUT_MS)
+    : 44 * 60 * 1000;
+})();
 
 /** Manual extension duration for explicit fallback flows (20 minutes) */
 export const EXTEND_TIMEOUT_DURATION_MS = 20 * 60 * 1000;
@@ -44,12 +51,15 @@ export const DEFAULT_WORKING_DIRECTORY = "/vercel/sandbox";
  * - Current snapshot includes: bun + jq + agent-browser + chromium + code-server
  * - Previous snapshot includes: bun + jq + agent-browser + chromium
  */
-const _rawSnapshotId =
-  process.env.VERCEL_SANDBOX_BASE_SNAPSHOT_ID ??
-  // Previous snapshot (bun + jq): "snap_MQ0NqdLL5qEXiYusgWL3K0yaMmql"
-  // Previous snapshot (bun + jq + agent-browser + chromium): "snap_C8tUFhwRXZky4MaFvTuwO7DH66wx"
-  // Current snapshot (bun + jq + agent-browser + chromium + code-server):
-  "snap_EjsphVxi07bFKrfojljJdIS41KHT";
+const _rawSnapshotId = (() => {
+  const env = getEnv();
+  // Try Daytona snapshot first, then Vercel
+  const snapshot = env.DAYTONA_SANDBOX_SNAPSHOT || env.VERCEL_SANDBOX_BASE_SNAPSHOT_ID;
+  if (snapshot) return snapshot;
+
+  // Default Vercel snapshot (for backward compatibility)
+  return "snap_EjsphVxi07bFKrfojljJdIS41KHT";
+})();
 
 // An empty string disables the base snapshot so sandboxes boot without it.
 // This is needed when the configured Vercel team doesn't have access to the

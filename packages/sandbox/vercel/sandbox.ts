@@ -10,18 +10,17 @@ import type {
 import type { SandboxStatus } from "../types";
 import type { VercelSandboxConfig, VercelSandboxConnectConfig } from "./config";
 import type { VercelState } from "./state";
+import { getVercelCredentials, isVercelSandboxConfigured } from "../env";
 
 const MAX_OUTPUT_LENGTH = 50_000;
 const DEFAULT_WORKING_DIRECTORY = "/vercel/sandbox";
 
-function getVercelCredentials():
+function getVercelCredentialsFromEnv():
   | { token: string; teamId: string; projectId: string }
   | undefined {
-  const token = process.env.VERCEL_ACCESS_TOKEN ?? process.env.VERCEL_TOKEN;
-  const teamId = process.env.VERCEL_TEAM_ID;
-  const projectId = process.env.VERCEL_PROJECT_ID;
-  if (token && teamId && projectId) {
-    return { token, teamId, projectId };
+  const credentials = getVercelCredentials();
+  if (credentials) {
+    return credentials;
   }
   return undefined;
 }

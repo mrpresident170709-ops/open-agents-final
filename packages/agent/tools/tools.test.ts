@@ -61,6 +61,18 @@ mock.module("@open-harness/sandbox", () => ({
 
     return sandbox;
   },
+  connectDaytona: async (state: { sandboxId?: string }) => {
+    if (!state.sandboxId) {
+      throw new Error("Missing sandboxId in test sandbox state.");
+    }
+
+    const sandbox = sandboxRegistry.get(state.sandboxId);
+    if (!sandbox) {
+      throw new Error(`Unknown test sandbox: ${state.sandboxId}`);
+    }
+
+    return sandbox;
+  },
   tryConnectVercelSandboxDirect: async () => null,
 }));
 

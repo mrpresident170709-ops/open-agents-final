@@ -1,4 +1,5 @@
 import Redis, { type RedisOptions } from "ioredis";
+import { getEnv } from "@/lib/env";
 
 const warnedMissingRedisFeatures = new Set<string>();
 
@@ -58,10 +59,11 @@ function applyRedisQueryOptions(
 }
 
 export function getRedisUrl(): string | null {
-  const redisUrl = process.env.REDIS_URL?.trim();
+  const env = getEnv();
+  const redisUrl = env.REDIS_URL?.trim();
   if (redisUrl) return redisUrl;
 
-  const kvUrl = process.env.KV_URL?.trim();
+  const kvUrl = env.KV_URL?.trim();
   if (kvUrl) return kvUrl;
 
   return null;

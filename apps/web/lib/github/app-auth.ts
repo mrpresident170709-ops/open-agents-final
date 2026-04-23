@@ -1,5 +1,6 @@
 import { createAppAuth } from "@octokit/auth-app";
 import { Octokit } from "@octokit/rest";
+import { getEnv, isGitHubAppConfigured } from "@/lib/env";
 
 interface GitHubAppConfig {
   appId: number;
@@ -21,14 +22,15 @@ function parsePrivateKey(value: string): string {
 }
 
 function getGitHubAppConfig(): GitHubAppConfig {
-  const appIdRaw = process.env.GITHUB_APP_ID;
-  const privateKeyRaw = process.env.GITHUB_APP_PRIVATE_KEY;
+  const env = getEnv();
+  const appIdRaw = env.GITHUB_APP_ID;
+  const privateKeyRaw = env.GITHUB_APP_PRIVATE_KEY;
 
   if (!appIdRaw || !privateKeyRaw) {
     throw new Error("GitHub App is not configured");
   }
 
-  const appId = Number.parseInt(appIdRaw, 10);
+  const appId = Number.parseInt(String(appIdRaw), 10);
   if (!Number.isFinite(appId)) {
     throw new Error("Invalid GITHUB_APP_ID");
   }
@@ -39,9 +41,7 @@ function getGitHubAppConfig(): GitHubAppConfig {
 }
 
 export function isGitHubAppConfigured(): boolean {
-  return Boolean(
-    process.env.GITHUB_APP_ID && process.env.GITHUB_APP_PRIVATE_KEY,
-  );
+  return isGitHubAppConfigured();
 }
 
 /**
@@ -63,7 +63,8 @@ let cachedTrailer: string | null | undefined;
 export async function getAppCoAuthorTrailer(): Promise<string | null> {
   if (cachedTrailer !== undefined) return cachedTrailer;
 
-  const slug = process.env.NEXT_PUBLIC_GITHUB_APP_SLUG;
+  const env = getEnv();
+  const slug = env.NEXT_PUBLIC_GITHUB_APP_SLUG;
   if (!slug) {
     cachedTrailer = null;
     return null;

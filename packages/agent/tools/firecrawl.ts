@@ -1,17 +1,12 @@
 import { tool } from "ai";
 import { z } from "zod";
+import { getFirecrawlApiKey } from "../env";
 
 const FIRECRAWL_BASE = "https://api.firecrawl.dev";
 const REQUEST_TIMEOUT_MS = 90_000;
 
 function getApiKey(): string {
-  const key = process.env.FIRECRAWL_API_KEY;
-  if (!key) {
-    throw new Error(
-      "FIRECRAWL_API_KEY is not configured. Add it as a secret to enable Firecrawl tools.",
-    );
-  }
-  return key;
+  return getFirecrawlApiKey();
 }
 
 async function firecrawlRequest<T>(

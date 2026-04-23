@@ -1,11 +1,11 @@
 import crypto from "crypto";
+import { getEncryptionKey as getEnvEncryptionKey } from "@/lib/env";
 
 const ALGORITHM = "aes-256-cbc";
 const IV_LENGTH = 16;
 
-const getEncryptionKey = (): Buffer | null => {
-  const key = process.env.ENCRYPTION_KEY;
-  if (!key) return null;
+const getEncryptionKey = (): Buffer => {
+  const key = getEnvEncryptionKey();
 
   // Support both hex (64 chars = 32 bytes) and base64 (44 chars = 32 bytes)
   let keyBuffer: Buffer;
@@ -25,12 +25,9 @@ const getEncryptionKey = (): Buffer | null => {
 
 export const encrypt = (text: string): string => {
   if (!text) return text;
-  const ENCRYPTION_KEY = getEncryptionKey();
-  if (!ENCRYPTION_KEY) {
-    throw new Error("ENCRYPTION_KEY environment variable is required");
-  }
+  const key = getEncryptionKey();
   const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
   const encrypted = Buffer.concat([
     cipher.update(text, "utf8"),
     cipher.final(),
@@ -40,10 +37,7 @@ export const encrypt = (text: string): string => {
 
 export const decrypt = (encryptedText: string): string => {
   if (!encryptedText) return encryptedText;
-  const ENCRYPTION_KEY = getEncryptionKey();
-  if (!ENCRYPTION_KEY) {
-    throw new Error("ENCRYPTION_KEY environment variable is required");
-  }
+  const key = getEncryptionKey();
   if (!encryptedText.includes(":")) {
     throw new Error("Invalid encrypted text format");
   }
@@ -53,7 +47,7 @@ export const decrypt = (encryptedText: string): string => {
   }
   const iv = Buffer.from(ivHex, "hex");
   const encrypted = Buffer.from(encryptedHex, "hex");
-  const decipher = crypto.createDecipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
   const decrypted = Buffer.concat([
     decipher.update(encrypted),
     decipher.final(),

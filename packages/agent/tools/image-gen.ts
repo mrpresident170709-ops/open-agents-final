@@ -3,13 +3,13 @@ import { z } from "zod";
 import * as path from "path";
 import { writeBinaryToSandbox, downloadUrlToSandbox } from "./binary-utils";
 import { getSandbox, toDisplayPath, shellEscape } from "./utils";
+import { getTogetherApiKey, getTogetherImageModel } from "../env";
 
 const TOGETHER_BASE = "https://api.together.xyz/v1";
 // Together AI's serverless id for "Nano Banana 2" / Gemini Flash Image 3.1.
 // IMPORTANT: this model rejects the `steps` parameter — only pass it when the
 // caller is using a model that does support it.
-const DEFAULT_MODEL =
-  process.env.TOGETHER_IMAGE_MODEL || "google/flash-image-3.1";
+const DEFAULT_MODEL = getTogetherImageModel();
 const REQUEST_TIMEOUT_MS = 180_000;
 
 /**
@@ -26,13 +26,7 @@ const MODELS_WITHOUT_STEPS = new Set<string>([
 ]);
 
 function getApiKey(): string {
-  const key = process.env.TOGETHER_API_KEY;
-  if (!key) {
-    throw new Error(
-      "TOGETHER_API_KEY is not configured. Add it as a secret to enable image generation.",
-    );
-  }
-  return key;
+  return getTogetherApiKey();
 }
 
 interface TogetherImageResponse {

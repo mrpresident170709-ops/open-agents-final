@@ -11,12 +11,14 @@ import type {
   SnapshotResult,
 } from "../interface";
 import type { LocalState } from "./state";
+import { getSandboxEnv } from "../env";
 
 const DEFAULT_MAX_EXEC_OUTPUT = 500_000;
 
 function getReplitDomain(): string | null {
+  const env = getSandboxEnv();
   return (
-    process.env.REPLIT_DEV_DOMAIN ||
+    env.REPLIT_DEV_DOMAIN ||
     process.env.REPLIT_DOMAINS?.split(",")[0] ||
     null
   );

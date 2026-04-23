@@ -11,6 +11,10 @@ mock.module("@open-harness/sandbox", () => ({
     connectSandboxCalls.push(args);
     return connectSandboxResult;
   },
+  connectDaytona: async (...args: unknown[]) => {
+    connectSandboxCalls.push(args);
+    return connectSandboxResult;
+  },
 }));
 
 const {

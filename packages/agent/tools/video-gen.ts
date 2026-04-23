@@ -2,6 +2,7 @@ import { tool } from "ai";
 import { z } from "zod";
 import { downloadUrlToSandbox } from "./binary-utils";
 import { getSandbox, toDisplayPath } from "./utils";
+import { getOpenAIApiKey } from "../env";
 
 const OPENAI_BASE = "https://api.openai.com/v1";
 const DEFAULT_MODEL = process.env.OPENAI_VIDEO_MODEL || "sora-2";
@@ -9,13 +10,7 @@ const POLL_INTERVAL_MS = 4_000;
 const MAX_POLL_DURATION_MS = 10 * 60_000; // 10 minutes
 
 function getApiKey(): string {
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) {
-    throw new Error(
-      "OPENAI_API_KEY is not configured. Add it as a secret to enable video generation.",
-    );
-  }
-  return key;
+  return getOpenAIApiKey();
 }
 
 interface VideoJob {
