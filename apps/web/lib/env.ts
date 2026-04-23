@@ -4,13 +4,14 @@ const envSchema = z.object({
   // Critical Infrastructure (Required for app to function)
   POSTGRES_URL: z.string().url().optional(),
   DATABASE_URL: z.string().url().optional(),
-  JWE_SECRET: z.string().min(32, "JWE_SECRET must be at least 32 characters"),
+  JWE_SECRET: z.string().min(32, "JWE_SECRET must be at least 32 characters").optional(),
   ENCRYPTION_KEY: z
     .string()
     .refine(
-      (key) => /^[0-9a-fA-F]{64}$/.test(key) || /^[A-Za-z0-9+/=]{44}$/.test(key),
+      (key) => !key || /^[0-9a-fA-F]{64}$/.test(key) || /^[A-Za-z0-9+/=]{44}$/.test(key),
       "ENCRYPTION_KEY must be 64 hex chars or 44 base64 chars (32 bytes)",
-    ),
+    )
+    .optional(),
 
   // Vercel OAuth (Required for Vercel sign-in)
   NEXT_PUBLIC_VERCEL_APP_CLIENT_ID: z.string().min(1).optional(),
@@ -184,24 +185,32 @@ export function getEncryptionKey(): string {
 export function validateEnvOrDie(): void {
   const { data, error } = validateEnv();
 
-  if (error) {
+  // Skip detailed validation during build (no NODE_ENV or build time)
+  const isBuildTime = !process.env.NODE_ENV;
+
+  if (error && !isBuildTime) {
     console.error("❌ Environment validation failed:");
     error.issues.forEach((issue) => {
       console.error(`  - ${issue.path.join(".")}: ${issue.message}`);
     });
+  }
 
-    const criticalMissing: string[] = [];
-    if (!isDatabaseConfigured()) criticalMissing.push("POSTGRES_URL or DATABASE_URL");
-    if (!isEncryptionConfigured()) {
-      if (!data?.JWE_SECRET) criticalMissing.push("JWE_SECRET");
-      if (!data?.ENCRYPTION_KEY) criticalMissing.push("ENCRYPTION_KEY");
-    }
+  if (isBuildTime) {
+    console.log("[env] Skipping detailed validation during build");
+    return;
+  }
 
-    if (criticalMissing.length > 0 && process.env.NODE_ENV === "production") {
-      console.error(`\n💀 Critical variables missing: ${criticalMissing.join(", ")}`);
-      console.error("Application cannot start. Please check your environment variables.");
-      process.exit(1);
-    }
+  const criticalMissing: string[] = [];
+  if (!isDatabaseConfigured()) criticalMissing.push("POSTGRES_URL or DATABASE_URL");
+  if (!isEncryptionConfigured()) {
+    if (!data?.JWE_SECRET) criticalMissing.push("JWE_SECRET");
+    if (!data?.ENCRYPTION_KEY) criticalMissing.push("ENCRYPTION_KEY");
+  }
+
+  if (criticalMissing.length > 0 && process.env.NODE_ENV === "production") {
+    console.error(`\n💀 Critical variables missing: ${criticalMissing.join(", ")}`);
+    console.error("Application cannot start. Please check your environment variables.");
+    process.exit(1);
   }
 }
 

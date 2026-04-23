@@ -29,13 +29,14 @@ const envSchema = z.object({
   // Critical Infrastructure (Required for app to function)
   POSTGRES_URL: z.string().url().optional(),
   DATABASE_URL: z.string().url().optional(),
-  JWE_SECRET: z.string().min(32, "JWE_SECRET must be at least 32 characters"),
+  JWE_SECRET: z.string().min(32, "JWE_SECRET must be at least 32 characters").optional(),
   ENCRYPTION_KEY: z
     .string()
     .refine(
-      (key) => /^[0-9a-fA-F]{64}$/.test(key) || /^[A-Za-z0-9+/=]{44}$/.test(key),
+      (key) => !key || /^[0-9a-fA-F]{64}$/.test(key) || /^[A-Za-z0-9+/=]{44}$/.test(key),
       "ENCRYPTION_KEY must be 64 hex chars or 44 base64 chars (32 bytes)",
-    ),
+    )
+    .optional(),
 
   // Vercel OAuth (Required for Vercel sign-in)
   NEXT_PUBLIC_VERCEL_APP_CLIENT_ID: z.string().min(1).optional(),
