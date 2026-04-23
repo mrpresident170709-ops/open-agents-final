@@ -25,6 +25,9 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
+  // Use webpack instead of Turbopack for production builds for better compatibility
+  // Turbopack has issues with some Node.js packages like @vercel/oidc
+  turbopack: false,
 };
 
 export default withWorkflow(withBotId(nextConfig));
