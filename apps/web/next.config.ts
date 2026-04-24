@@ -26,6 +26,7 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react"],
     turbopack: false,
   },
+  serverExternalPackages: ["@vercel/oidc"],
 };
 
 export default withWorkflow(withBotId(nextConfig));
