@@ -210,7 +210,10 @@ export function validateEnvOrDie(): void {
   if (criticalMissing.length > 0 && process.env.NODE_ENV === "production") {
     console.error(`\n💀 Critical variables missing: ${criticalMissing.join(", ")}`);
     console.error("Application cannot start. Please check your environment variables.");
-    process.exit(1);
+    if (typeof process !== "undefined" && typeof process.exit === "function") {
+      process.exit(1);
+    }
+    throw new Error(`Critical variables missing: ${criticalMissing.join(", ")}`);
   }
 }
 

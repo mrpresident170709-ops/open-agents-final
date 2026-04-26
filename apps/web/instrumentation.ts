@@ -1,6 +1,10 @@
 import { validateEnvOrDie, getEnv, isVercelSandboxConfigured, isVercelOAuthConfigured, isGitHubAppConfigured, isDatabaseConfigured, isEncryptionConfigured } from "@/lib/env";
 
 export async function register() {
+  if (process.env.NEXT_RUNTIME === "edge") {
+    return;
+  }
+
   // Validate environment variables at startup
   validateEnvOrDie();
 
