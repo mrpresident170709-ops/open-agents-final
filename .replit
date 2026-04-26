@@ -40,6 +40,7 @@ externalPort = 80
 SINGLE_USER_MODE = "true"
 JWE_SECRET = "RgcRRu1uTBdZ19v_BG5XLPeA6-7cxVttQGuIH9mQcB8"
 ENCRYPTION_KEY = "b2a1535444deca52d3d3601089a66f0be9266e299fc87aa15b5995d3791637d4"
+VERCEL_SANDBOX_BASE_SNAPSHOT_ID = ""
 
 [postMerge]
 path = "scripts/post-merge.sh"

@@ -53,9 +53,14 @@ export const DEFAULT_WORKING_DIRECTORY = "/vercel/sandbox";
  */
 const _rawSnapshotId = (() => {
   const env = getEnv();
-  // Try Daytona snapshot first, then Vercel
-  const snapshot = env.DAYTONA_SANDBOX_SNAPSHOT || env.VERCEL_SANDBOX_BASE_SNAPSHOT_ID;
-  if (snapshot) return snapshot;
+  // Try Daytona snapshot first (via validated env)
+  if (env.DAYTONA_SANDBOX_SNAPSHOT) return env.DAYTONA_SANDBOX_SNAPSHOT;
+
+  // Read VERCEL_SANDBOX_BASE_SNAPSHOT_ID directly from process.env so that
+  // an empty string ("") can explicitly disable the base snapshot, bypassing
+  // the Zod schema's min(1) requirement (which strips empty strings).
+  const rawVercelSnapshot = process.env.VERCEL_SANDBOX_BASE_SNAPSHOT_ID;
+  if (rawVercelSnapshot !== undefined) return rawVercelSnapshot;
 
   // Default Vercel snapshot (for backward compatibility)
   return "snap_EjsphVxi07bFKrfojljJdIS41KHT";

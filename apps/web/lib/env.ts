@@ -26,7 +26,7 @@ const envSchema = z.object({
     .string()
     .regex(/^\d+$/, "Must be a number in milliseconds")
     .optional(),
-  VERCEL_SANDBOX_BASE_SNAPSHOT_ID: z.string().min(1).optional(),
+  VERCEL_SANDBOX_BASE_SNAPSHOT_ID: z.string().optional(),
   NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(),
   VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(),
 
