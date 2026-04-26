@@ -362,6 +362,182 @@ import loadingAnimation from "@/public/animations/loading.json"; // or require p
 - Prefer small files (<200 KB); if a downloaded animation is larger, find a lighter alternative
 - After installing \`lottie-react\`, restart the dev server
 
+### Spline 3D Graphics
+
+**Spline** lets you embed interactive, GPU-rendered 3D scenes directly in a React app with a single component. Use it for hero backgrounds, product visualisers, interactive objects, and any place the user asks for a "3D scene" or "3D animation".
+
+#### Package installation
+\`\`\`bash
+npm install @splinetool/react-spline    # or: bun add / yarn add
+\`\`\`
+
+#### Obtaining a scene URL
+1. The user designs the scene in the Spline desktop app or at [spline.design](https://spline.design).
+2. They click **Export → Public URL** in the Spline editor to get a \`.splinecode\` URL such as \`https://prod.spline.design/<hash>/scene.splinecode\`.
+3. Paste that URL as the \`scene\` prop below.
+
+If the user has **not** provided a URL, ask them for it — do NOT invent a URL.
+
+#### React implementation pattern
+\`\`\`tsx
+import Spline from "@splinetool/react-spline";
+
+// Basic usage — fills the parent container
+export default function Hero() {
+  return (
+    <div style={{ width: "100%", height: "100vh" }}>
+      <Spline scene="https://prod.spline.design/REPLACE_WITH_REAL_HASH/scene.splinecode" />
+    </div>
+  );
+}
+\`\`\`
+
+#### Rules for Spline use
+- Always wrap \`<Spline>\` in a container with explicit \`width\` and \`height\` — it defaults to 0×0 otherwise.
+- The component is **client-only**. In Next.js App Router, add \`"use client"\` at the top of any file that imports it, or lazy-load it:
+  \`\`\`tsx
+  import dynamic from "next/dynamic";
+  const Spline = dynamic(() => import("@splinetool/react-spline"), { ssr: false });
+  \`\`\`
+- \`@splinetool/react-spline\` wraps \`@splinetool/runtime\`; both are installed together automatically.
+- 3D scenes are large — place them behind a \`loading\` state (CSS spinner or Lottie) while the scene URL resolves.
+- Do NOT use Spline for simple icon animations — Lottie is lighter for that purpose.
+
+---
+
+### Tailwind CSS
+
+Tailwind is a utility-first CSS framework. In Next.js projects created with \`create-next-app --tailwind\` it is already configured; apply the same guidance when adding it manually.
+
+#### Setup check — is Tailwind already present?
+\`\`\`bash
+# If tailwind.config.* and postcss.config.* exist, Tailwind is ready — skip install
+ls tailwind.config.* postcss.config.* 2>/dev/null && echo "Already configured"
+\`\`\`
+
+#### Install (only if NOT already present)
+\`\`\`bash
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p      # creates tailwind.config.js and postcss.config.js
+\`\`\`
+
+Add to \`tailwind.config.js\`:
+\`\`\`js
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ["./app/**/*.{js,ts,jsx,tsx}", "./components/**/*.{js,ts,jsx,tsx}"],
+  theme: { extend: {} },
+  plugins: [],
+};
+\`\`\`
+
+Add to the top of your global CSS file (\`globals.css\`):
+\`\`\`css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+\`\`\`
+
+#### Usage rules
+- Use Tailwind classes directly on JSX elements — do NOT write \`.css\` files for spacing/color/typography that Tailwind covers.
+- Prefer semantic colour tokens (\`bg-primary\`, \`text-muted-foreground\`) when a design system (e.g. Shadcn) defines them; fall back to palette classes (\`bg-blue-600\`) for ad-hoc styling.
+- For responsive layouts use the mobile-first prefix order: \`sm:\` → \`md:\` → \`lg:\` → \`xl:\`.
+- Never use \`@apply\` with utilities that can simply be inlined — only \`@apply\` for genuinely reused component styles in a \`.css\` file.
+- Keep \`dark:\` variants consistent: if the app has a dark mode toggle, apply dark variants everywhere colour or background is set.
+- After making config changes, restart the dev server — Tailwind's JIT compiler picks up new content patterns on restart.
+
+---
+
+### Shadcn UI
+
+Shadcn UI is a collection of beautifully styled, accessible, copy-paste React components built on Radix UI primitives and Tailwind CSS. Components are added directly into your repo (not a node_modules dependency), so you can customise them fully.
+
+#### Initialise (run once per project)
+\`\`\`bash
+npx shadcn@latest init
+\`\`\`
+Accept all prompts (or pass \`-d\` for defaults). This installs Radix primitives, \`class-variance-authority\`, \`clsx\`, and \`tailwind-merge\`, and writes a \`components.json\` config.
+
+#### Adding components
+\`\`\`bash
+npx shadcn@latest add button          # adds src/components/ui/button.tsx
+npx shadcn@latest add dialog card badge input  # add multiple at once
+\`\`\`
+
+Run this in the same directory as \`package.json\`. The CLI writes the component source files — commit them like any other source file.
+
+#### Commonly used components and their import paths
+| Component | Import |
+|---|---|
+| Button | \`@/components/ui/button\` |
+| Input | \`@/components/ui/input\` |
+| Card | \`@/components/ui/card\` |
+| Dialog / Modal | \`@/components/ui/dialog\` |
+| Select | \`@/components/ui/select\` |
+| Badge | \`@/components/ui/badge\` |
+| Tooltip | \`@/components/ui/tooltip\` |
+| Tabs | \`@/components/ui/tabs\` |
+| Toast / Sonner | \`@/components/ui/sonner\` |
+| Skeleton | \`@/components/ui/skeleton\` |
+
+#### Usage pattern
+\`\`\`tsx
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+
+export function Example() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Hello</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Button variant="default" onClick={() => alert("clicked")}>Click me</Button>
+        <Button variant="outline" className="ml-2">Outline</Button>
+      </CardContent>
+    </Card>
+  );
+}
+\`\`\`
+
+#### Rules for Shadcn use
+- Always run \`npx shadcn@latest init\` before \`add\` — adding without init will fail.
+- Never edit files under \`node_modules\`; edit the generated files in \`components/ui/\` instead.
+- Use the \`cn()\` helper (imported from \`@/lib/utils\`) when merging conditional Tailwind classes.
+- For toast/notification, prefer \`sonner\` (\`npx shadcn@latest add sonner\`) over the older \`toast\` component.
+- Check \`components.json\` for the configured component alias before assuming \`@/components/ui/\`.
+
+---
+
+### MagicMCP (21st.dev Magic Component Platform)
+
+**MagicMCP** is an AI-powered MCP (Model Context Protocol) server by 21st.dev that generates polished UI components on demand. When the user wants a UI element and you are running inside an MCP-capable agent session, you can invoke MagicMCP to generate and insert the component automatically.
+
+#### Install the MCP server
+\`\`\`bash
+# One-time global install (or use npx directly each session)
+npx @21st-dev/magic@latest
+\`\`\`
+
+#### Typical workflow
+1. User requests a UI element, e.g. "add a pricing table" or "make a hero section".
+2. Invoke the \`magic_component\` MCP tool with a plain-English description.
+3. MagicMCP returns a ready-to-use React + Tailwind component — paste it into the appropriate file.
+4. Wire up any props or data the component expects.
+
+#### When to use MagicMCP
+- Complex, visually polished components that would take many iterations to style manually (pricing tables, landing hero, animated cards).
+- When the user says "use Magic" or "generate with MagicMCP".
+- As a complement to Shadcn: use Shadcn for utility components (buttons, inputs, dialogs) and MagicMCP for marketing / showcase sections.
+
+#### Rules for MagicMCP use
+- MagicMCP requires a \`MAGIC_MCP_API_KEY\` environment variable. If it is not in the user's secrets, ask them to add it before proceeding.
+- The generated components use Tailwind — confirm Tailwind is installed first.
+- Always review generated code before inserting it: ensure imports resolve, remove placeholder text, and connect real data sources.
+- Do NOT re-generate the same component multiple times — generated output is deterministic for the same prompt; adjust the prompt if the first result needs improvement.
+
+---
+
 ## Loading Secrets in Generated Apps (CRITICAL — read carefully)
 User secrets are pre-written into \`.env.local\` (and also exported as process env vars in your shell). Your generated app must actually LOAD them. Different frameworks behave differently:
 
