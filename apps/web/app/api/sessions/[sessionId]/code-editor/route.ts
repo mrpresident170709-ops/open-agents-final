@@ -202,6 +202,77 @@ async function stopCodeServer(sandbox: ConnectedSandbox): Promise<boolean> {
   return !checkResult.success;
 }
 
+/**
+ * Resolve the code-server binary path, auto-installing it on first use.
+ *
+ * Install strategy (no root required):
+ *   1. Check PATH — if already installed, return the path immediately.
+ *   2. Check ~/.local/bin/code-server — handles a prior standalone install.
+ *   3. Run the official install script with --method=standalone so it lands
+ *      in ~/.local/bin without needing sudo. This is a one-time operation;
+ *      subsequent calls skip straight to step 1 or 2.
+ *
+ * Returns the binary path on success, null on failure.
+ */
+async function ensureCodeServerInstalled(
+  sandbox: ConnectedSandbox,
+  cwd: string,
+): Promise<string | null> {
+  // 1. Already on PATH?
+  const whichResult = await sandbox.exec("command -v code-server", cwd, 5_000);
+  if (whichResult.success && whichResult.stdout.trim()) {
+    return whichResult.stdout.trim();
+  }
+
+  // 2. Previously installed to ~/.local/bin (standalone install)?
+  const localBinCheck = await sandbox.exec(
+    `test -x "$HOME/.local/bin/code-server" && echo "$HOME/.local/bin/code-server"`,
+    cwd,
+    5_000,
+  );
+  if (localBinCheck.success && localBinCheck.stdout.trim()) {
+    return localBinCheck.stdout.trim();
+  }
+
+  // 3. Install via the official script (standalone, no root required).
+  //    Timeout: 5 minutes — the script downloads ~100 MB.
+  console.log("[code-editor] code-server not found — installing (this takes ~1–3 minutes)...");
+  const installResult = await sandbox.exec(
+    "curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone 2>&1",
+    cwd,
+    300_000,
+  );
+
+  if (!installResult.success) {
+    console.error(
+      "[code-editor] code-server install failed:",
+      installResult.stdout.slice(0, 1000),
+    );
+    return null;
+  }
+
+  console.log("[code-editor] install completed:", installResult.stdout.slice(-500));
+
+  // Re-check PATH after install
+  const postWhich = await sandbox.exec("command -v code-server", cwd, 5_000);
+  if (postWhich.success && postWhich.stdout.trim()) {
+    return postWhich.stdout.trim();
+  }
+
+  // Re-check ~/.local/bin after install
+  const postLocal = await sandbox.exec(
+    `test -x "$HOME/.local/bin/code-server" && echo "$HOME/.local/bin/code-server"`,
+    cwd,
+    5_000,
+  );
+  if (postLocal.success && postLocal.stdout.trim()) {
+    return postLocal.stdout.trim();
+  }
+
+  console.error("[code-editor] install completed but binary still not found");
+  return null;
+}
+
 export async function GET(_req: Request, context: RouteContext) {
   const authResult = await requireAuthenticatedUser();
   if (!authResult.ok) {
@@ -280,19 +351,14 @@ export async function POST(req: Request, context: RouteContext) {
     const port = CODE_SERVER_PORT;
     const workingDirectory = sandbox.workingDirectory;
 
-    // Pre-flight: confirm code-server is installed before trying to launch it.
-    // Without this check, execDetached throws a cryptic "exit code 127" error.
-    const whichResult = await sandbox.exec(
-      "command -v code-server",
-      workingDirectory,
-      5_000,
-    );
-    if (!whichResult.success) {
+    // Resolve code-server binary path, installing it on first use if missing.
+    const codeServerBin = await ensureCodeServerInstalled(sandbox, workingDirectory);
+    if (!codeServerBin) {
       return Response.json(
         {
           error:
-            "code-server is not installed in this sandbox. " +
-            "The code editor feature requires code-server to be present in the environment.",
+            "Failed to install code-server. " +
+            "Check that curl is available and the sandbox has internet access.",
         },
         { status: 503 },
       );
@@ -316,7 +382,7 @@ export async function POST(req: Request, context: RouteContext) {
     // Launch code-server in detached mode
     const launchCommand = [
       `printf '%s' "$$" > ${shellQuote(CODE_SERVER_PIDFILE)}`,
-      `exec code-server --port ${port} --auth none --bind-addr 0.0.0.0:${port} --disable-telemetry ${shellQuote(workingDirectory)}`,
+      `exec ${shellQuote(codeServerBin)} --port ${port} --auth none --bind-addr 0.0.0.0:${port} --disable-telemetry ${shellQuote(workingDirectory)}`,
     ].join(" && ");
 
     try {

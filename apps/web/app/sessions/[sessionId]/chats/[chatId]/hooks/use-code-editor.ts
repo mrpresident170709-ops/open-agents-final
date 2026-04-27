@@ -230,9 +230,11 @@ export function useCodeEditor({
   const menuDetail =
     state.status === "ready" || state.status === "stopping"
       ? "Running"
-      : state.status === "error"
-        ? state.message
-        : null;
+      : state.status === "starting"
+        ? "May take ~2 min on first use"
+        : state.status === "error"
+          ? state.message
+          : null;
 
   const showStopAction =
     canRun && (state.status === "ready" || state.status === "stopping");
