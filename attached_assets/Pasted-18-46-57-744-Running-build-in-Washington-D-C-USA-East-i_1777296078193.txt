@@ -1,0 +1,290 @@
+18:46:57.744 Running build in Washington, D.C., USA (East) – iad1
+18:46:57.745 Build machine configuration: 2 cores, 8 GB
+18:46:57.870 Cloning github.com/mrpresident170709-ops/open-agents-final (Branch: main, Commit: a4a89ff)
+18:46:57.871 Previous build caches not available.
+18:46:58.793 Cloning completed: 922.000ms
+18:46:59.296 Running "vercel build"
+18:47:00.019 Vercel CLI 51.6.1
+18:47:00.144 > Detected Turbo. Adjusting default settings...
+18:47:00.366 Running "install" command: `bun install`...
+18:47:00.406 bun install v1.3.6 (d530ed99)
+18:47:00.450 Resolving dependencies
+18:47:03.237 Resolved, downloaded and extracted [118]
+18:47:13.960 Saved lockfile
+18:47:13.961 
+18:47:13.961 + @tailwindcss/postcss@4.2.2 (v4.2.4 available)
+18:47:13.961 + @types/node@20.19.37 (v25.6.0 available)
+18:47:13.961 + @types/react@19.2.7 (v19.2.14 available)
+18:47:13.962 + @types/react-dom@19.2.3
+18:47:13.962 + drizzle-kit@0.31.10
+18:47:13.962 + tailwindcss@4.2.2 (v4.2.4 available)
+18:47:13.962 + tw-animate-css@1.4.0
+18:47:13.962 + typescript@5.9.3 (v6.0.3 available)
+18:47:13.963 + @ai-sdk/elevenlabs@2.0.29
+18:47:13.963 + @ai-sdk/react@3.0.167 (v3.0.170 available)
+18:47:13.963 + @octokit/auth-app@8.2.0
+18:47:13.963 + @octokit/rest@22.0.1
+18:47:13.963 + @open-harness/agent@workspace:packages/agent
+18:47:13.963 + @open-harness/sandbox@workspace:packages/sandbox
+18:47:13.963 + @open-harness/shared@workspace:packages/shared
+18:47:13.963 + @pierre/diffs@1.1.7 (v1.1.19 available)
+18:47:13.963 + @radix-ui/react-avatar@1.1.11
+18:47:13.963 + @radix-ui/react-dialog@1.1.15
+18:47:13.963 + @radix-ui/react-dropdown-menu@2.1.16
+18:47:13.963 + @radix-ui/react-label@2.1.8
+18:47:13.963 + @radix-ui/react-popover@1.1.15
+18:47:13.964 + @radix-ui/react-scroll-area@1.2.10
+18:47:13.964 + @radix-ui/react-select@2.2.6
+18:47:13.964 + @radix-ui/react-separator@1.1.8
+18:47:13.964 + @radix-ui/react-slot@1.2.4
+18:47:13.964 + @radix-ui/react-switch@1.2.6
+18:47:13.964 + @radix-ui/react-tabs@1.1.13
+18:47:13.964 + @radix-ui/react-tooltip@1.2.8
+18:47:13.964 + @streamdown/code@1.1.1
+18:47:13.964 + @vercel/analytics@1.6.1 (v2.0.1 available)
+18:47:13.964 + @vercel/oidc@3.2.1
+18:47:13.964 + ai@6.0.165 (v6.0.168 available)
+18:47:13.964 + arctic@3.7.0
+18:47:13.964 + botid@1.5.11
+18:47:13.964 + class-variance-authority@0.7.1
+18:47:13.965 + clsx@2.1.1
+18:47:13.965 + cmdk@1.1.1
+18:47:13.965 + date-fns@4.1.0
+18:47:13.965 + drizzle-orm@0.45.2
+18:47:13.965 + ioredis@5.10.1
+18:47:13.965 + jose@6.2.2
+18:47:13.965 + lucide-react@0.562.0 (v1.11.0 available)
+18:47:13.965 + nanoid@5.1.7 (v5.1.9 available)
+18:47:13.965 + next@16.2.1 (v16.2.4 available)
+18:47:13.966 + postgres@3.4.8 (v3.4.9 available)
+18:47:13.966 + react@19.2.3 (v19.2.5 available)
+18:47:13.966 + react-day-picker@9.14.0
+18:47:13.966 + react-dom@19.2.3 (v19.2.5 available)
+18:47:13.967 + react-remove-scroll@2.7.2
+18:47:13.967 + server-only@0.0.1
+18:47:13.967 + shiki@1.29.2 (v4.0.2 available)
+18:47:13.967 + sonner@2.0.7
+18:47:13.967 + streamdown@2.5.0
+18:47:13.967 + swr@2.4.1
+18:47:13.967 + tailwind-merge@3.5.0
+18:47:13.967 + vaul@1.1.2
+18:47:13.967 + workflow@4.2.0-beta.74
+18:47:13.967 + zod@4.3.6
+18:47:13.967 
+18:47:13.968 942 packages installed [13.57s]
+18:47:14.014 Detected Next.js version: 16.2.1
+18:47:14.015 Running "turbo run build"
+18:47:15.621 
+18:47:15.622 Attention:
+18:47:15.622 Turborepo now collects completely anonymous telemetry regarding usage.
+18:47:15.622 This information is used to shape the Turborepo roadmap and prioritize features.
+18:47:15.622 You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+18:47:15.622 https://turborepo.dev/docs/telemetry
+18:47:15.622 
+18:47:15.947 
+18:47:15.952    • Packages in scope: web
+18:47:15.952    • Running build in 1 packages
+18:47:15.952    • Remote caching enabled
+18:47:15.952 
+18:47:16.109 web:build: cache miss, executing 09e9f974bed9ca9e
+18:47:16.329 web:build: $ bun run db:migrate:apply && next build --webpack
+18:47:16.335 web:build: $ bun run lib/db/migrate.ts
+18:47:17.357 web:build: {
+18:47:17.357 web:build:   severity_local: "NOTICE",
+18:47:17.357 web:build:   severity: "NOTICE",
+18:47:17.357 web:build:   code: "42P06",
+18:47:17.357 web:build:   message: "schema \"drizzle\" already exists, skipping",
+18:47:17.358 web:build:   file: "schemacmds.c",
+18:47:17.358 web:build:   line: "132",
+18:47:17.358 web:build:   routine: "CreateSchemaCommand",
+18:47:17.358 web:build: }
+18:47:17.363 web:build: {
+18:47:17.363 web:build:   severity_local: "NOTICE",
+18:47:17.363 web:build:   severity: "NOTICE",
+18:47:17.363 web:build:   code: "42P07",
+18:47:17.363 web:build:   message: "relation \"__drizzle_migrations\" already exists, skipping",
+18:47:17.363 web:build:   file: "parse_utilcmd.c",
+18:47:17.363 web:build:   line: "207",
+18:47:17.363 web:build:   routine: "transformCreateStmt",
+18:47:17.363 web:build: }
+18:47:17.365 web:build: Running database migrations…
+18:47:17.377 web:build: {
+18:47:17.378 web:build:   severity_local: "NOTICE",
+18:47:17.378 web:build:   severity: "NOTICE",
+18:47:17.378 web:build:   code: "42P06",
+18:47:17.378 web:build:   message: "schema \"drizzle\" already exists, skipping",
+18:47:17.378 web:build:   file: "schemacmds.c",
+18:47:17.378 web:build:   line: "132",
+18:47:17.378 web:build:   routine: "CreateSchemaCommand",
+18:47:17.378 web:build: }
+18:47:17.382 web:build: {
+18:47:17.383 web:build:   severity_local: "NOTICE",
+18:47:17.383 web:build:   severity: "NOTICE",
+18:47:17.383 web:build:   code: "42P07",
+18:47:17.384 web:build:   message: "relation \"__drizzle_migrations\" already exists, skipping",
+18:47:17.384 web:build:   file: "parse_utilcmd.c",
+18:47:17.384 web:build:   line: "207",
+18:47:17.384 web:build:   routine: "transformCreateStmt",
+18:47:17.384 web:build: }
+18:47:17.501 web:build: Migrations applied successfully
+18:47:23.453 web:build: Discovering workflow directives 4384ms
+18:47:24.426 web:build: Created steps bundle 972ms
+18:47:25.055 web:build: Created intermediate workflow bundle 627ms
+18:47:25.107 web:build: Creating webhook route
+18:47:25.107 web:build: Creating manifest...
+18:47:25.424 web:build: Created manifest with 24 steps, 2 workflows, and 0 classes 308ms
+18:47:25.549 web:build:   Applying modifyConfig from Vercel
+18:47:25.561 web:build: ▲ Next.js 16.2.1 (webpack)
+18:47:25.562 web:build: - Experiments (use with caution):
+18:47:25.562 web:build:   · optimizePackageImports
+18:47:25.562 web:build: 
+18:47:25.619 web:build:   Creating an optimized production build ...
+18:48:20.496 web:build: ✓ Compiled successfully in 54s
+18:48:20.507 web:build:   Running TypeScript ...
+18:48:41.960 web:build:   Finished TypeScript in 21.5s ...
+18:48:41.962 web:build:   Collecting page data using 1 worker ...
+18:48:43.230 web:build: ⚠ Using edge runtime on a page currently disables static generation for that page
+18:48:49.488 web:build:   Generating static pages using 1 worker (0/58) ...
+18:48:50.043 web:build:   Generating static pages using 1 worker (14/58) 
+18:48:50.044 web:build:   Generating static pages using 1 worker (28/58) 
+18:48:50.044 web:build:   Generating static pages using 1 worker (43/58) 
+18:48:50.458 web:build: ✓ Generating static pages using 1 worker (58/58) in 969ms
+18:48:51.757 web:build:   Finalizing page optimization ...
+18:48:51.761 web:build:   Collecting build traces ...
+18:49:01.803 web:build:   Running onBuildComplete from Vercel
+18:49:02.439 web:build: 
+18:49:02.444 web:build: Route (app)
+18:49:02.444 web:build: ┌ ƒ /
+18:49:02.445 web:build: ├ ○ /_not-found
+18:49:02.445 web:build: ├ ƒ /.well-known/workflow/v1/flow
+18:49:02.445 web:build: ├ ƒ /.well-known/workflow/v1/step
+18:49:02.445 web:build: ├ ƒ /.well-known/workflow/v1/webhook/[token]
+18:49:02.445 web:build: ├ ƒ /[username]
+18:49:02.445 web:build: ├ ƒ /[username]/[repo]
+18:49:02.445 web:build: ├ ƒ /[username]/og
+18:49:02.445 web:build: ├ ƒ /api/auth/github/callback
+18:49:02.445 web:build: ├ ƒ /api/auth/github/reconnect
+18:49:02.445 web:build: ├ ƒ /api/auth/github/unlink
+18:49:02.446 web:build: ├ ƒ /api/auth/info
+18:49:02.446 web:build: ├ ƒ /api/auth/signin/github
+18:49:02.446 web:build: ├ ƒ /api/auth/signin/vercel
+18:49:02.446 web:build: ├ ƒ /api/auth/signout
+18:49:02.446 web:build: ├ ƒ /api/auth/vercel/callback
+18:49:02.446 web:build: ├ ƒ /api/chat
+18:49:02.446 web:build: ├ ƒ /api/chat/[chatId]/stop
+18:49:02.446 web:build: ├ ƒ /api/chat/[chatId]/stream
+18:49:02.446 web:build: ├ ƒ /api/check-pr
+18:49:02.446 web:build: ├ ƒ /api/generate-pr
+18:49:02.446 web:build: ├ ƒ /api/generate-title
+18:49:02.446 web:build: ├ ƒ /api/git-status
+18:49:02.446 web:build: ├ ƒ /api/github/app/callback
+18:49:02.446 web:build: ├ ƒ /api/github/app/install
+18:49:02.446 web:build: ├ ƒ /api/github/branches
+18:49:02.446 web:build: ├ ƒ /api/github/connection-status
+18:49:02.447 web:build: ├ ƒ /api/github/create-repo
+18:49:02.447 web:build: ├ ƒ /api/github/installations
+18:49:02.447 web:build: ├ ƒ /api/github/installations/repos
+18:49:02.447 web:build: ├ ƒ /api/github/orgs
+18:49:02.447 web:build: ├ ƒ /api/github/orgs/install-status
+18:49:02.447 web:build: ├ ƒ /api/github/user
+18:49:02.447 web:build: ├ ƒ /api/github/webhook
+18:49:02.447 web:build: ├ ƒ /api/health
+18:49:02.447 web:build: ├ ƒ /api/models
+18:49:02.447 web:build: ├ ƒ /api/pr
+18:49:02.447 web:build: ├ ƒ /api/sandbox
+18:49:02.447 web:build: ├ ƒ /api/sandbox/activity
+18:49:02.447 web:build: ├ ƒ /api/sandbox/extend
+18:49:02.447 web:build: ├ ƒ /api/sandbox/reconnect
+18:49:02.447 web:build: ├ ƒ /api/sandbox/snapshot
+18:49:02.447 web:build: ├ ƒ /api/sandbox/status
+18:49:02.447 web:build: ├ ƒ /api/secrets
+18:49:02.447 web:build: ├ ƒ /api/sessions
+18:49:02.447 web:build: ├ ƒ /api/sessions/[sessionId]
+18:49:02.447 web:build: ├ ƒ /api/sessions/[sessionId]/chats
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/chats/[chatId]
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/chats/[chatId]/fork
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/chats/[chatId]/messages
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/chats/[chatId]/messages/[messageId]
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/chats/[chatId]/read
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/chats/[chatId]/share
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/checks/fix
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/close-pr
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/code-editor
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/dev-server
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/diff
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/diff/cached
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/discard-uncommitted
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/files
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/files/content
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/generate-commit-message
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/merge
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/merge-readiness
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/pr-deployment
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/share
+18:49:02.448 web:build: ├ ƒ /api/sessions/[sessionId]/skills
+18:49:02.449 web:build: ├ ƒ /api/settings/model-variants
+18:49:02.449 web:build: ├ ƒ /api/settings/preferences
+18:49:02.449 web:build: ├ ƒ /api/shared/[shareId]/markdown
+18:49:02.449 web:build: ├ ƒ /api/shared/[shareId]/status
+18:49:02.449 web:build: ├ ƒ /api/transcribe
+18:49:02.449 web:build: ├ ƒ /api/usage
+18:49:02.449 web:build: ├ ƒ /api/usage/rank
+18:49:02.449 web:build: ├ ƒ /api/vercel/connection-status
+18:49:02.449 web:build: ├ ƒ /api/vercel/projects/[idOrName]/env
+18:49:02.449 web:build: ├ ƒ /api/vercel/repo-projects
+18:49:02.449 web:build: ├ ƒ /codespace/[sessionId]
+18:49:02.449 web:build: ├ ○ /deploy-your-own
+18:49:02.449 web:build: ├ ƒ /opengraph-image
+18:49:02.449 web:build: ├ ƒ /sessions
+18:49:02.449 web:build: ├ ƒ /sessions/[sessionId]
+18:49:02.450 web:build: ├ ƒ /sessions/[sessionId]/chats/[chatId]
+18:49:02.450 web:build: ├ ○ /settings
+18:49:02.450 web:build: ├ ○ /settings/accounts
+18:49:02.450 web:build: ├ ○ /settings/connections
+18:49:02.450 web:build: ├ ○ /settings/leaderboard
+18:49:02.450 web:build: ├ ○ /settings/model-variants
+18:49:02.450 web:build: ├ ○ /settings/preferences
+18:49:02.450 web:build: ├ ○ /settings/profile
+18:49:02.450 web:build: ├ ○ /settings/secrets
+18:49:02.450 web:build: ├ ○ /settings/usage
+18:49:02.450 web:build: ├ ƒ /shared/[shareId]
+18:49:02.450 web:build: ├ ƒ /shared/-/opengraph-image
+18:49:02.450 web:build: ├ ƒ /shared/-/twitter-image
+18:49:02.450 web:build: ├ ƒ /twitter-image
+18:49:02.450 web:build: ├ ƒ /u/[username]
+18:49:02.450 web:build: └ ƒ /u/[username]/og
+18:49:02.450 web:build: 
+18:49:02.451 web:build: 
+18:49:02.451 web:build: ƒ Proxy (Middleware)
+18:49:02.451 web:build: 
+18:49:02.451 web:build: ○  (Static)   prerendered as static content
+18:49:02.451 web:build: ƒ  (Dynamic)  server-rendered on demand
+18:49:02.451 web:build: 
+18:49:02.610  WARNING  finished with warnings
+18:49:02.611 Warning - the following environment variables are set on your Vercel project, but missing from "turbo.json". These variables WILL NOT be available to your application and may cause your build to fail. Learn more at https://turborepo.dev/docs/crafting-your-repository/using-environment-variables#platform-environment-variables
+18:49:02.611 
+18:49:02.611 [warn] web#build
+18:49:02.611 [warn]   - SESSION_SECRET 
+18:49:02.611 [warn]   - ZENMUX_API_KEY 
+18:49:02.611 [warn]   - OPENCODE_API_KEY 
+18:49:02.611 [warn]   - ANTHROPIC_API_KEY 
+18:49:02.611 [warn]   - OPENAI_API_KEY 
+18:49:02.611 [warn]   - VOYAGE_API_KEY 
+18:49:02.611 [warn]   - FIRECRAWL_API_KEY 
+18:49:02.611 [warn]   - PEXELS_API_KEY 
+18:49:02.611 [warn]   - BROWSERBASE_API_KEY 
+18:49:02.616 [warn]   - BROWSERBASE_PROJECT_ID 
+18:49:02.616 [warn]   - TOGETHER_API_KEY 
+18:49:02.616 [warn]   - TWENTY_FIRST_API_KEY 
+18:49:02.616 [warn]   - EXA_API_KEY 
+18:49:02.616 [warn]   - AI_GATEWAY_API_KEY 
+18:49:02.616 [warn]   - SINGLE_USER_MODE 
+18:49:02.616 
+18:49:02.616   Tasks:    1 successful, 1 total
+18:49:02.616  Cached:    0 cached, 1 total
+18:49:02.616    Time:    1m46.895s 
+18:49:02.616 Summary:    /vercel/path0/.turbo/runs/3CwU5WzKfN4Tf9FbhbLKt6YLdaR.json
+18:49:02.617 
+18:49:02.623  WARNING  no output files found for task web#build. Please check your `outputs` key in `turbo.json`
+18:49:03.391 Build Completed in /vercel/output [2m]
+18:49:04.494 Deploying outputs...
