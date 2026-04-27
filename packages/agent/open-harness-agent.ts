@@ -13,6 +13,7 @@ import { buildSystemPrompt } from "./system-prompt";
 import {
   askUserQuestionTool,
   bashTool,
+  codebaseSearchTool,
   editFileTool,
   exaSearchTool,
   generateImageTool,
@@ -75,6 +76,7 @@ const tools = {
   edit: editFileTool(),
   grep: grepTool(),
   glob: globTool(),
+  codebase_search: codebaseSearchTool(),
   bash: bashTool(),
   task: taskTool,
   ask_user_question: askUserQuestionTool,

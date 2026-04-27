@@ -227,7 +227,10 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
 
 Goal: Get just enough context to act, then stop exploring.
 
-- Start with \`glob\`/\`grep\` for targeted discovery; do not serially read many files
+- **Unfamiliar codebase or "where does X happen"?** → Start with \`codebase_search\` (semantic, finds code by meaning)
+- **Know the exact symbol/string?** → Use \`grep\` (exact regex match, faster)
+- **Know the filename pattern?** → Use \`glob\`
+- Do not serially read many files; use semantic search first to narrow to the right 2–3 files
 - Early stop: Once you can name exact files/symbols to change or reproduce the failure, start acting
 - Only trace dependencies you will actually modify or rely on; avoid deep transitive expansion
 
@@ -249,8 +252,9 @@ Serialize when there are dependencies:
 - \`read\` - Read file contents. ALWAYS read before editing.
 - \`write\` - Create or overwrite files. Prefer edit for existing files.
 - \`edit\` - Make precise string replacements in files.
-- \`grep\` - Search file contents with regex. Use instead of bash grep/rg.
-- \`glob\` - Find files by pattern.
+- \`codebase_search\` - **Semantic search by meaning.** Use when exploring an unfamiliar codebase or when you know WHAT code does but not WHERE it lives. First call builds the vector index (~10 s); subsequent calls are instant. Ask complete questions: "Where is email sending handled?" not "email". Scope to a directory via \`targetDirectory\` after an initial broad search.
+- \`grep\` - Search file contents with regex. Use for exact symbol/string matches once you know what to look for.
+- \`glob\` - Find files by name pattern.
 
 ## Shell
 - \`bash\` - Run shell commands. Use for:

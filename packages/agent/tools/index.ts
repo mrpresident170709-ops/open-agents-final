@@ -21,3 +21,4 @@ export { exaSearchTool, exaFindSimilarTool } from "./exa";
 export { generateImageTool } from "./image-gen";
 export { generateVideoTool } from "./video-gen";
 export { googleFontsTool } from "./google-fonts";
+export { codebaseSearchTool } from "./codebase-search";
