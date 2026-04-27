@@ -10,6 +10,7 @@ export const botIdConfig = {
     extraAllowedHosts: [
       "vercel.com",
       "*.vercel.com",
+      "*.vercel.app",
       "*.vercel.dev",
       "*.vercel.run",
       "*.open-agents.dev",
