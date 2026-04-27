@@ -280,6 +280,24 @@ export async function POST(req: Request, context: RouteContext) {
     const port = CODE_SERVER_PORT;
     const workingDirectory = sandbox.workingDirectory;
 
+    // Pre-flight: confirm code-server is installed before trying to launch it.
+    // Without this check, execDetached throws a cryptic "exit code 127" error.
+    const whichResult = await sandbox.exec(
+      "command -v code-server",
+      workingDirectory,
+      5_000,
+    );
+    if (!whichResult.success) {
+      return Response.json(
+        {
+          error:
+            "code-server is not installed in this sandbox. " +
+            "The code editor feature requires code-server to be present in the environment.",
+        },
+        { status: 503 },
+      );
+    }
+
     // Reuse an existing code-server process when we can positively identify it.
     if (await isCodeServerRunning(sandbox)) {
       return Response.json({
