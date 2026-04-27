@@ -1049,49 +1049,55 @@ If you called a tool to get an asset, that asset MUST appear in the code you wri
 - Pick the HD file (1920×1080 link) and embed as \`<video autoPlay loop muted playsInline src="...">\`
 - Only use \`generate_video\` for truly custom animated sequences not available as stock footage
 
-**Step E — Backgrounds: Code it vs. Generate it**
+**Step E — When to generate images vs. code them**
 
-This is the most important visual decision for landing pages. Using CSS when you should generate, or generating when CSS is enough, produces pages that look broken or generic.
+**The single principle: Ask "Can a web developer reproduce this visual faithfully with CSS and HTML alone, in under 5 minutes, and have it look right?" If the honest answer is no — generate it.**
 
-**CODE IT with Tailwind/CSS when:**
-- Solid background color: \`bg-slate-950\`, \`bg-white\`
-- Simple linear gradient in one direction: \`bg-gradient-to-br from-blue-600 to-purple-700\`
-- Simple centered radial gradient (1 color stop, uniform falloff)
-- Subtle blur/glass: \`backdrop-blur-md bg-white/10\`
-- Clean geometric shapes using borders or clip-path
-- Grid/dot patterns using CSS background-image with repeating-linear-gradient
+This applies to backgrounds, illustrations, icons, product visuals, section art, and any other visual element. It is not a limited list of specific types. Use judgment.
 
-**GENERATE IT with \`generate_image\` when the background has ANY of:**
-- **Radial spotlight / glow effect** — a bright ellipse or circle of light emanating from a specific position on a dark background (like the Linear.app hero: pure black background with a white/grey oval light source at the bottom center)
-- **Mesh gradient** — multiple overlapping blobs of different colors blending together (like Stripe, Vercel, or Framer hero backgrounds)
-- **Noise/grain texture** — subtle film grain or paper texture overlaid on a gradient
-- **Multiple radial gradients** — 3+ overlapping color sources that would require stacked pseudo-elements to approximate in CSS
-- **Bokeh / depth-of-field** — soft blurred light circles (photographic background blur)
-- **Light bleed / god rays** — light appearing to shine through or around an object
-- **Organic blob shapes** — amorphous shapes with gradient fills and soft blur
-- **Complex glassmorphism background** — frosted layers with iridescent edge glow
-- **Illustrated scene** — drawn characters, abstract art, product hero illustration
+**Code it** (CSS/Tailwind is genuinely sufficient):
+- Solid color fills, simple two-stop linear gradients
+- A single centered radial gradient
+- Glassmorphism card (backdrop-blur + semi-transparent bg)
+- Grid/dot patterns with repeating CSS gradients
+- Simple geometric dividers and shapes
 
-**Decision test (use this rule):** Try to describe the background in one CSS property. If you cannot — if it needs more than one \`background\`, stacked pseudo-elements, or an SVG filter — generate it instead.
+**Generate it** (CSS cannot do this justice — use \`generate_image\`):
+Any visual where coding it would produce a noticeably inferior or fake-looking result. Examples of the judgment in action:
 
-**How to generate backgrounds:**
+*Example 1 — Spotlight glow:* A pure black background with a soft white oval light emanating from the bottom-center (like Linear.app's hero). You could stack radial-gradient pseudo-elements, but the result looks flat and digital. Generate it: the model produces the right photographic softness and falloff.
+
+*Example 2 — Isometric 3D wireframe illustrations:* Three column icons showing stacked-layer box structures in isometric perspective, white outline style on dark background (also from Linear.app features section). CSS cannot produce 3D isometric geometry. Generate each one with a detailed prompt describing the shape, perspective, line style, and color palette.
+
+*Other situations where generating is the right call:*
+- Any 3D object, isometric illustration, or perspective diagram
+- Multi-layered light effects with organic falloff
+- Mesh/aurora gradients with multiple blending color blobs  
+- Product mockups or UI-in-context screenshots
+- Illustrated characters, mascots, abstract art
+- Noise/grain/film texture overlays
+- Complex bokeh or depth-of-field backgrounds
+- Any section hero that the competitor clearly uses a custom illustration for
+
+**How to generate — prompt template:**
 \`\`\`
 generate_image({
-  prompt: "pure black background with a soft white oval radial glow emanating from bottom-center, the light source is beneath the surface, photographic studio spotlight effect, no text, no UI elements",
-  filePath: "public/assets/hero-bg.png",
-  width: 1920,
-  height: 1080,
-  referenceImages: ["<competitor URL from firecrawl_scrape if available>"]
+  prompt: "<exact visual description: subject, composition, perspective, colors in hex, lighting direction, style (flat/3D/photographic/illustrative), what is NOT in the image>",
+  filePath: "public/assets/<descriptive-name>.png",
+  width: <match the slot: 1920x1080 hero bg, 800x800 illustration, 512x512 icon>,
+  referenceImages: ["<competitor image URL from firecrawl_scrape if available>"]
 })
 \`\`\`
 
-After generating: reference it in the hero as \`<div style={{backgroundImage: "url('/assets/hero-bg.png')"}} className="bg-cover bg-center">\`
+**Prompt writing rules:**
+- **Be visual, not semantic**: describe what you SEE, not what it means. "Three stacked flat rectangles with rounded corners viewed at 30° isometric angle, white 1px stroke outlines on #0A0A0A background" — not "product layers icon"
+- **Specify colors**: dominant hex values, accent colors, background color
+- **Specify lighting**: "soft ambient top-left key light", "flat lighting no shadows", "glowing white outline"
+- **Exclude clutter**: always end with "no text, no watermarks, no UI chrome, no people" unless you specifically want those
+- **Match the slot dimensions exactly** — a 1024×1024 square illustration in a 1920×1080 hero will be distorted
 
-**Prompt writing rules for backgrounds:**
-- Describe the **light source position**: "light emanating from bottom-center", "top-left corner radial glow"
-- Describe the **dominant colors in hex**: "deep navy #05010F with violet glow #7C3AED at 30% opacity"
-- State **what is NOT in the image**: "no text, no people, no UI chrome, no watermarks"
-- End with **format**: "seamless background texture, suitable for a website hero section, 16:9 aspect ratio"
+After generating, immediately reference the saved path in the component:
+\`<img src="/assets/hero-bg.png" className="absolute inset-0 w-full h-full object-cover" />\`
 
 **Step F — Animations**
 
