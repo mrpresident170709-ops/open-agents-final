@@ -1027,30 +1027,29 @@ Before writing a single line of JSX for any landing page section, collect all re
 
 **Step F — Animations**
 
-For micro-animations (loaders, success states, empty states, icon animations):
+Lottie is the **default** for all UI feedback, state transitions, and interactive moments. Use \`lottie_search\` to find the right animation from 250,000+ available, then \`lottie_download\` to save it locally.
 
-| Use case | Lottie CDN URL |
-|---|---|
-| Loading spinner | \`https://assets10.lottiefiles.com/packages/lf20_kxsd2ytq.json\` |
-| Loading ring | \`https://assets3.lottiefiles.com/packages/lf20_uwR49r.json\` |
-| Success / checkmark | \`https://assets2.lottiefiles.com/packages/lf20_atippmse.json\` |
-| Success celebration | \`https://assets1.lottiefiles.com/packages/lf20_jbrw3hcz.json\` |
-| Dots / pulse loader | \`https://assets4.lottiefiles.com/packages/lf20_s2lryxtd.json\` |
-| Rocket / launch | \`https://assets5.lottiefiles.com/packages/lf20_jR229r.json\` |
-| Like / heart | \`https://assets1.lottiefiles.com/packages/lf20_uu0x8nqy.json\` |
-| Notification bell | \`https://assets6.lottiefiles.com/packages/lf20_aNFORS.json\` |
-| Confetti | \`https://assets9.lottiefiles.com/packages/lf20_u4yrau.json\` |
-| Empty state box | \`https://assets8.lottiefiles.com/packages/lf20_yom6uvgj.json\` |
-| Error / warning | \`https://assets5.lottiefiles.com/packages/lf20_q5qvystr.json\` |
-| Dashboard chart | \`https://assets3.lottiefiles.com/packages/lf20_qp1q7mct.json\` |
-| Lock / security | \`https://assets6.lottiefiles.com/packages/lf20_pqnfmone.json\` |
-| Globe / world | \`https://assets7.lottiefiles.com/packages/lf20_qgqmzqjq.json\` |
+**When to use Lottie (not exhaustive — add wherever the UI responds to the user):**
 
-Download pattern:
-\`\`\`bash
-STATUS=$(curl -s -o public/animations/<name>.json -w "%{http_code}" "<CDN_URL>")
-[ "$STATUS" = "200" ] && echo "Downloaded" || echo "FAILED $STATUS"
-\`\`\`
+Loading & progress — button loading, page skeleton, upload progress, search in progress, processing spinner
+Success & error — form submit confirmed, field validation pass, network error, permission denied
+Empty states — no results, empty inbox, empty cart, no notifications, new user welcome
+Onboarding — welcome greeting, step completion, feature introduction, tutorial highlight
+Micro-interactions — like/heart fill, bookmark save, star rating, thumbs up/down, share, copy
+Feature icons — hero section icons, pricing icons, service icons (animate on hover or scroll-in)
+Commerce — add to cart, wishlist add, payment processing, order confirmed, refund initiated
+Notifications — badge pulse, bell ring, toast appear, alert flash, new message dot
+Auth & security — login/signup animation, password strength, 2FA verification, security check
+Data & charts — chart animating in, metric counter, growth indicator, report generating
+Navigation — hamburger toggle, tab switch, accordion expand, drawer slide
+Celebrations — milestone reached, achievement unlocked, trial started, subscription activated
+404 / Error pages — lost/confused character, broken robot, search fail character
+
+**Workflow (always in this order):**
+1. Call \`lottie_search\` with a specific query (e.g. \`"success checkmark green circle"\`)
+2. Review the returned \`previewImageUrl\` and \`name\` to pick the best match
+3. Call \`lottie_download\` with the \`jsonUrl\` → saves to \`public/animations/<name>.json\`
+4. Import and render with \`lottie-react\`
 
 For scroll-triggered or entrance animations, use **Framer Motion** instead of Lottie:
 \`\`\`tsx
@@ -1092,78 +1091,189 @@ Before finishing any UI task, mentally walk through every interactive element an
 
 ### Animations & Lottie
 
-**Lottie animations** are JSON-based vector animations from Adobe After Effects. Use them to add high-quality, lightweight animations to the UI.
+**Lottie is the default for all UI feedback.** Treat it the same way you'd treat CSS transitions: whenever the UI changes state, responds to user input, or needs to communicate a process — add a Lottie. The question is never "should I add animation?" but "which Lottie fits here?". LottieFiles has 250,000+ animations covering every conceivable use case.
 
-#### When to use Lottie
-- Loading spinners, success/error states, empty states, onboarding illustrations
-- Any place the user asks for "animation", "animated illustration", or "motion"
-- Anywhere a static icon or image feels too plain for the context
+#### When to use Lottie — comprehensive list
+
+**Loading & progress states**
+Every loading state deserves a Lottie. Replace plain CSS spinners with character-rich or brand-appropriate loading animations.
+- Page/route loading, data fetching
+- Button loading state (replace button text with small inline Lottie)
+- File upload progress, download in progress
+- Search / filter processing
+- Form submitting, saving in progress
+- Media processing, generating, converting
+
+**Success, error, and warning states**
+Never show a plain text "Success!" or a red border alone. A Lottie checkmark or celebration makes the confirmation feel real.
+- Form submit success, settings saved
+- Field-level validation pass / fail
+- Password strength indicator
+- Network error, server down, retry
+- Permission denied, access restricted
+
+**Empty states**
+Every empty state (which every user hits eventually) should have a character or illustration, not just blank space.
+- No search results, no matching filters
+- Empty inbox, no messages, no notifications
+- Empty cart, wishlist empty, no items
+- No data for chart/timeline, new account welcome
+- No files, no projects yet, getting started
+
+**Onboarding & education**
+- Welcome screen animation
+- Step-by-step wizard progress
+- Feature introduction highlight
+- Tutorial tooltip animation
+- Checklist item completion
+- First action celebration (first post, first connection, first purchase)
+
+**Micro-interactions** (the details that make an app feel alive)
+- Like / heart fill animation (tap to like)
+- Bookmark / save toggle
+- Star rating fill
+- Thumbs up / thumbs down
+- Share / copy-to-clipboard confirmation
+- Follow / unfollow toggle
+- Reaction emoji burst
+
+**Feature icons** (animate on scroll-into-view or on hover)
+- Hero section feature icons
+- Pricing plan icons
+- Service / capability icons in feature grid
+- Dashboard widget icons
+- Benefits list icons
+
+**Commerce & payments**
+- Add-to-cart animation
+- Wishlist / favourite add
+- Checkout in progress, payment processing
+- Payment success / order confirmed
+- Subscription activated
+- Refund / return initiated
+
+**Notifications & alerts**
+- Notification badge pulse
+- Bell ringing (new notification)
+- Toast / snackbar appear
+- In-app alert flash
+- Email sent confirmation
+- Typing indicator (chat)
+- New message dot
+
+**Auth & security**
+- Login success / welcome back
+- Sign-up completion
+- Password strength meter animation
+- 2FA / OTP verification
+- Biometric scan (face / fingerprint)
+- Security check complete
+
+**Data, analytics, and dashboards**
+- Chart animating in on load
+- Counter / metric number counting up
+- Growth trend indicator
+- Report generating
+- Export / download complete
+
+**Navigation & layout transitions**
+- Hamburger menu open/close
+- Sidebar expand / collapse
+- Tab switch indicator
+- Accordion open / close
+- Drawer/panel slide
+
+**Celebrations & milestones**
+- Confetti burst (goal reached, milestone hit)
+- Achievement / badge unlocked
+- Trial started, upgrade complete
+- Level up, streak maintained
+
+**404 and error pages**
+- Lost character, confused robot, broken search
+- "Something went wrong" illustrations
+
+---
 
 #### Package installation
-For React apps (Next.js, Vite, CRA): install \`lottie-react\`
 \`\`\`bash
 npm install lottie-react    # or: bun add lottie-react / yarn add lottie-react
 \`\`\`
-For vanilla JS / non-React: install \`lottie-web\`
 
-#### Finding Lottie animation files
+#### How to find and download animations (ALWAYS use lottie_search)
 
-**Do NOT use the LottieFiles website search API** — it is Cloudflare-protected and will return errors in the sandbox. Instead, use the curated list of verified public CDN URLs below.
+The LottieFiles GraphQL API is fully accessible (no Cloudflare protection) via the \`lottie_search\` tool. Use it instead of hardcoded URLs.
 
-**Curated animations (all confirmed accessible):**
-
-| Use case | URL |
-|---|---|
-| Loading spinner (small, 5 KB) | \`https://assets10.lottiefiles.com/packages/lf20_kxsd2ytq.json\` |
-| Loading ring variant (5 KB) | \`https://assets3.lottiefiles.com/packages/lf20_uwR49r.json\` |
-| Success / checkmark (4 KB) | \`https://assets2.lottiefiles.com/packages/lf20_atippmse.json\` |
-| Success animation (25 KB) | \`https://assets1.lottiefiles.com/packages/lf20_jbrw3hcz.json\` |
-| Dots / pulse loader (16 KB) | \`https://assets4.lottiefiles.com/packages/lf20_s2lryxtd.json\` |
-| Minimal icon (2 KB) | \`https://assets3.lottiefiles.com/packages/lf20_t9gkkhz4.json\` |
-
-**How to download and save locally:**
-\`\`\`bash
-mkdir -p public/animations
-# Download — check the HTTP status first; if 403, try the next URL in the table
-STATUS=$(curl -s -o public/animations/loading.json -w "%{http_code}" "https://assets10.lottiefiles.com/packages/lf20_kxsd2ytq.json")
-echo "HTTP $STATUS"   # should be 200; if not, delete the file and pick another URL
+**Workflow:**
+\`\`\`
+1. lottie_search  → query: "success checkmark green circle"  → get jsonUrl + previewImageUrl
+2. lottie_download → jsonUrl → saves to public/animations/success-checkmark.json
+3. Import and render in the component
 \`\`\`
 
-If all CDN URLs return 403 (network restrictions in the sandbox), fall back to a **CSS/SVG spinner** instead — do not leave the feature unimplemented. Example fallback:
+**Search query tips:**
+- Be specific: \`"success checkmark green circle"\` beats \`"success"\`
+- Include style: \`"loading spinner minimal flat"\` or \`"loading dots cute bouncing"\`
+- Include colour when it matters: \`"heart like animation red"\`
+- For characters: \`"confused robot 404 not found"\` or \`"happy character waving"\`
+- For icons: \`"bell notification icon animation"\`, \`"lock security icon animation"\`
+- For commerce: \`"add to cart bag animation"\`, \`"payment success coins celebration"\`
+
+**Fallback (if lottie_download fails for any reason):**
 \`\`\`tsx
 // Pure-CSS spinner — always works, no external dependency
 const Spinner = () => (
-  <div style={{ width: 48, height: 48, border: "4px solid #e5e7eb",
-    borderTop: "4px solid #6366f1", borderRadius: "50%",
-    animation: "spin 0.8s linear infinite" }}>
-    <style dangerouslySetInnerHTML={{ __html: "@keyframes spin { to { transform: rotate(360deg) } }" }} />
-  </div>
+  <div className="w-12 h-12 border-4 border-muted border-t-primary rounded-full animate-spin" />
 );
 \`\`\`
 
-#### React implementation pattern
+#### React implementation patterns
+
 \`\`\`tsx
 import Lottie from "lottie-react";
-import loadingAnimation from "@/public/animations/loading.json"; // or require path
 
-// Basic usage
-<Lottie animationData={loadingAnimation} loop={true} style={{ width: 120, height: 120 }} />
+// 1. Import the downloaded JSON file
+import successAnim from "@/public/animations/success-checkmark.json";
 
-// With controls
+// 2. One-shot animation (plays once then stops)
 <Lottie
-  animationData={successAnimation}
+  animationData={successAnim}
   loop={false}
   autoplay={true}
-  style={{ width: 200, height: 200 }}
+  style={{ width: 120, height: 120 }}
 />
+
+// 3. Looping animation (spinners, ambient hero, idle states)
+<Lottie
+  animationData={loadingAnim}
+  loop={true}
+  style={{ width: 64, height: 64 }}
+/>
+
+// 4. Triggered on interaction (e.g., button click)
+const [play, setPlay] = useState(false);
+<Lottie
+  animationData={heartAnim}
+  loop={false}
+  autoplay={play}
+  onComplete={() => setPlay(false)}
+  style={{ width: 40, height: 40, cursor: "pointer" }}
+  onClick={() => setPlay(true)}
+/>
+
+// 5. Animated icon that plays on hover
+<div onMouseEnter={() => ref.current?.play()} onMouseLeave={() => ref.current?.stop()}>
+  <Lottie lottieRef={ref} animationData={bellAnim} loop={false} autoplay={false} style={{ width: 32, height: 32 }} />
+</div>
 \`\`\`
 
-#### Rules for Lottie use
-- Always save the animation JSON locally (do not reference external URLs in production — they can go down)
-- Use \`loop={false}\` for one-shot animations (success, error); \`loop={true}\` for spinners
-- Set explicit \`width\`/\`height\` via \`style\` or a wrapper div — never let it be 0×0
-- Prefer small files (<200 KB); if a downloaded animation is larger, find a lighter alternative
+#### Rules
+- Always save the downloaded JSON locally to \`public/animations/\` — never reference external URLs at runtime
+- Use \`loop={false}\` for one-shot feedback (success, error, celebration); \`loop={true}\` for continuous states (loading, idle)
+- Set explicit \`width\`/\`height\` via \`style\` — never let it be 0×0
+- Keep files small — if \`lottie_download\` returns more than 300 KB, search for a lighter variant
 - After installing \`lottie-react\`, restart the dev server
+- Use \`lottieRef\` + \`.play()\`/\`.stop()\` for programmatic control (hover effects, triggered play)
 
 ### Spline 3D Graphics
 

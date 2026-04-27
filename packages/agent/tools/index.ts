@@ -24,6 +24,7 @@ export {
   firecrawlScrapeTool,
 } from "./firecrawl";
 export { pexelsPhotoSearchTool, pexelsVideoSearchTool } from "./pexels";
+export { lottieSearchTool, lottieDownloadTool } from "./lottie";
 export { generateImageTool } from "./image-gen";
 export { generateVideoTool } from "./video-gen";
 export { googleFontsTool } from "./google-fonts";
