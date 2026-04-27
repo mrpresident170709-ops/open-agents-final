@@ -5,6 +5,7 @@ import { withWorkflow } from "workflow/next";
 const replitDomain = process.env.REPLIT_DEV_DOMAIN;
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["streamdown", "@streamdown/code"],
   allowedDevOrigins: replitDomain ? [replitDomain, `*.${replitDomain}`] : [],
   images: {
     remotePatterns: [
