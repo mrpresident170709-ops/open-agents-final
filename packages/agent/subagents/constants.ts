@@ -31,31 +31,22 @@ Your final message MUST contain exactly two sections:
 1. **Summary**: A brief (2-4 sentences) description of what you actually did
 2. **Answer**: The direct answer to the original task/question`;
 
-/** Validation rules for subagents that modify files — picks the cheapest check that proves correctness. */
-export const SUBAGENT_VALIDATE_RULES = `### VALIDATE YOUR CHANGES (cheapest check that catches the kind of mistake you could have made)
+/** Validation rules for subagents that modify files — includes a strict retry loop. */
+export const SUBAGENT_VALIDATE_RULES = `### VALIDATE YOUR CHANGES (strict loop — do not skip)
 
-**Step 1 — Detect the package manager (once at session start):**
+**Step 1 — Detect the package manager:**
 Check for lock files: bun.lock/bun.lockb → bun | pnpm-lock.yaml → pnpm | yarn.lock → yarn | package-lock.json → npm
-Always prefer project scripts (check AGENTS.md and \`package.json\` scripts) over raw \`npx tsc\` / \`eslint .\` calls.
+Never assume — always check.
 
-**Step 2 — Pick ONE check based on what you changed:**
-
-| What you changed | Cheapest check | Skip these |
-|---|---|---|
-| TS/TSX types, imports, function signatures | typecheck (project script or \`tsc --noEmit\`) | lint, build, runtime |
-| API route handler (logic) | one curl against the route | full build (BUT still typecheck if you touched types) |
-| React component render | look at the dev preview | full build |
-| Bug fix | reproduce the original failure → confirm it's gone | full test suite |
-| Pure copy/style/microcopy tweak | nothing — visual confirmation only | everything |
-| Refactor across 5+ files | typecheck + build | lint, runtime |
-| New dependency added | restart the workflow + smoke-test the affected page | full build |
-
-**Verification floor (do NOT skip):** If you touched ANY \`.ts\`/\`.tsx\` file's imports, exports, types, or function signatures, you MUST run typecheck — even if your "primary" check (curl, preview) succeeded. Type errors hide silently behind \`any\` and runtime fallbacks.
+**Step 2 — Run the project's own validation scripts:**
+Check AGENTS.md and \`package.json\` scripts first (e.g. \`bun run ci\`, \`turbo typecheck\`, \`turbo lint\`).
+Fall back to: typecheck → lint → build, in that order.
+NEVER run raw commands like \`npx tsc\` or \`eslint .\` — always use the project scripts.
 
 **Step 3 — If errors appear:**
 1. Read the FULL error output (do not skim — every line matters)
 2. Fix the ROOT CAUSE — not just the symptom
-3. Re-run only the same check (not the whole suite)
+3. Re-run the same validation command
 4. Repeat until clean
 
 **Step 4 — Do not finish with known errors:**
@@ -106,31 +97,6 @@ export const SUBAGENT_TOOL_ERROR_RULES = `### WHEN A TOOL RETURNS AN ERROR — M
 - If you expected results: check the pattern for typos, try a simpler search term
 
 **The golden rule: NEVER silently ignore a tool error. Every error must be addressed.**`;
-
-/**
- * Quality bar for every file produced by a subagent.
- * Use in every write-capable subagent (executor, design).
- */
-export const SUBAGENT_QUALITY_BAR = `### QUALITY BAR — every file you ship MUST
-
-- Compile cleanly (no TS errors, no missing imports, no dangling references)
-- Contain ZERO \`// TODO\`, \`// FIXME\`, "coming soon", placeholder strings, or commented-out blocks
-- Contain ZERO unused imports, unused variables, dead branches, or leftover \`console.log\` debug noise
-- Match the surrounding file's import style, quote style, indentation, and naming conventions
-- Actually implement what its name says — no placeholder functions, no \`return null\` stubs, no "TODO: implement"
-- Stay strictly in scope — no bonus refactors, no "while I'm here" cleanups in unrelated code
-
-If you cannot meet this bar for any file, document the gap in your Summary — never ship the file and silently leave a TODO inside it.`;
-
-/**
- * Speed/efficiency rules for subagents. Encourages parallel tool use and minimal exploration.
- */
-export const SUBAGENT_SPEED_RULES = `### WORK FAST — BATCH TOOL CALLS
-
-- **Fire independent tool calls in parallel** — multiple reads, multiple greps, multiple edits to DIFFERENT files all go in ONE response. Serial tool calls are the #1 cause of slow runs.
-- **Hard exploration cap:** at most 5 file reads + 1 codebase_search + 2 grep/glob calls before your first write/edit. Once you can name the file and the change, STOP exploring and START editing.
-- **Don't re-verify what you just wrote** — trust the edit tool. Verify at the end with ONE cheap check (typecheck OR a single curl OR a quick run), not three.
-- **Stay in scope** — do exactly what was specified. No bonus refactors. No unrequested files.`;
 
 /**
  * Anti-hallucination rules. Prevents the agent from inventing APIs, paths, or function names.
