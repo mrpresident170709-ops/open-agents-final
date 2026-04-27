@@ -14,6 +14,7 @@ import { readFileTool } from "../tools/read";
 import { webFetchTool } from "../tools/fetch";
 import type { SandboxExecutionContext } from "../types";
 import {
+  SUBAGENT_ANTI_HALLUCINATION_RULES,
   SUBAGENT_NO_QUESTIONS_RULES,
   SUBAGENT_RESPONSE_FORMAT,
   SUBAGENT_STEP_LIMIT,
@@ -39,6 +40,8 @@ This is a READ-ONLY exploration task. You are STRICTLY PROHIBITED from:
 Your role is EXCLUSIVELY to search and analyze existing code.
 
 ${SUBAGENT_NO_QUESTIONS_RULES}
+
+${SUBAGENT_ANTI_HALLUCINATION_RULES}
 
 ${SUBAGENT_RESPONSE_FORMAT}
 

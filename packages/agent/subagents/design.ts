@@ -8,12 +8,14 @@ import { readFileTool } from "../tools/read";
 import { editFileTool, writeFileTool } from "../tools/write";
 import type { SandboxExecutionContext } from "../types";
 import {
+  SUBAGENT_ANTI_HALLUCINATION_RULES,
   SUBAGENT_BASH_RULES,
   SUBAGENT_COMPLETE_TASK_RULES,
   SUBAGENT_NO_QUESTIONS_RULES,
   SUBAGENT_REMINDER,
   SUBAGENT_RESPONSE_FORMAT,
   SUBAGENT_STEP_LIMIT,
+  SUBAGENT_TOOL_ERROR_RULES,
   SUBAGENT_VALIDATE_RULES,
   SUBAGENT_WORKING_DIR,
 } from "./constants";
@@ -25,6 +27,10 @@ const DESIGN_SYSTEM_PROMPT = `You are a design agent — a specialized subagent 
 ${SUBAGENT_NO_QUESTIONS_RULES}
 
 ${SUBAGENT_COMPLETE_TASK_RULES}
+
+${SUBAGENT_TOOL_ERROR_RULES}
+
+${SUBAGENT_ANTI_HALLUCINATION_RULES}
 
 ${SUBAGENT_RESPONSE_FORMAT}
 

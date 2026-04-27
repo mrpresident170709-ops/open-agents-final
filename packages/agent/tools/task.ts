@@ -160,9 +160,15 @@ IMPORTANT:
       modelId: subagentModelId,
     };
   },
-  toModelOutput: ({ output: { final: messages } }) => {
+  toModelOutput: ({ output: { final: messages, toolCallCount } }) => {
+    // No messages means the subagent stream produced no output at all — a hard failure.
+    // Tell the parent agent explicitly so it can retry or do the work itself.
     if (!messages) {
-      return { type: "text", value: "Task completed." };
+      return {
+        type: "text",
+        value:
+          "⚠️ Subagent produced no output (stream ended without a response). The task may not have been completed. Please verify the current state of the codebase and retry or complete the work yourself.",
+      };
     }
 
     const lastAssistantMessage = messages.findLast(
@@ -170,8 +176,14 @@ IMPORTANT:
     );
     const content = lastAssistantMessage?.content;
 
+    // Empty final message — subagent ran tool calls but wrote nothing in its final turn.
     if (!content) {
-      return { type: "text", value: "Task completed." };
+      const stepInfo =
+        toolCallCount != null ? ` (ran ${toolCallCount} tool steps)` : "";
+      return {
+        type: "text",
+        value: `⚠️ Subagent completed${stepInfo} but produced no summary message. Verify the changes were applied correctly by reading the relevant files.`,
+      };
     }
 
     if (typeof content === "string") {
@@ -179,8 +191,15 @@ IMPORTANT:
     }
 
     const lastTextPart = content.findLast((p) => p.type === "text");
-    if (!lastTextPart) {
-      return { type: "text", value: "Task completed." };
+
+    // Text part is empty or whitespace-only — subagent ended on a tool call with no explanation.
+    if (!lastTextPart || !lastTextPart.text.trim()) {
+      const stepInfo =
+        toolCallCount != null ? ` (ran ${toolCallCount} tool steps)` : "";
+      return {
+        type: "text",
+        value: `⚠️ Subagent completed${stepInfo} but its final message was empty. Verify the changes were applied correctly by reading the relevant files.`,
+      };
     }
 
     return { type: "text", value: lastTextPart.text };
