@@ -23,6 +23,7 @@ export {
   firecrawlMapTool,
   firecrawlScrapeTool,
 } from "./firecrawl";
+export { pexelsPhotoSearchTool, pexelsVideoSearchTool } from "./pexels";
 export { generateImageTool } from "./image-gen";
 export { generateVideoTool } from "./video-gen";
 export { googleFontsTool } from "./google-fonts";

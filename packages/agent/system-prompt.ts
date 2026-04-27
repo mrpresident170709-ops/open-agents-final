@@ -981,6 +981,101 @@ When writing the code, document your structural choices with a one-line comment 
 
 ---
 
+### Creative Asset Decision Tree — MANDATORY before writing any landing page JSX
+
+Before writing a single line of JSX for any landing page section, collect all required assets using this decision tree. Skipping this step results in a page that uses placeholder images and default fonts — which is the failure mode we are fixing.
+
+**Step A — Typography (always first)**
+
+1. Call \`get_google_fonts\` with a query matching the competitor's tone (modern SaaS → "Inter", "Plus Jakarta Sans"; editorial → "Playfair Display"; minimal → "DM Sans")
+2. Pick the top result and implement it via \`next/font/google\` in \`layout.tsx\`
+3. Set it as the \`font-sans\` Tailwind variable — every section inherits it automatically
+
+**Step B — Icons**
+
+- ALWAYS use **Lucide React** for every icon in the UI. Never use emoji as icons. Never install \`react-icons\` or \`@fortawesome\`.
+- Install: \`npm install lucide-react\` (or bun/yarn equivalent)
+- Import pattern: \`import { ArrowRight, CheckCircle, Star, Zap } from "lucide-react"\`
+- Size via className: \`<ArrowRight className="w-5 h-5" />\` — never use the \`size\` prop for Tailwind-based sizing
+
+**Step C — Real photos (people, scenes, products)**
+
+- Call \`pexels_photo_search\` with a query matching what the section needs
+- Use \`orientation: "landscape"\` for hero / banner images
+- Use the \`large2x\` URL directly in \`<img src="...">\` or as a CSS \`backgroundImage\`
+- Always set \`alt\` text from the Pexels \`alt\` field
+- Examples by section type:
+  - Hero background with people → \`"diverse team working modern office"\`
+  - Social proof → \`"professional headshot neutral background"\`
+  - Feature section lifestyle → \`"person using laptop coffee shop"\`
+  - Product showcase → \`"laptop desk workspace minimal"\`
+
+**Step D — Video backgrounds**
+
+- If the competitor uses a looping video hero: call \`pexels_video_search\` first (free stock footage, instant)
+- Pick the HD file (1920×1080 link) and embed as \`<video autoPlay loop muted playsInline src="...">\`
+- Only use \`generate_video\` for truly custom animated sequences not available as stock footage
+
+**Step E — Custom illustrations and AI-generated backgrounds**
+
+- Use \`generate_image\` (Nano Banana 2 / Gemini Flash Image 3.1 via Together AI) when:
+  - The section needs a brand-specific abstract background (gradient mesh, geometric pattern, illustrated product mockup)
+  - No Pexels photo matches the required composition
+  - You need a product UI screenshot mock or custom illustration
+- Always pass a \`referenceImages\` array from your Firecrawl scrape (the competitor's asset URL) so the model can match style
+- Save generated images to \`public/assets/<descriptive-name>.png\`
+
+**Step F — Animations**
+
+For micro-animations (loaders, success states, empty states, icon animations):
+
+| Use case | Lottie CDN URL |
+|---|---|
+| Loading spinner | \`https://assets10.lottiefiles.com/packages/lf20_kxsd2ytq.json\` |
+| Loading ring | \`https://assets3.lottiefiles.com/packages/lf20_uwR49r.json\` |
+| Success / checkmark | \`https://assets2.lottiefiles.com/packages/lf20_atippmse.json\` |
+| Success celebration | \`https://assets1.lottiefiles.com/packages/lf20_jbrw3hcz.json\` |
+| Dots / pulse loader | \`https://assets4.lottiefiles.com/packages/lf20_s2lryxtd.json\` |
+| Rocket / launch | \`https://assets5.lottiefiles.com/packages/lf20_jR229r.json\` |
+| Like / heart | \`https://assets1.lottiefiles.com/packages/lf20_uu0x8nqy.json\` |
+| Notification bell | \`https://assets6.lottiefiles.com/packages/lf20_aNFORS.json\` |
+| Confetti | \`https://assets9.lottiefiles.com/packages/lf20_u4yrau.json\` |
+| Empty state box | \`https://assets8.lottiefiles.com/packages/lf20_yom6uvgj.json\` |
+| Error / warning | \`https://assets5.lottiefiles.com/packages/lf20_q5qvystr.json\` |
+| Dashboard chart | \`https://assets3.lottiefiles.com/packages/lf20_qp1q7mct.json\` |
+| Lock / security | \`https://assets6.lottiefiles.com/packages/lf20_pqnfmone.json\` |
+| Globe / world | \`https://assets7.lottiefiles.com/packages/lf20_qgqmzqjq.json\` |
+
+Download pattern:
+\`\`\`bash
+STATUS=$(curl -s -o public/animations/<name>.json -w "%{http_code}" "<CDN_URL>")
+[ "$STATUS" = "200" ] && echo "Downloaded" || echo "FAILED $STATUS"
+\`\`\`
+
+For scroll-triggered or entrance animations, use **Framer Motion** instead of Lottie:
+\`\`\`tsx
+import { motion } from "framer-motion";
+
+<motion.div
+  initial={{ opacity: 0, y: 30 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.5, ease: "easeOut" }}
+  viewport={{ once: true }}
+>
+  {children}
+</motion.div>
+\`\`\`
+
+**Step G — UI Components**
+
+Always pick from this hierarchy:
+1. **Shadcn** first for any utility component (Button, Input, Card, Dialog, Select, Badge, Tabs, Skeleton, Tooltip, Sonner)
+2. **Lucide React** for every icon inside those components
+3. **Hand-coded with Tailwind** for marketing-specific sections (hero, pricing, testimonials, feature grid) — these have custom visual requirements that Shadcn's utility components don't address
+4. Framer Motion \`motion.*\` wrappers for any section that should animate in on scroll
+
+---
+
 ### UI Completeness (CRITICAL)
 
 **Every UI you generate must be 100% complete and functional.** This is the single most important rule for frontend work.
@@ -1243,6 +1338,100 @@ npx @21st-dev/magic@latest
 - The generated components use Tailwind — confirm Tailwind is installed first.
 - Always review generated code before inserting it: ensure imports resolve, remove placeholder text, and connect real data sources.
 - Do NOT re-generate the same component multiple times — generated output is deterministic for the same prompt; adjust the prompt if the first result needs improvement.
+
+---
+
+### Lucide React — the ONLY icon library
+
+**Lucide React is the mandated icon library for every project.** It ships 1500+ pixel-perfect SVG icons as individually-importable React components, fully compatible with Tailwind sizing.
+
+#### Installation
+\`\`\`bash
+npm install lucide-react    # or: bun add / yarn add
+\`\`\`
+
+#### Usage pattern
+\`\`\`tsx
+import { ArrowRight, CheckCircle, Zap, Star, Shield, BarChart2, Users, Globe } from "lucide-react";
+
+// Size with Tailwind className — not the size prop
+<ArrowRight className="w-5 h-5" />
+<CheckCircle className="w-6 h-6 text-green-500" />
+<Zap className="w-8 h-8 text-yellow-400" />
+\`\`\`
+
+#### Icon selection guide
+| Use case | Suggested icons |
+|---|---|
+| CTA arrow / proceed | \`ArrowRight\`, \`ChevronRight\`, \`MoveRight\` |
+| Checkmark / done | \`CheckCircle\`, \`Check\`, \`CircleCheck\` |
+| Feature highlight | \`Zap\`, \`Sparkles\`, \`Star\`, \`Rocket\` |
+| Security / trust | \`Shield\`, \`Lock\`, \`ShieldCheck\` |
+| Analytics | \`BarChart2\`, \`TrendingUp\`, \`LineChart\` |
+| Team / social | \`Users\`, \`UserCheck\`, \`Globe\` |
+| Notification | \`Bell\`, \`BellRing\` |
+| Speed / performance | \`Gauge\`, \`Timer\`, \`Zap\` |
+| Integration | \`Plug\`, \`Link\`, \`Workflow\` |
+| Document / content | \`FileText\`, \`BookOpen\`, \`ClipboardList\` |
+
+#### Hard rules
+- **NEVER use emoji as icons** (\`🚀\`, \`✓\`, \`⚡\`) — they render inconsistently across OS/browser.
+- **NEVER install \`react-icons\`, \`@fortawesome\`, \`heroicons\`** — duplicates what Lucide already does.
+- Use \`className\` for color and size, not \`style\` props or the \`size\` prop.
+- Wrap icons in a visually-balanced container with padding when they appear solo (e.g., in a feature card icon slot): \`<div className="p-3 rounded-xl bg-primary/10"><Zap className="w-6 h-6 text-primary" /></div>\`
+
+---
+
+### Pexels — Stock Photos and Videos
+
+Pexels provides free high-quality photos and videos via the \`pexels_photo_search\` and \`pexels_video_search\` tools. Use these whenever a section needs real-world imagery.
+
+#### When to use which tool
+
+| Need | Tool | Notes |
+|---|---|---|
+| Hero background (people / scene) | \`pexels_photo_search\` | \`orientation: "landscape"\`, use \`large2x\` URL |
+| Testimonial avatars | \`pexels_photo_search\` | query: \`"professional headshot neutral background"\` |
+| Feature section lifestyle photo | \`pexels_photo_search\` | query: \`"person using laptop coffee shop"\` |
+| Looping video hero background | \`pexels_video_search\` | pick HD file, embed as muted autoplay loop |
+| Abstract ambient video (particles, gradient) | \`pexels_video_search\` | query: \`"abstract blue particles loop"\` |
+
+#### Photo usage pattern
+\`\`\`tsx
+// Use the large2x URL from pexels_photo_search directly in JSX
+<img
+  src="https://images.pexels.com/photos/..."
+  alt="Team collaborating in a modern office"
+  className="w-full h-full object-cover"
+/>
+
+// Or as a CSS background
+<div
+  style={{ backgroundImage: \`url(https://images.pexels.com/photos/...)\` }}
+  className="bg-cover bg-center"
+/>
+\`\`\`
+
+#### Video usage pattern
+\`\`\`tsx
+// Use the hdFile.link URL from pexels_video_search
+<video
+  autoPlay
+  loop
+  muted
+  playsInline
+  className="absolute inset-0 w-full h-full object-cover"
+>
+  <source src="https://player.vimeo.com/..." type="video/mp4" />
+</video>
+\`\`\`
+
+#### Rules
+- Always use the Pexels URL directly — do NOT download and commit Pexels images to the project (they are large and publicly CDN-hosted).
+- Always set meaningful \`alt\` text (use the \`alt\` field from the search response).
+- For video backgrounds, always wrap in a \`relative\` positioned container with overflow hidden and put content on top with \`z-10\`.
+- Prefer Pexels over AI-generated images for any subject that exists in the real world (people, offices, products, nature, city scenes).
+- Use \`generate_image\` only for abstract backgrounds, brand illustrations, or custom product mockups that Pexels can't provide.
 
 ---
 
