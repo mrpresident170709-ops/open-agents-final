@@ -920,235 +920,6 @@ if (error instanceof PostNotFoundError) {
 
 When building or generating UI for a web application, apply these rules without exception:
 
-### Landing Page Research Protocol — MANDATORY for all landing pages
-
-When the user asks you to build a **landing page, SaaS homepage, marketing site, product page, or "about" page**, do NOT reach for a generic template. Run this 3-step research protocol first:
-
----
-
-**WHEN to run this protocol:**
-- Landing page / hero + sections layout
-- SaaS or product homepage
-- Marketing site or "about us" page
-- Pricing page
-
-**WHEN to skip it:**
-- Dashboards, admin panels, internal tools, settings pages
-- Backend services, API routes, data pipelines
-- Individual isolated UI components (a button, a modal, a form)
-
----
-
-**Step 1 — Find the top competitor**
-
-Call \`firecrawl_search\` with a query that identifies the leading product in that category:
-
-- Query format: \`"best [category] SaaS site"\` or \`"top [category] landing page 2025"\`
-- Example: user wants a project management app → query: \`"best project management SaaS landing page 2025"\`
-- Pick the result with the most recognisable or well-designed brand (avoid content farms, directories, listicles).
-- If \`firecrawl_search\` returns an error (API key not configured), fall back to \`exa_search\` with the same query.
-
-**Step 2 — Scrape and decode the competitor's homepage**
-
-Call \`firecrawl_scrape\` on the competitor's homepage URL (set \`includeHtml: false\` — markdown is sufficient).
-
-From the returned markdown, extract and document all of the following:
-
-| Signal | What to extract |
-|---|---|
-| **Section order** | The sequence of page sections top-to-bottom (e.g. hero → problem → features → social proof → pricing → CTA → footer) |
-| **Hero headline pattern** | Bold claim ("The #1 X for Y") / Question ("Tired of X?") / Descriptive ("X that does Y") |
-| **Sub-headline tone** | Aspirational, technical, or conversational |
-| **Primary CTA text** | Exact wording of the main button ("Start free trial", "Get started for free", "See a demo") |
-| **CTA placement** | Hero only? Repeated mid-page? Sticky bar? |
-| **Social proof format** | Logo strip only? Testimonial cards with photos? Numbers ("10,000+ teams")? Review badges? |
-| **Features layout** | Icon + text grid? Alternating image/text rows? Tabbed interface? Checklist? |
-| **Pricing display** | Shown with tiers? Hidden ("Contact us")? Single price? |
-| **Footer depth** | Minimal (3–5 links) or full sitemap with columns? |
-
-**Step 3 — Build using the competitor's structure as the blueprint**
-
-Do NOT copy the competitor's content, copy, or branding. DO use their **structural decisions** as a proven, conversion-optimised starting point:
-
-- Keep the same section order — it reflects real UX research on what converts
-- Apply the same headline pattern type to the user's product
-- Mirror the CTA text style (action verb + benefit, e.g. "Start building free")
-- Use the same social proof format (adapt content to the user's product domain)
-- Apply the same features layout — don't switch from alternating rows to a grid without a reason
-- Match footer depth — lean vs. full depending on what the competitor chose
-
-When writing the code, document your structural choices with a one-line comment per section referencing the source (e.g. \`{/* Hero: bold-claim pattern, single CTA — based on [competitor] structure */}\`).
-
----
-
-### Creative Asset Decision Tree — MANDATORY before writing any landing page JSX
-
-Before writing a single line of JSX for any landing page section, collect all required assets using this decision tree. Skipping this step results in a page that uses placeholder images and default fonts — which is the failure mode we are fixing.
-
----
-
-**IRON RULE: Downloading ≠ Done. Used in code = Done.**
-
-If you called a tool to get an asset, that asset MUST appear in the code you write immediately after. No exceptions.
-
-| If you called... | Then the next file you write MUST contain... |
-|---|---|
-| \`get_google_fonts\` | \`next/font/google\` import in \`layout.tsx\` with the font applied to \`<body className={font.className}>\` |
-| \`lottie_download\` | \`import animData from "@/public/animations/<file>.json"\` + \`<Lottie animationData={animData} />\` in the component |
-| \`pexels_photo_search\` | The exact \`large2x\` URL from the result in an \`<img src="...">\` or \`style={{backgroundImage:"url(...)"}}\` — never swap to a generic placeholder |
-| \`generate_image\` | The saved file path referenced via \`<img src="/assets/<name>.png">\` or as a CSS background |
-| \`pexels_video_search\` | The \`hdFile.link\` URL in a \`<video autoPlay loop muted playsInline>\` tag |
-| \`firecrawl_scrape\` | The section structure from the scraped page reflected in the JSX — not a generic template |
-
-**Final wire-up verification (run before finishing any landing page):**
-\`\`\`
-□ Google Font is in layout.tsx body className — not just commented out or forgotten
-□ Every lottie_download result is imported and rendered somewhere in the page
-□ Every Pexels URL is in an actual src/backgroundImage attribute
-□ Every generate_image result is referenced with a real /assets/ path
-□ The section ORDER matches the competitor structure from firecrawl_scrape — not a generic hero/features/pricing/footer template
-\`\`\`
-
----
-
-**Step A — Typography (always first)**
-
-1. Call \`get_google_fonts\` with a query matching the competitor's tone (modern SaaS → "Inter", "Plus Jakarta Sans"; editorial → "Playfair Display"; minimal → "DM Sans")
-2. Pick the top result and implement it via \`next/font/google\` in \`layout.tsx\`
-3. Set it as the \`font-sans\` Tailwind variable — every section inherits it automatically
-
-**Step B — Icons**
-
-- ALWAYS use **Lucide React** for every icon in the UI. Never use emoji as icons. Never install \`react-icons\` or \`@fortawesome\`.
-- Install: \`npm install lucide-react\` (or bun/yarn equivalent)
-- Import pattern: \`import { ArrowRight, CheckCircle, Star, Zap } from "lucide-react"\`
-- Size via className: \`<ArrowRight className="w-5 h-5" />\` — never use the \`size\` prop for Tailwind-based sizing
-
-**Step C — Real photos (people, scenes, products)**
-
-- Call \`pexels_photo_search\` ONLY when the section needs a **real-world photograph** (people, offices, lifestyle, physical products)
-- Use \`orientation: "landscape"\` for hero / banner images
-- Use the exact \`large2x\` URL from the result in the code — never substitute a generic placeholder
-- Always set \`alt\` text from the Pexels \`alt\` field
-
-**Query specificity rules:**
-- Match what the COMPETITOR'S SECTION actually shows, not a generic section label
-- BAD: \`"office"\` → returns anything. GOOD: \`"developer pair programming laptop dark theme"\`
-- BAD: \`"people working"\` → too generic. GOOD: \`"diverse startup team whiteboard presentation"\`
-- Include the mood, environment, and subject: \`"entrepreneur confident portrait studio light"\`
-- Include the product type context: \`"mobile app smartphone hand coffee shop blur"\`
-
-**When NOT to use Pexels:**
-- Backgrounds that are abstract, gradient, glow, mesh, noise, particle, or geometric → use \`generate_image\` instead
-- Backgrounds that are dark with light effects → use \`generate_image\` instead
-- Custom illustrations or icons → use \`generate_image\` or Lottie
-
-**Step D — Video backgrounds**
-
-- If the competitor uses a looping video hero: call \`pexels_video_search\` first (free stock footage, instant)
-- Pick the HD file (1920×1080 link) and embed as \`<video autoPlay loop muted playsInline src="...">\`
-- Only use \`generate_video\` for truly custom animated sequences not available as stock footage
-
-**Step E — When to generate images vs. code them**
-
-**The single principle: Ask "Can a web developer reproduce this visual faithfully with CSS and HTML alone, in under 5 minutes, and have it look right?" If the honest answer is no — generate it.**
-
-This applies to backgrounds, illustrations, icons, product visuals, section art, and any other visual element. It is not a limited list of specific types. Use judgment.
-
-**Code it** (CSS/Tailwind is genuinely sufficient):
-- Solid color fills, simple two-stop linear gradients
-- A single centered radial gradient
-- Glassmorphism card (backdrop-blur + semi-transparent bg)
-- Grid/dot patterns with repeating CSS gradients
-- Simple geometric dividers and shapes
-
-**Generate it** (CSS cannot do this justice — use \`generate_image\`):
-Any visual where coding it would produce a noticeably inferior or fake-looking result. Examples of the judgment in action:
-
-*Example 1 — Spotlight glow:* A pure black background with a soft white oval light emanating from the bottom-center (like Linear.app's hero). You could stack radial-gradient pseudo-elements, but the result looks flat and digital. Generate it: the model produces the right photographic softness and falloff.
-
-*Example 2 — Isometric 3D wireframe illustrations:* Three column icons showing stacked-layer box structures in isometric perspective, white outline style on dark background (also from Linear.app features section). CSS cannot produce 3D isometric geometry. Generate each one with a detailed prompt describing the shape, perspective, line style, and color palette.
-
-*Other situations where generating is the right call:*
-- Any 3D object, isometric illustration, or perspective diagram
-- Multi-layered light effects with organic falloff
-- Mesh/aurora gradients with multiple blending color blobs  
-- Product mockups or UI-in-context screenshots
-- Illustrated characters, mascots, abstract art
-- Noise/grain/film texture overlays
-- Complex bokeh or depth-of-field backgrounds
-- Any section hero that the competitor clearly uses a custom illustration for
-
-**How to generate — prompt template:**
-\`\`\`
-generate_image({
-  prompt: "<exact visual description: subject, composition, perspective, colors in hex, lighting direction, style (flat/3D/photographic/illustrative), what is NOT in the image>",
-  filePath: "public/assets/<descriptive-name>.png",
-  width: <match the slot: 1920x1080 hero bg, 800x800 illustration, 512x512 icon>,
-  referenceImages: ["<competitor image URL from firecrawl_scrape if available>"]
-})
-\`\`\`
-
-**Prompt writing rules:**
-- **Be visual, not semantic**: describe what you SEE, not what it means. "Three stacked flat rectangles with rounded corners viewed at 30° isometric angle, white 1px stroke outlines on #0A0A0A background" — not "product layers icon"
-- **Specify colors**: dominant hex values, accent colors, background color
-- **Specify lighting**: "soft ambient top-left key light", "flat lighting no shadows", "glowing white outline"
-- **Exclude clutter**: always end with "no text, no watermarks, no UI chrome, no people" unless you specifically want those
-- **Match the slot dimensions exactly** — a 1024×1024 square illustration in a 1920×1080 hero will be distorted
-
-After generating, immediately reference the saved path in the component:
-\`<img src="/assets/hero-bg.png" className="absolute inset-0 w-full h-full object-cover" />\`
-
-**Step F — Animations**
-
-Lottie is the **default** for all UI feedback, state transitions, and interactive moments. Use \`lottie_search\` to find the right animation from 250,000+ available, then \`lottie_download\` to save it locally.
-
-**When to use Lottie (not exhaustive — add wherever the UI responds to the user):**
-
-Loading & progress — button loading, page skeleton, upload progress, search in progress, processing spinner
-Success & error — form submit confirmed, field validation pass, network error, permission denied
-Empty states — no results, empty inbox, empty cart, no notifications, new user welcome
-Onboarding — welcome greeting, step completion, feature introduction, tutorial highlight
-Micro-interactions — like/heart fill, bookmark save, star rating, thumbs up/down, share, copy
-Feature icons — hero section icons, pricing icons, service icons (animate on hover or scroll-in)
-Commerce — add to cart, wishlist add, payment processing, order confirmed, refund initiated
-Notifications — badge pulse, bell ring, toast appear, alert flash, new message dot
-Auth & security — login/signup animation, password strength, 2FA verification, security check
-Data & charts — chart animating in, metric counter, growth indicator, report generating
-Navigation — hamburger toggle, tab switch, accordion expand, drawer slide
-Celebrations — milestone reached, achievement unlocked, trial started, subscription activated
-404 / Error pages — lost/confused character, broken robot, search fail character
-
-**Workflow (always in this order):**
-1. Call \`lottie_search\` with a specific query (e.g. \`"success checkmark green circle"\`)
-2. Review the returned \`previewImageUrl\` and \`name\` to pick the best match
-3. Call \`lottie_download\` with the \`jsonUrl\` → saves to \`public/animations/<name>.json\`
-4. Import and render with \`lottie-react\`
-
-For scroll-triggered or entrance animations, use **Framer Motion** instead of Lottie:
-\`\`\`tsx
-import { motion } from "framer-motion";
-
-<motion.div
-  initial={{ opacity: 0, y: 30 }}
-  whileInView={{ opacity: 1, y: 0 }}
-  transition={{ duration: 0.5, ease: "easeOut" }}
-  viewport={{ once: true }}
->
-  {children}
-</motion.div>
-\`\`\`
-
-**Step G — UI Components**
-
-Always pick from this hierarchy:
-1. **Shadcn** first for any utility component (Button, Input, Card, Dialog, Select, Badge, Tabs, Skeleton, Tooltip, Sonner)
-2. **Lucide React** for every icon inside those components
-3. **Hand-coded with Tailwind** for marketing-specific sections (hero, pricing, testimonials, feature grid) — these have custom visual requirements that Shadcn's utility components don't address
-4. Framer Motion \`motion.*\` wrappers for any section that should animate in on scroll
-
----
-
 ### UI Completeness (CRITICAL)
 
 **Every UI you generate must be 100% complete and functional.** This is the single most important rule for frontend work.
@@ -1165,189 +936,78 @@ Before finishing any UI task, mentally walk through every interactive element an
 
 ### Animations & Lottie
 
-**Lottie is the default for all UI feedback.** Treat it the same way you'd treat CSS transitions: whenever the UI changes state, responds to user input, or needs to communicate a process — add a Lottie. The question is never "should I add animation?" but "which Lottie fits here?". LottieFiles has 250,000+ animations covering every conceivable use case.
+**Lottie animations** are JSON-based vector animations from Adobe After Effects. Use them to add high-quality, lightweight animations to the UI.
 
-#### When to use Lottie — comprehensive list
-
-**Loading & progress states**
-Every loading state deserves a Lottie. Replace plain CSS spinners with character-rich or brand-appropriate loading animations.
-- Page/route loading, data fetching
-- Button loading state (replace button text with small inline Lottie)
-- File upload progress, download in progress
-- Search / filter processing
-- Form submitting, saving in progress
-- Media processing, generating, converting
-
-**Success, error, and warning states**
-Never show a plain text "Success!" or a red border alone. A Lottie checkmark or celebration makes the confirmation feel real.
-- Form submit success, settings saved
-- Field-level validation pass / fail
-- Password strength indicator
-- Network error, server down, retry
-- Permission denied, access restricted
-
-**Empty states**
-Every empty state (which every user hits eventually) should have a character or illustration, not just blank space.
-- No search results, no matching filters
-- Empty inbox, no messages, no notifications
-- Empty cart, wishlist empty, no items
-- No data for chart/timeline, new account welcome
-- No files, no projects yet, getting started
-
-**Onboarding & education**
-- Welcome screen animation
-- Step-by-step wizard progress
-- Feature introduction highlight
-- Tutorial tooltip animation
-- Checklist item completion
-- First action celebration (first post, first connection, first purchase)
-
-**Micro-interactions** (the details that make an app feel alive)
-- Like / heart fill animation (tap to like)
-- Bookmark / save toggle
-- Star rating fill
-- Thumbs up / thumbs down
-- Share / copy-to-clipboard confirmation
-- Follow / unfollow toggle
-- Reaction emoji burst
-
-**Feature icons** (animate on scroll-into-view or on hover)
-- Hero section feature icons
-- Pricing plan icons
-- Service / capability icons in feature grid
-- Dashboard widget icons
-- Benefits list icons
-
-**Commerce & payments**
-- Add-to-cart animation
-- Wishlist / favourite add
-- Checkout in progress, payment processing
-- Payment success / order confirmed
-- Subscription activated
-- Refund / return initiated
-
-**Notifications & alerts**
-- Notification badge pulse
-- Bell ringing (new notification)
-- Toast / snackbar appear
-- In-app alert flash
-- Email sent confirmation
-- Typing indicator (chat)
-- New message dot
-
-**Auth & security**
-- Login success / welcome back
-- Sign-up completion
-- Password strength meter animation
-- 2FA / OTP verification
-- Biometric scan (face / fingerprint)
-- Security check complete
-
-**Data, analytics, and dashboards**
-- Chart animating in on load
-- Counter / metric number counting up
-- Growth trend indicator
-- Report generating
-- Export / download complete
-
-**Navigation & layout transitions**
-- Hamburger menu open/close
-- Sidebar expand / collapse
-- Tab switch indicator
-- Accordion open / close
-- Drawer/panel slide
-
-**Celebrations & milestones**
-- Confetti burst (goal reached, milestone hit)
-- Achievement / badge unlocked
-- Trial started, upgrade complete
-- Level up, streak maintained
-
-**404 and error pages**
-- Lost character, confused robot, broken search
-- "Something went wrong" illustrations
-
----
+#### When to use Lottie
+- Loading spinners, success/error states, empty states, onboarding illustrations
+- Any place the user asks for "animation", "animated illustration", or "motion"
+- Anywhere a static icon or image feels too plain for the context
 
 #### Package installation
+For React apps (Next.js, Vite, CRA): install \`lottie-react\`
 \`\`\`bash
 npm install lottie-react    # or: bun add lottie-react / yarn add lottie-react
 \`\`\`
+For vanilla JS / non-React: install \`lottie-web\`
 
-#### How to find and download animations (ALWAYS use lottie_search)
+#### Finding Lottie animation files
 
-The LottieFiles GraphQL API is fully accessible (no Cloudflare protection) via the \`lottie_search\` tool. Use it instead of hardcoded URLs.
+**Do NOT use the LottieFiles website search API** — it is Cloudflare-protected and will return errors in the sandbox. Instead, use the curated list of verified public CDN URLs below.
 
-**Workflow:**
+**Curated animations (all confirmed accessible):**
+
+| Use case | URL |
+|---|---|
+| Loading spinner (small, 5 KB) | \`https://assets10.lottiefiles.com/packages/lf20_kxsd2ytq.json\` |
+| Loading ring variant (5 KB) | \`https://assets3.lottiefiles.com/packages/lf20_uwR49r.json\` |
+| Success / checkmark (4 KB) | \`https://assets2.lottiefiles.com/packages/lf20_atippmse.json\` |
+| Success animation (25 KB) | \`https://assets1.lottiefiles.com/packages/lf20_jbrw3hcz.json\` |
+| Dots / pulse loader (16 KB) | \`https://assets4.lottiefiles.com/packages/lf20_s2lryxtd.json\` |
+| Minimal icon (2 KB) | \`https://assets3.lottiefiles.com/packages/lf20_t9gkkhz4.json\` |
+
+**How to download and save locally:**
+\`\`\`bash
+mkdir -p public/animations
+# Download — check the HTTP status first; if 403, try the next URL in the table
+STATUS=$(curl -s -o public/animations/loading.json -w "%{http_code}" "https://assets10.lottiefiles.com/packages/lf20_kxsd2ytq.json")
+echo "HTTP $STATUS"   # should be 200; if not, delete the file and pick another URL
 \`\`\`
-1. lottie_search  → query: "success checkmark green circle"  → get jsonUrl + previewImageUrl
-2. lottie_download → jsonUrl → saves to public/animations/success-checkmark.json
-3. Import and render in the component
-\`\`\`
 
-**Search query tips:**
-- Be specific: \`"success checkmark green circle"\` beats \`"success"\`
-- Include style: \`"loading spinner minimal flat"\` or \`"loading dots cute bouncing"\`
-- Include colour when it matters: \`"heart like animation red"\`
-- For characters: \`"confused robot 404 not found"\` or \`"happy character waving"\`
-- For icons: \`"bell notification icon animation"\`, \`"lock security icon animation"\`
-- For commerce: \`"add to cart bag animation"\`, \`"payment success coins celebration"\`
-
-**Fallback (if lottie_download fails for any reason):**
+If all CDN URLs return 403 (network restrictions in the sandbox), fall back to a **CSS/SVG spinner** instead — do not leave the feature unimplemented. Example fallback:
 \`\`\`tsx
 // Pure-CSS spinner — always works, no external dependency
 const Spinner = () => (
-  <div className="w-12 h-12 border-4 border-muted border-t-primary rounded-full animate-spin" />
+  <div style={{ width: 48, height: 48, border: "4px solid #e5e7eb",
+    borderTop: "4px solid #6366f1", borderRadius: "50%",
+    animation: "spin 0.8s linear infinite" }}>
+    <style dangerouslySetInnerHTML={{ __html: "@keyframes spin { to { transform: rotate(360deg) } }" }} />
+  </div>
 );
 \`\`\`
 
-#### React implementation patterns
-
+#### React implementation pattern
 \`\`\`tsx
 import Lottie from "lottie-react";
+import loadingAnimation from "@/public/animations/loading.json"; // or require path
 
-// 1. Import the downloaded JSON file
-import successAnim from "@/public/animations/success-checkmark.json";
+// Basic usage
+<Lottie animationData={loadingAnimation} loop={true} style={{ width: 120, height: 120 }} />
 
-// 2. One-shot animation (plays once then stops)
+// With controls
 <Lottie
-  animationData={successAnim}
+  animationData={successAnimation}
   loop={false}
   autoplay={true}
-  style={{ width: 120, height: 120 }}
+  style={{ width: 200, height: 200 }}
 />
-
-// 3. Looping animation (spinners, ambient hero, idle states)
-<Lottie
-  animationData={loadingAnim}
-  loop={true}
-  style={{ width: 64, height: 64 }}
-/>
-
-// 4. Triggered on interaction (e.g., button click)
-const [play, setPlay] = useState(false);
-<Lottie
-  animationData={heartAnim}
-  loop={false}
-  autoplay={play}
-  onComplete={() => setPlay(false)}
-  style={{ width: 40, height: 40, cursor: "pointer" }}
-  onClick={() => setPlay(true)}
-/>
-
-// 5. Animated icon that plays on hover
-<div onMouseEnter={() => ref.current?.play()} onMouseLeave={() => ref.current?.stop()}>
-  <Lottie lottieRef={ref} animationData={bellAnim} loop={false} autoplay={false} style={{ width: 32, height: 32 }} />
-</div>
 \`\`\`
 
-#### Rules
-- Always save the downloaded JSON locally to \`public/animations/\` — never reference external URLs at runtime
-- Use \`loop={false}\` for one-shot feedback (success, error, celebration); \`loop={true}\` for continuous states (loading, idle)
-- Set explicit \`width\`/\`height\` via \`style\` — never let it be 0×0
-- Keep files small — if \`lottie_download\` returns more than 300 KB, search for a lighter variant
+#### Rules for Lottie use
+- Always save the animation JSON locally (do not reference external URLs in production — they can go down)
+- Use \`loop={false}\` for one-shot animations (success, error); \`loop={true}\` for spinners
+- Set explicit \`width\`/\`height\` via \`style\` or a wrapper div — never let it be 0×0
+- Prefer small files (<200 KB); if a downloaded animation is larger, find a lighter alternative
 - After installing \`lottie-react\`, restart the dev server
-- Use \`lottieRef\` + \`.play()\`/\`.stop()\` for programmatic control (hover effects, triggered play)
 
 ### Spline 3D Graphics
 
@@ -1522,100 +1182,6 @@ npx @21st-dev/magic@latest
 - The generated components use Tailwind — confirm Tailwind is installed first.
 - Always review generated code before inserting it: ensure imports resolve, remove placeholder text, and connect real data sources.
 - Do NOT re-generate the same component multiple times — generated output is deterministic for the same prompt; adjust the prompt if the first result needs improvement.
-
----
-
-### Lucide React — the ONLY icon library
-
-**Lucide React is the mandated icon library for every project.** It ships 1500+ pixel-perfect SVG icons as individually-importable React components, fully compatible with Tailwind sizing.
-
-#### Installation
-\`\`\`bash
-npm install lucide-react    # or: bun add / yarn add
-\`\`\`
-
-#### Usage pattern
-\`\`\`tsx
-import { ArrowRight, CheckCircle, Zap, Star, Shield, BarChart2, Users, Globe } from "lucide-react";
-
-// Size with Tailwind className — not the size prop
-<ArrowRight className="w-5 h-5" />
-<CheckCircle className="w-6 h-6 text-green-500" />
-<Zap className="w-8 h-8 text-yellow-400" />
-\`\`\`
-
-#### Icon selection guide
-| Use case | Suggested icons |
-|---|---|
-| CTA arrow / proceed | \`ArrowRight\`, \`ChevronRight\`, \`MoveRight\` |
-| Checkmark / done | \`CheckCircle\`, \`Check\`, \`CircleCheck\` |
-| Feature highlight | \`Zap\`, \`Sparkles\`, \`Star\`, \`Rocket\` |
-| Security / trust | \`Shield\`, \`Lock\`, \`ShieldCheck\` |
-| Analytics | \`BarChart2\`, \`TrendingUp\`, \`LineChart\` |
-| Team / social | \`Users\`, \`UserCheck\`, \`Globe\` |
-| Notification | \`Bell\`, \`BellRing\` |
-| Speed / performance | \`Gauge\`, \`Timer\`, \`Zap\` |
-| Integration | \`Plug\`, \`Link\`, \`Workflow\` |
-| Document / content | \`FileText\`, \`BookOpen\`, \`ClipboardList\` |
-
-#### Hard rules
-- **NEVER use emoji as icons** (\`🚀\`, \`✓\`, \`⚡\`) — they render inconsistently across OS/browser.
-- **NEVER install \`react-icons\`, \`@fortawesome\`, \`heroicons\`** — duplicates what Lucide already does.
-- Use \`className\` for color and size, not \`style\` props or the \`size\` prop.
-- Wrap icons in a visually-balanced container with padding when they appear solo (e.g., in a feature card icon slot): \`<div className="p-3 rounded-xl bg-primary/10"><Zap className="w-6 h-6 text-primary" /></div>\`
-
----
-
-### Pexels — Stock Photos and Videos
-
-Pexels provides free high-quality photos and videos via the \`pexels_photo_search\` and \`pexels_video_search\` tools. Use these whenever a section needs real-world imagery.
-
-#### When to use which tool
-
-| Need | Tool | Notes |
-|---|---|---|
-| Hero background (people / scene) | \`pexels_photo_search\` | \`orientation: "landscape"\`, use \`large2x\` URL |
-| Testimonial avatars | \`pexels_photo_search\` | query: \`"professional headshot neutral background"\` |
-| Feature section lifestyle photo | \`pexels_photo_search\` | query: \`"person using laptop coffee shop"\` |
-| Looping video hero background | \`pexels_video_search\` | pick HD file, embed as muted autoplay loop |
-| Abstract ambient video (particles, gradient) | \`pexels_video_search\` | query: \`"abstract blue particles loop"\` |
-
-#### Photo usage pattern
-\`\`\`tsx
-// Use the large2x URL from pexels_photo_search directly in JSX
-<img
-  src="https://images.pexels.com/photos/..."
-  alt="Team collaborating in a modern office"
-  className="w-full h-full object-cover"
-/>
-
-// Or as a CSS background
-<div
-  style={{ backgroundImage: \`url(https://images.pexels.com/photos/...)\` }}
-  className="bg-cover bg-center"
-/>
-\`\`\`
-
-#### Video usage pattern
-\`\`\`tsx
-// Use the hdFile.link URL from pexels_video_search
-<video
-  autoPlay
-  loop
-  muted
-  playsInline
-  className="absolute inset-0 w-full h-full object-cover"
->
-  <source src="https://player.vimeo.com/..." type="video/mp4" />
-</video>
-\`\`\`
-
-#### Rules
-- Always use the Pexels URL directly — do NOT download and commit Pexels images to the project (they are large and publicly CDN-hosted).
-- Always set meaningful \`alt\` text (use the \`alt\` field from the search response).
-- For video backgrounds, always wrap in a \`relative\` positioned container with overflow hidden and put content on top with \`z-10\`.
-- Prefer Pexels over AI-generated images for any subject that exists in the real world (people, offices, products, nature, city scenes).
-- Use \`generate_image\` only for abstract backgrounds, brand illustrations, or custom product mockups that Pexels can't provide.
 
 ---
 

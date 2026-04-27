@@ -7,7 +7,6 @@ const agentEnvSchema = z.object({
   TOGETHER_API_KEY: z.string().min(1).optional(),
   FIRECRAWL_API_KEY: z.string().min(1).optional(),
   EXA_API_KEY: z.string().min(1).optional(),
-  PEXELS_API_KEY: z.string().min(1).optional(),
   OPENCODE_API_KEY: z.string().min(1).optional(),
   OPENCODE_ZEN_API_KEY: z.string().min(1).optional(),
 

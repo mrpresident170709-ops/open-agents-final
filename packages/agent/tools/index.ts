@@ -18,13 +18,6 @@ export {
 export { skillTool, type SkillToolInput } from "./skill";
 export { webFetchTool } from "./fetch";
 export { exaSearchTool, exaFindSimilarTool } from "./exa";
-export {
-  firecrawlSearchTool,
-  firecrawlMapTool,
-  firecrawlScrapeTool,
-} from "./firecrawl";
-export { pexelsPhotoSearchTool, pexelsVideoSearchTool } from "./pexels";
-export { lottieSearchTool, lottieDownloadTool } from "./lottie";
 export { generateImageTool } from "./image-gen";
 export { generateVideoTool } from "./video-gen";
 export { googleFontsTool } from "./google-fonts";
