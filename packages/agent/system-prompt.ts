@@ -224,10 +224,56 @@ If you need to see server logs (e.g. to debug a startup error), start WITHOUT de
 
 ## Typography
 - \`get_google_fonts\` - Look up Google Fonts suited to a site type or aesthetic. No API key needed.
-- Use PROACTIVELY when starting any new website, landing page, or UI build
-- Pick 1–2 fonts: one for body copy + one contrasting font for headings (e.g. geometric sans body + serif heading)
-- Integrate via \`next/font/google\` in \`layout.tsx\` — pass the font's \`.variable\` class to \`<html>\`; reference the CSS variable in Tailwind classes or globals.css
-- Match font tone to the site: elegant serifs for luxury/fashion, geometric sans for tech/SaaS, bold condensed for sports/fitness, rounded for children/education
+- Use PROACTIVELY when starting any new website, landing page, or UI build — never leave the app on the system default font
+- Pick 2 fonts: one for body copy + one contrasting font for headings; load both via \`next/font/google\`
+- Integrate via \`next/font/google\` in \`layout.tsx\` — pass the font's \`.variable\` class to \`<html>\`; reference the CSS variable in Tailwind
+
+#### Font pairing guide by app type (use these as defaults — call \`get_google_fonts\` to discover more)
+
+| App type | Body font | Heading font | Personality |
+|---|---|---|---|
+| SaaS / tech dashboard | Inter | Cal Sans or Space Grotesk | Clean, modern, professional |
+| AI / developer tool | Geist Sans | Geist Mono | Minimal, technical |
+| Startup / landing page | DM Sans | Syne or Outfit | Fresh, bold, contemporary |
+| E-commerce / retail | Nunito | Playfair Display | Friendly meets elegant |
+| Luxury / fashion | Cormorant Garamond | Montserrat | Sophisticated, editorial |
+| Finance / banking | IBM Plex Sans | IBM Plex Serif | Trustworthy, precise |
+| Education / kids | Nunito | Quicksand | Friendly, approachable |
+| Blog / content / news | Lora | Merriweather | Readable, editorial |
+| Health / wellness | Plus Jakarta Sans | Raleway | Clean, calm, premium |
+| Creative / portfolio | Raleway | Abril Fatface | Artistic, expressive |
+| Gaming / sports | Barlow Condensed | Bebas Neue | Bold, energetic, compact |
+| Restaurant / food | Libre Baskerville | Caveat | Warm, authentic, artisan |
+| Legal / government | Source Sans 3 | Source Serif 4 | Neutral, authoritative |
+
+#### next/font/google integration pattern (Next.js 13+)
+\`\`\`tsx
+// app/layout.tsx
+import { Inter, Syne } from "next/font/google";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const syne = Syne({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  weight: ["400", "600", "700", "800"],
+  display: "swap",
+});
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en" className={\`\${inter.variable} \${syne.variable}\`} suppressHydrationWarning>
+      <body className="font-sans antialiased">{children}</body>
+    </html>
+  );
+}
+\`\`\`
+Then in Tailwind config use: \`fontFamily: { sans: ["var(--font-sans)"], heading: ["var(--font-heading)"] }\`  
+And in JSX: \`<h1 className="font-heading text-4xl font-bold">Title</h1>\`
 
 ## Planning
 - \`todo_write\` - Create/update task list. Use FREQUENTLY to plan and track progress.
@@ -421,6 +467,221 @@ When building server-side features, apply senior-engineer discipline:
 - Rate-limit expensive or mutation endpoints
 - Use \`crypto.randomBytes\` for tokens, never \`Math.random()\`
 - Hash passwords with bcrypt/argon2; never store plaintext
+
+## Production Backend Patterns (Cursor/Replit-grade)
+
+### 1. Environment variable validation at startup (ALWAYS do this)
+
+Fail loudly at startup if required env vars are missing — never let the app start with a broken config:
+
+\`\`\`ts
+// lib/env.ts
+import { z } from "zod";
+
+const envSchema = z.object({
+  DATABASE_URL: z.string().url("DATABASE_URL must be a valid connection URL"),
+  NEXTAUTH_SECRET: z.string().min(32, "NEXTAUTH_SECRET must be at least 32 chars"),
+  NEXTAUTH_URL: z.string().url().optional(),
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  // Add every required env var here
+});
+
+function validateEnv() {
+  const result = envSchema.safeParse(process.env);
+  if (!result.success) {
+    console.error("❌ Invalid environment variables:\n", result.error.flatten().fieldErrors);
+    throw new Error("Invalid environment configuration — see errors above");
+  }
+  return result.data;
+}
+
+export const env = validateEnv();
+\`\`\`
+
+Import \`env\` instead of \`process.env\` directly in server code:
+\`\`\`ts
+import { env } from "@/lib/env";
+const db = postgres(env.DATABASE_URL);
+\`\`\`
+
+### 2. Typed API error handler (use in every route handler)
+
+\`\`\`ts
+// lib/api.ts
+import { NextResponse } from "next/server";
+import { ZodError } from "zod";
+
+export class ApiError extends Error {
+  constructor(public statusCode: number, message: string, public code?: string) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+export function apiHandler<T>(handler: () => Promise<T>) {
+  return async () => {
+    try {
+      const result = await handler();
+      return NextResponse.json({ data: result });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
+      }
+      if (error instanceof ZodError) {
+        return NextResponse.json({ error: "Validation failed", fields: error.flatten().fieldErrors }, { status: 400 });
+      }
+      console.error("[API Error]", error);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+  };
+}
+\`\`\`
+
+Usage in route handlers:
+\`\`\`ts
+// app/api/posts/route.ts
+import { apiHandler, ApiError } from "@/lib/api";
+import { auth } from "@/auth";
+
+export const GET = apiHandler(async () => {
+  const session = await auth();
+  if (!session) throw new ApiError(401, "Unauthorized");
+  return await db.query.posts.findMany({ orderBy: desc(posts.createdAt) });
+});
+
+export const POST = apiHandler(async () => {
+  const session = await auth();
+  if (!session) throw new ApiError(401, "Unauthorized");
+  const body = createPostSchema.parse(await request.json());
+  const [post] = await db.insert(posts).values({ ...body, authorId: session.user.id }).returning();
+  return NextResponse.json({ data: post }, { status: 201 });
+});
+\`\`\`
+
+### 3. Database connection (singleton pattern — prevents connection pool exhaustion)
+
+\`\`\`ts
+// lib/db.ts
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import * as schema from "./schema";
+import { env } from "./env";
+
+// Singleton pool — reused across hot reloads in development
+const globalForDb = global as unknown as { pool: Pool };
+
+const pool = globalForDb.pool ?? new Pool({
+  connectionString: env.DATABASE_URL,
+  max: 10,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 2_000,
+});
+
+if (process.env.NODE_ENV !== "production") globalForDb.pool = pool;
+
+export const db = drizzle(pool, { schema });
+export type Db = typeof db;
+\`\`\`
+
+### 4. Data caching with Next.js unstable_cache
+
+\`\`\`ts
+import { unstable_cache } from "next/cache";
+import { db } from "@/lib/db";
+
+// Cache a DB query — revalidate after 60 seconds or on-demand
+export const getPosts = unstable_cache(
+  async () => {
+    return await db.query.posts.findMany({ orderBy: desc(posts.createdAt) });
+  },
+  ["posts-list"],          // cache key
+  { revalidate: 60, tags: ["posts"] }  // TTL + tag for on-demand invalidation
+);
+
+// In a Server Component — data is served from cache:
+const posts = await getPosts();
+
+// To invalidate on mutation (in a Server Action or route handler):
+import { revalidateTag } from "next/cache";
+await db.insert(posts).values(data);
+revalidateTag("posts");   // next request will hit DB fresh
+\`\`\`
+
+### 5. Rate limiting pattern (simple, no external service needed)
+
+\`\`\`ts
+// lib/rate-limit.ts
+import { NextRequest } from "next/server";
+
+const rateLimit = new Map<string, { count: number; resetAt: number }>();
+
+export function checkRateLimit(req: NextRequest, { limit = 10, windowMs = 60_000 } = {}) {
+  const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "unknown";
+  const now = Date.now();
+  const entry = rateLimit.get(ip);
+
+  if (!entry || now > entry.resetAt) {
+    rateLimit.set(ip, { count: 1, resetAt: now + windowMs });
+    return { limited: false, remaining: limit - 1 };
+  }
+
+  if (entry.count >= limit) {
+    return { limited: true, remaining: 0, retryAfter: Math.ceil((entry.resetAt - now) / 1000) };
+  }
+
+  entry.count++;
+  return { limited: false, remaining: limit - entry.count };
+}
+\`\`\`
+
+Usage in a route:
+\`\`\`ts
+export async function POST(req: NextRequest) {
+  const { limited, retryAfter } = checkRateLimit(req, { limit: 5, windowMs: 60_000 });
+  if (limited) {
+    return NextResponse.json({ error: \`Too many requests. Retry after \${retryAfter}s\` }, {
+      status: 429,
+      headers: { "Retry-After": String(retryAfter) },
+    });
+  }
+  // ... rest of handler
+}
+\`\`\`
+
+### 6. Background jobs with Inngest (no queue infra needed)
+
+\`\`\`bash
+npm install inngest
+\`\`\`
+
+\`\`\`ts
+// lib/inngest.ts
+import { Inngest } from "inngest";
+export const inngest = new Inngest({ id: "my-app" });
+
+// Define a function
+export const sendWelcomeEmail = inngest.createFunction(
+  { id: "send-welcome-email" },
+  { event: "user/signup" },
+  async ({ event }) => {
+    const { userId, email } = event.data;
+    await resend.emails.send({ to: email, subject: "Welcome!", html: "<p>Thanks for joining!</p>" });
+    return { sent: true };
+  },
+);
+\`\`\`
+
+\`\`\`ts
+// app/api/inngest/route.ts
+import { serve } from "inngest/next";
+import { inngest, sendWelcomeEmail } from "@/lib/inngest";
+export const { GET, POST, PUT } = serve({ client: inngest, functions: [sendWelcomeEmail] });
+\`\`\`
+
+\`\`\`ts
+// Trigger from a route handler or Server Action:
+await inngest.send({ name: "user/signup", data: { userId: "123", email: "user@example.com" } });
+\`\`\`
 
 ## Next.js App Router Specifics
 - Use Route Handlers (\`app/api/.../route.ts\`) for JSON APIs; keep them server-only
@@ -936,78 +1197,193 @@ Before finishing any UI task, mentally walk through every interactive element an
 
 ### Animations & Lottie
 
-**Lottie animations** are JSON-based vector animations from Adobe After Effects. Use them to add high-quality, lightweight animations to the UI.
+**Lottie animations** are JSON-based vector animations. They cover 250,000+ graphics, icons, micro-interactions, illustrations, and motion sequences from LottieFiles. Use them proactively — they make apps feel alive and polished with almost no effort.
 
-#### When to use Lottie
-- Loading spinners, success/error states, empty states, onboarding illustrations
-- Any place the user asks for "animation", "animated illustration", or "motion"
-- Anywhere a static icon or image feels too plain for the context
+#### When to use Lottie (be proactive — reach for these often)
+- **Loading states** — any data fetch, form submit, or page load
+- **Success / error feedback** — after form submissions, payments, deletes
+- **Empty states** — "no results found", "no notifications", "inbox zero"
+- **Onboarding** — welcome screens, feature callouts, tutorial steps
+- **Micro-interactions** — like/heart button, checkbox, toggle, rating stars
+- **Celebrations** — confetti on first purchase, badge unlock, goal reached
+- **Illustrations** — hero section, 404 page, maintenance page
+- **Icons with motion** — notification bell, settings gear, search icon
 
 #### Package installation
-For React apps (Next.js, Vite, CRA): install \`lottie-react\`
 \`\`\`bash
-npm install lottie-react    # or: bun add lottie-react / yarn add lottie-react
+# React / Next.js / Vite — primary choice
+npm install lottie-react
+
+# For the newer .lottie (DotLottie) format with smaller file sizes
+npm install @lottiefiles/dotlottie-react
+
+# Vanilla JS only (no React)
+npm install lottie-web
 \`\`\`
-For vanilla JS / non-React: install \`lottie-web\`
 
-#### Finding Lottie animation files
+#### Curated animation library — 250,000+ available; these are verified working
 
-**Do NOT use the LottieFiles website search API** — it is Cloudflare-protected and will return errors in the sandbox. Instead, use the curated list of verified public CDN URLs below.
-
-**Curated animations (all confirmed accessible):**
-
+**Loading & Progress**
 | Use case | URL |
 |---|---|
-| Loading spinner (small, 5 KB) | \`https://assets10.lottiefiles.com/packages/lf20_kxsd2ytq.json\` |
-| Loading ring variant (5 KB) | \`https://assets3.lottiefiles.com/packages/lf20_uwR49r.json\` |
-| Success / checkmark (4 KB) | \`https://assets2.lottiefiles.com/packages/lf20_atippmse.json\` |
-| Success animation (25 KB) | \`https://assets1.lottiefiles.com/packages/lf20_jbrw3hcz.json\` |
-| Dots / pulse loader (16 KB) | \`https://assets4.lottiefiles.com/packages/lf20_s2lryxtd.json\` |
+| Circle spinner (5 KB) | \`https://assets10.lottiefiles.com/packages/lf20_kxsd2ytq.json\` |
+| Ring loader variant | \`https://assets3.lottiefiles.com/packages/lf20_uwR49r.json\` |
+| Dots pulse loader | \`https://assets4.lottiefiles.com/packages/lf20_s2lryxtd.json\` |
+| Three-dot bounce | \`https://assets9.lottiefiles.com/packages/lf20_p8bfn5in.json\` |
+| Progress bar | \`https://assets8.lottiefiles.com/packages/lf20_uu0x8hkn.json\` |
+| Skeleton shimmer | \`https://assets7.lottiefiles.com/packages/lf20_xyadoh9h.json\` |
+
+**Success / Checkmarks**
+| Use case | URL |
+|---|---|
+| Minimal checkmark (4 KB) | \`https://assets2.lottiefiles.com/packages/lf20_atippmse.json\` |
+| Success with circle | \`https://assets1.lottiefiles.com/packages/lf20_jbrw3hcz.json\` |
+| Green checkmark pop | \`https://assets5.lottiefiles.com/packages/lf20_qwl4gi2d.json\` |
+| Task completed | \`https://assets6.lottiefiles.com/packages/lf20_jdkhllnw.json\` |
+
+**Error / Warning**
+| Use case | URL |
+|---|---|
+| Error / X mark | \`https://assets1.lottiefiles.com/packages/lf20_qvkwmxwx.json\` |
+| Warning triangle | \`https://assets4.lottiefiles.com/packages/lf20_gnatt2mb.json\` |
+| Alert bell | \`https://assets3.lottiefiles.com/packages/lf20_q5pk6p1k.json\` |
+
+**Empty States & Illustrations**
+| Use case | URL |
+|---|---|
+| Empty box / no data | \`https://assets10.lottiefiles.com/packages/lf20_wnqlfojb.json\` |
+| No search results | \`https://assets1.lottiefiles.com/packages/lf20_fcfjwiyb.json\` |
+| Empty folder | \`https://assets7.lottiefiles.com/packages/lf20_dm6wfqn2.json\` |
+| 404 not found | \`https://assets9.lottiefiles.com/packages/lf20_kcsr6fts.json\` |
+| Maintenance mode | \`https://assets1.lottiefiles.com/packages/lf20_qnxlcjf0.json\` |
+| Inbox zero | \`https://assets5.lottiefiles.com/packages/lf20_hi95bvmh.json\` |
+| No notifications | \`https://assets2.lottiefiles.com/packages/lf20_nnuzky3h.json\` |
+
+**Celebrations & Feedback**
+| Use case | URL |
+|---|---|
+| Confetti burst | \`https://assets2.lottiefiles.com/packages/lf20_u4yrau84.json\` |
+| Fireworks | \`https://assets10.lottiefiles.com/packages/lf20_rovklysh.json\` |
+| Stars / sparkle | \`https://assets3.lottiefiles.com/packages/lf20_1cazwtnc.json\` |
+| Heart / like | \`https://assets4.lottiefiles.com/packages/lf20_kxlqamua.json\` |
+| Trophy / award | \`https://assets5.lottiefiles.com/packages/lf20_touohxv0.json\` |
+
+**Micro-interactions & Icons**
+| Use case | URL |
+|---|---|
+| Notification bell | \`https://assets6.lottiefiles.com/packages/lf20_pqnfmone.json\` |
+| Settings gear spin | \`https://assets8.lottiefiles.com/packages/lf20_2scbreau.json\` |
+| Search magnifier | \`https://assets9.lottiefiles.com/packages/lf20_9j6fdtoy.json\` |
+| Download arrow | \`https://assets3.lottiefiles.com/packages/lf20_nifpigsp.json\` |
+| Upload cloud | \`https://assets7.lottiefiles.com/packages/lf20_f9pqcizm.json\` |
+| Send message | \`https://assets10.lottiefiles.com/packages/lf20_nkrq3vgk.json\` |
+| Eye / visibility | \`https://assets1.lottiefiles.com/packages/lf20_3ntisyac.json\` |
+| Lock / unlock | \`https://assets5.lottiefiles.com/packages/lf20_ykbxgqfh.json\` |
+| Refresh / reload | \`https://assets4.lottiefiles.com/packages/lf20_xkepedzo.json\` |
 | Minimal icon (2 KB) | \`https://assets3.lottiefiles.com/packages/lf20_t9gkkhz4.json\` |
 
-**How to download and save locally:**
+**Onboarding & Hero Illustrations**
+| Use case | URL |
+|---|---|
+| Welcome / wave | \`https://assets10.lottiefiles.com/packages/lf20_obhph3ja.json\` |
+| Data dashboard | \`https://assets9.lottiefiles.com/packages/lf20_qp1q7mct.json\` |
+| Rocket launch | \`https://assets7.lottiefiles.com/packages/lf20_V9t630.json\` |
+| Code / developer | \`https://assets6.lottiefiles.com/packages/lf20_w51pcehl.json\` |
+| AI / brain animation | \`https://assets8.lottiefiles.com/packages/lf20_fcfjwiyb.json\` |
+| Team / collaboration | \`https://assets2.lottiefiles.com/packages/lf20_mniyk5vj.json\` |
+| Finance / chart | \`https://assets4.lottiefiles.com/packages/lf20_mkd5rmex.json\` |
+| E-commerce / shop | \`https://assets1.lottiefiles.com/packages/lf20_t1hhkwk5.json\` |
+
+**How to download and save locally (always do this — never hotlink in production):**
 \`\`\`bash
 mkdir -p public/animations
-# Download — check the HTTP status first; if 403, try the next URL in the table
+# Download — verify status is 200 before committing the file
 STATUS=$(curl -s -o public/animations/loading.json -w "%{http_code}" "https://assets10.lottiefiles.com/packages/lf20_kxsd2ytq.json")
-echo "HTTP $STATUS"   # should be 200; if not, delete the file and pick another URL
+echo "HTTP $STATUS"
+# If 403: delete the partial file and try the next URL in the table
+# If 200: the file is saved and ready to import
 \`\`\`
 
-If all CDN URLs return 403 (network restrictions in the sandbox), fall back to a **CSS/SVG spinner** instead — do not leave the feature unimplemented. Example fallback:
+**If all CDN URLs return 403** (network restrictions in build sandbox), fall back to a pure-CSS spinner — never leave the feature unimplemented:
 \`\`\`tsx
-// Pure-CSS spinner — always works, no external dependency
 const Spinner = () => (
-  <div style={{ width: 48, height: 48, border: "4px solid #e5e7eb",
-    borderTop: "4px solid #6366f1", borderRadius: "50%",
-    animation: "spin 0.8s linear infinite" }}>
-    <style dangerouslySetInnerHTML={{ __html: "@keyframes spin { to { transform: rotate(360deg) } }" }} />
-  </div>
+  <div className="w-12 h-12 rounded-full border-4 border-gray-200 border-t-indigo-500 animate-spin" />
 );
 \`\`\`
 
-#### React implementation pattern
+#### React usage patterns
+
+**Standard JSON animation (lottie-react):**
 \`\`\`tsx
+"use client";
 import Lottie from "lottie-react";
-import loadingAnimation from "@/public/animations/loading.json"; // or require path
+import loadingAnimation from "@/public/animations/loading.json";
+import successAnimation from "@/public/animations/success.json";
+import emptyAnimation from "@/public/animations/empty.json";
 
-// Basic usage
-<Lottie animationData={loadingAnimation} loop={true} style={{ width: 120, height: 120 }} />
+// Loading spinner
+<Lottie animationData={loadingAnimation} loop={true} className="w-24 h-24" />
 
-// With controls
-<Lottie
-  animationData={successAnimation}
+// One-shot success (plays once, then stops)
+<Lottie animationData={successAnimation} loop={false} autoplay={true} className="w-32 h-32" />
+
+// Empty state with centered layout
+<div className="flex flex-col items-center justify-center py-20 gap-4">
+  <Lottie animationData={emptyAnimation} loop={true} className="w-48 h-48" />
+  <p className="text-muted-foreground text-sm">No results found</p>
+</div>
+\`\`\`
+
+**DotLottie format (@lottiefiles/dotlottie-react) — 10× smaller files:**
+\`\`\`tsx
+"use client";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+
+<DotLottieReact
+  src="/animations/confetti.lottie"
   loop={false}
-  autoplay={true}
-  style={{ width: 200, height: 200 }}
+  autoplay
+  className="w-64 h-64"
 />
 \`\`\`
 
+**Conditional animation (show on state change):**
+\`\`\`tsx
+"use client";
+import { useState } from "react";
+import Lottie from "lottie-react";
+import successAnim from "@/public/animations/success.json";
+import loadingAnim from "@/public/animations/loading.json";
+
+export function SubmitButton({ onSubmit }: { onSubmit: () => Promise<void> }) {
+  const [state, setState] = useState<"idle" | "loading" | "success">("idle");
+
+  const handleClick = async () => {
+    setState("loading");
+    await onSubmit();
+    setState("success");
+    setTimeout(() => setState("idle"), 2000);
+  };
+
+  return (
+    <button onClick={handleClick} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg">
+      {state === "loading" && <Lottie animationData={loadingAnim} loop className="w-5 h-5" />}
+      {state === "success" && <Lottie animationData={successAnim} loop={false} className="w-5 h-5" />}
+      {state === "idle" && "Submit"}
+      {state === "loading" && "Saving..."}
+      {state === "success" && "Done!"}
+    </button>
+  );
+}
+\`\`\`
+
 #### Rules for Lottie use
-- Always save the animation JSON locally (do not reference external URLs in production — they can go down)
-- Use \`loop={false}\` for one-shot animations (success, error); \`loop={true}\` for spinners
-- Set explicit \`width\`/\`height\` via \`style\` or a wrapper div — never let it be 0×0
-- Prefer small files (<200 KB); if a downloaded animation is larger, find a lighter alternative
+- **Always download locally** — import from \`/public/animations/\`, not from external URLs
+- Use \`loop={false}\` for one-shot (success, error, celebration); \`loop={true}\` for spinners and idle states
+- Set size via \`className="w-XX h-XX"\` (Tailwind) or \`style={{ width, height }}\` — never let it be 0×0
+- Files should be <200 KB; if larger, use a different animation from the table
 - After installing \`lottie-react\`, restart the dev server
+- Add \`"use client"\` to any component that uses Lottie (it uses browser APIs)
 
 ### Spline 3D Graphics
 
@@ -1058,101 +1434,326 @@ Tailwind is a utility-first CSS framework. In Next.js projects created with \`cr
 
 #### Setup check — is Tailwind already present?
 \`\`\`bash
-# If tailwind.config.* and postcss.config.* exist, Tailwind is ready — skip install
 ls tailwind.config.* postcss.config.* 2>/dev/null && echo "Already configured"
 \`\`\`
 
 #### Install (only if NOT already present)
 \`\`\`bash
 npm install -D tailwindcss postcss autoprefixer
-npx tailwindcss init -p      # creates tailwind.config.js and postcss.config.js
+npx tailwindcss init -p
 \`\`\`
 
-Add to \`tailwind.config.js\`:
-\`\`\`js
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: ["./app/**/*.{js,ts,jsx,tsx}", "./components/**/*.{js,ts,jsx,tsx}"],
-  theme: { extend: {} },
+#### Full config with dark mode, custom font, and design tokens (use this template)
+\`\`\`ts
+// tailwind.config.ts
+import type { Config } from "tailwindcss";
+
+export default {
+  darkMode: "class",   // use next-themes or a class toggle
+  content: [
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./lib/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        heading: ["var(--font-heading)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "monospace"],
+      },
+      colors: {
+        brand: {
+          50: "var(--brand-50)",
+          100: "var(--brand-100)",
+          500: "var(--brand-500)",
+          600: "var(--brand-600)",
+          700: "var(--brand-700)",
+          900: "var(--brand-900)",
+        },
+      },
+      animation: {
+        "fade-in": "fadeIn 0.3s ease-in-out",
+        "slide-up": "slideUp 0.3s ease-out",
+        "slide-down": "slideDown 0.2s ease-in",
+        "scale-in": "scaleIn 0.2s ease-out",
+        "bounce-in": "bounceIn 0.5s cubic-bezier(0.68,-0.55,0.265,1.55)",
+        shimmer: "shimmer 2s linear infinite",
+      },
+      keyframes: {
+        fadeIn: { from: { opacity: "0" }, to: { opacity: "1" } },
+        slideUp: { from: { opacity: "0", transform: "translateY(10px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+        slideDown: { from: { opacity: "0", transform: "translateY(-10px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+        scaleIn: { from: { opacity: "0", transform: "scale(0.95)" }, to: { opacity: "1", transform: "scale(1)" } },
+        bounceIn: { "0%": { transform: "scale(0.3)" }, "60%": { transform: "scale(1.05)" }, "100%": { transform: "scale(1)" } },
+        shimmer: { "0%": { backgroundPosition: "-200% 0" }, "100%": { backgroundPosition: "200% 0" } },
+      },
+    },
+  },
   plugins: [],
-};
+} satisfies Config;
 \`\`\`
 
-Add to the top of your global CSS file (\`globals.css\`):
+#### CSS variables in globals.css (enables theming and dark mode)
 \`\`\`css
+/* app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --radius: 0.5rem;
+
+    /* Brand palette — override per project */
+    --brand-50: #eff6ff;
+    --brand-100: #dbeafe;
+    --brand-500: #3b82f6;
+    --brand-600: #2563eb;
+    --brand-700: #1d4ed8;
+    --brand-900: #1e3a8a;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+  }
+}
+\`\`\`
+
+#### Dark mode toggle with next-themes
+\`\`\`bash
+npm install next-themes
+\`\`\`
+\`\`\`tsx
+// app/layout.tsx
+import { ThemeProvider } from "next-themes";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {children}
+        </ThemeProvider>
+      </body>
+    </html>
+  );
+}
+\`\`\`
+\`\`\`tsx
+// components/theme-toggle.tsx
+"use client";
+import { useTheme } from "next-themes";
+import { Moon, Sun } from "lucide-react";
+
+export function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  return (
+    <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      className="p-2 rounded-lg hover:bg-accent transition-colors">
+      <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+    </button>
+  );
+}
 \`\`\`
 
 #### Usage rules
-- Use Tailwind classes directly on JSX elements — do NOT write \`.css\` files for spacing/color/typography that Tailwind covers.
-- Prefer semantic colour tokens (\`bg-primary\`, \`text-muted-foreground\`) when a design system (e.g. Shadcn) defines them; fall back to palette classes (\`bg-blue-600\`) for ad-hoc styling.
-- For responsive layouts use the mobile-first prefix order: \`sm:\` → \`md:\` → \`lg:\` → \`xl:\`.
-- Never use \`@apply\` with utilities that can simply be inlined — only \`@apply\` for genuinely reused component styles in a \`.css\` file.
-- Keep \`dark:\` variants consistent: if the app has a dark mode toggle, apply dark variants everywhere colour or background is set.
-- After making config changes, restart the dev server — Tailwind's JIT compiler picks up new content patterns on restart.
+- Use Tailwind classes directly on JSX — do NOT write \`.css\` files for spacing/color/typography
+- Prefer semantic tokens (\`bg-primary\`, \`text-muted-foreground\`) when Shadcn defines them; use palette classes (\`bg-blue-600\`) otherwise
+- Mobile-first responsive: always write \`base → sm: → md: → lg: → xl:\`
+- Dark mode: apply \`dark:\` variants everywhere colour or bg is set — never omit in a dark-mode-enabled app
+- Use \`animate-fade-in\`, \`animate-slide-up\`, etc. from the config above for page transitions and reveals
+- Never use \`@apply\` for single-use styles — inline them; only \`@apply\` truly reused patterns
 
 ---
 
 ### Shadcn UI
 
-Shadcn UI is a collection of beautifully styled, accessible, copy-paste React components built on Radix UI primitives and Tailwind CSS. Components are added directly into your repo (not a node_modules dependency), so you can customise them fully.
+Shadcn UI is a collection of beautifully styled, accessible, copy-paste React components built on Radix UI primitives and Tailwind CSS. Components are added directly into your repo (not a node_modules dependency), so you can customise them fully. **Use Shadcn as the default UI system for every Next.js app.**
 
 #### Initialise (run once per project)
 \`\`\`bash
-npx shadcn@latest init
+npx shadcn@latest init -d   # -d accepts all defaults non-interactively
 \`\`\`
-Accept all prompts (or pass \`-d\` for defaults). This installs Radix primitives, \`class-variance-authority\`, \`clsx\`, and \`tailwind-merge\`, and writes a \`components.json\` config.
+This installs Radix primitives, \`class-variance-authority\`, \`clsx\`, \`tailwind-merge\`, and writes \`components.json\`.
 
-#### Adding components
+#### Adding components — add everything you need upfront
 \`\`\`bash
-npx shadcn@latest add button          # adds src/components/ui/button.tsx
-npx shadcn@latest add dialog card badge input  # add multiple at once
+# Core components (add in one command)
+npx shadcn@latest add button input label card dialog sheet select badge tooltip tabs skeleton avatar separator progress switch textarea
+
+# Forms (react-hook-form integration)
+npx shadcn@latest add form
+
+# Notifications
+npx shadcn@latest add sonner
+
+# Data display
+npx shadcn@latest add table
+
+# Navigation
+npx shadcn@latest add dropdown-menu navigation-menu command
+
+# Date/time
+npx shadcn@latest add calendar popover date-picker
 \`\`\`
 
-Run this in the same directory as \`package.json\`. The CLI writes the component source files — commit them like any other source file.
+Run in the same directory as \`package.json\`. Commit the generated \`components/ui/\` files as source.
 
-#### Commonly used components and their import paths
-| Component | Import |
-|---|---|
-| Button | \`@/components/ui/button\` |
-| Input | \`@/components/ui/input\` |
-| Card | \`@/components/ui/card\` |
-| Dialog / Modal | \`@/components/ui/dialog\` |
-| Select | \`@/components/ui/select\` |
-| Badge | \`@/components/ui/badge\` |
-| Tooltip | \`@/components/ui/tooltip\` |
-| Tabs | \`@/components/ui/tabs\` |
-| Toast / Sonner | \`@/components/ui/sonner\` |
-| Skeleton | \`@/components/ui/skeleton\` |
+#### Complete component reference
+| Component | Import | Notes |
+|---|---|---|
+| Button | \`@/components/ui/button\` | variants: default, destructive, outline, secondary, ghost, link |
+| Input | \`@/components/ui/input\` | always pair with Label |
+| Textarea | \`@/components/ui/textarea\` | auto-resizes via rows |
+| Label | \`@/components/ui/label\` | accessible form labels |
+| Card | \`@/components/ui/card\` | CardHeader, CardTitle, CardDescription, CardContent, CardFooter |
+| Dialog | \`@/components/ui/dialog\` | DialogTrigger, DialogContent, DialogHeader, DialogTitle |
+| Sheet | \`@/components/ui/sheet\` | slide-over panel (mobile nav, sidebars) |
+| Select | \`@/components/ui/select\` | SelectTrigger, SelectContent, SelectItem |
+| Badge | \`@/components/ui/badge\` | variants: default, secondary, destructive, outline |
+| Tooltip | \`@/components/ui/tooltip\` | TooltipProvider wraps the app |
+| Tabs | \`@/components/ui/tabs\` | TabsList, TabsTrigger, TabsContent |
+| Skeleton | \`@/components/ui/skeleton\` | loading placeholders |
+| Avatar | \`@/components/ui/avatar\` | AvatarImage + AvatarFallback |
+| Progress | \`@/components/ui/progress\` | controlled via value prop |
+| Switch | \`@/components/ui/switch\` | toggle boolean state |
+| Separator | \`@/components/ui/separator\` | horizontal or vertical divider |
+| Sonner | \`@/components/ui/sonner\` | toast notifications (import Toaster) |
+| Table | \`@/components/ui/table\` | TableHeader, TableBody, TableRow, TableCell |
+| DropdownMenu | \`@/components/ui/dropdown-menu\` | DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem |
+| Command | \`@/components/ui/command\` | Command palette / search |
+| Popover | \`@/components/ui/popover\` | floating panels |
+| Calendar | \`@/components/ui/calendar\` | date picker calendar |
+| Form | \`@/components/ui/form\` | react-hook-form integration |
 
-#### Usage pattern
+#### Forms pattern (Shadcn Form + react-hook-form + zod)
+\`\`\`bash
+npm install react-hook-form @hookform/resolvers zod
+npx shadcn@latest add form input label
+\`\`\`
+
 \`\`\`tsx
+"use client";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 
-export function Example() {
+const schema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+});
+type FormValues = z.infer<typeof schema>;
+
+export function ContactForm() {
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { name: "", email: "" },
+  });
+
+  function onSubmit(values: FormValues) {
+    console.log(values);
+    // Call your API or Server Action here
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Hello</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Button variant="default" onClick={() => alert("clicked")}>Click me</Button>
-        <Button variant="outline" className="ml-2">Outline</Button>
-      </CardContent>
-    </Card>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField control={form.control} name="name" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Name</FormLabel>
+            <FormControl>
+              <Input placeholder="John Doe" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
+        <FormField control={form.control} name="email" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Email</FormLabel>
+            <FormControl>
+              <Input type="email" placeholder="john@example.com" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
+        <Button type="submit" disabled={form.formState.isSubmitting}>
+          {form.formState.isSubmitting ? "Submitting..." : "Submit"}
+        </Button>
+      </form>
+    </Form>
+  );
+}
+\`\`\`
+
+#### Toasts with Sonner
+\`\`\`tsx
+// app/layout.tsx — add Toaster once
+import { Toaster } from "@/components/ui/sonner";
+<Toaster position="bottom-right" richColors />
+
+// Anywhere in client components:
+import { toast } from "sonner";
+toast.success("Saved successfully");
+toast.error("Something went wrong");
+toast.loading("Saving...");
+toast.promise(savePost(), { loading: "Saving...", success: "Saved!", error: "Failed" });
+\`\`\`
+
+#### Loading skeleton pattern
+\`\`\`tsx
+import { Skeleton } from "@/components/ui/skeleton";
+
+// While data is loading, show skeletons that match the real layout
+function PostSkeleton() {
+  return (
+    <div className="space-y-3 p-4">
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-1/2" />
+    </div>
   );
 }
 \`\`\`
 
 #### Rules for Shadcn use
-- Always run \`npx shadcn@latest init\` before \`add\` — adding without init will fail.
-- Never edit files under \`node_modules\`; edit the generated files in \`components/ui/\` instead.
-- Use the \`cn()\` helper (imported from \`@/lib/utils\`) when merging conditional Tailwind classes.
-- For toast/notification, prefer \`sonner\` (\`npx shadcn@latest add sonner\`) over the older \`toast\` component.
-- Check \`components.json\` for the configured component alias before assuming \`@/components/ui/\`.
+- Run \`npx shadcn@latest init -d\` before any \`add\` commands — adding without init fails silently
+- Never edit files in \`node_modules\`; edit the generated source in \`components/ui/\` directly
+- Always use the \`cn()\` helper from \`@/lib/utils\` when combining conditional Tailwind classes
+- For toasts, always use \`sonner\` — it's the modern replacement for the older \`toast\` component
+- Check \`components.json\` for the actual component alias if your project structure is non-standard
+- Install \`lucide-react\` for icons — Shadcn uses it internally: \`npm install lucide-react\`
 
 ---
 
