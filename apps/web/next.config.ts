@@ -5,7 +5,11 @@ import { withWorkflow } from "workflow/next";
 const replitDomain = process.env.REPLIT_DEV_DOMAIN;
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["streamdown", "@streamdown/code"],
+  transpilePackages: [
+    "streamdown",
+    "@streamdown/code",
+    "@pierre/diffs",
+  ],
   allowedDevOrigins: replitDomain ? [replitDomain, `*.${replitDomain}`] : [],
   images: {
     remotePatterns: [
@@ -26,7 +30,14 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
-  serverExternalPackages: ["@vercel/oidc"],
+  serverExternalPackages: [
+    "@vercel/oidc",
+    "jose",
+    "arctic",
+    "postgres",
+    "@octokit/rest",
+    "@octokit/auth-app",
+  ],
 };
 
 export default withWorkflow(withBotId(nextConfig));
