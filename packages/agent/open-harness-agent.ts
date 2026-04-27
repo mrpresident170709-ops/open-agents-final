@@ -28,6 +28,7 @@ import {
   webFetchTool,
   writeFileTool,
 } from "./tools";
+import { doctorTool } from "./tools/doctor";
 
 export interface AgentModelSelection {
   id: GatewayModelId;
@@ -86,6 +87,7 @@ const tools = {
   generate_image: generateImageTool,
   generate_video: generateVideoTool,
   get_google_fonts: googleFontsTool,
+  doctor: doctorTool,
 } satisfies ToolSet;
 
 export const openHarnessAgent = new ToolLoopAgent({

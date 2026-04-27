@@ -127,3 +127,30 @@ export const SUBAGENT_ANTI_HALLUCINATION_RULES = `### NEVER HALLUCINATE — VERI
 **The check-before-write rule:**
 If you're about to write code that uses something you haven't verified exists: STOP.
 Grep for it first. Read the source. Then write the code.`;
+
+/** Advanced error recovery with retry logic for network/timeouts */
+export const SUBAGENT_RETRY_RULES = `### ERROR RECOVERY WITH RETRY LOGIC
+
+When a tool fails, classify the error type first:
+
+**Retryable errors (automatically retry logic built-in):**
+- Network timeout, ETIMEDOUT, connection refused — retry after brief delay
+- Rate limit (429) — respect retry-after header if present
+- Server errors (500-503) — retry once
+
+**Non-retryable errors (fix manually):**
+- 404 Not Found — fix the path/resource
+- 401/403 Auth errors — fix credentials
+- Module not found — install or fix import path
+- oldString not found — re-read file and copy exact text
+
+**Rate limit handling:**
+- If you hit a rate limit, wait before retrying
+- For API rate limits: use exponential backoff (1s, 2s, 4s...)
+- For build/install rate limits: wait the suggested time
+
+**The recovery flow:**
+1. Classify the error (retryable vs not)
+2. If retryable: wait, then retry the same operation
+3. If not retryable: identify root cause and fix
+4. Verify the fix worked before moving on`;

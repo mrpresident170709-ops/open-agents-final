@@ -13,6 +13,15 @@ import type { AnthropicLanguageModelOptions } from "@ai-sdk/anthropic";
 import type { OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
 import {
   getAgentEnv,
+  detectModelProvider,
+  getProviderForModel,
+  validateApiKeyShape,
+  getProxyConfig,
+  isDebugMode,
+  isFullyConfigured,
+  getMissingEnvVars,
+  getAnthropicApiKey,
+  getOpenAIApiKey,
 } from "./env";
 
 function supportsAdaptiveAnthropicThinking(modelId: string): boolean {
@@ -196,9 +205,7 @@ function resolveBaseModel(
   // injected yet.  The Anthropic SDK will surface a clear auth error at request
   // time if the key is missing.
   if (id.startsWith("anthropic/")) {
-    const anthropicModelId = id
-      .slice("anthropic/".length)
-      .replace(/\./g, "-");
+    const anthropicModelId = id.slice("anthropic/".length).replace(/\./g, "-");
     const apiKey = getAgentEnv().ANTHROPIC_API_KEY;
     const anthropic = apiKey ? createAnthropic({ apiKey }) : createAnthropic();
     return anthropic(anthropicModelId);
@@ -221,8 +228,7 @@ function resolveBaseModel(
     const env = getAgentEnv();
     const opencodeModelId = id.slice("opencode/".length);
     const opencode = createOpenAI({
-      apiKey:
-        env.OPENCODE_API_KEY ?? env.OPENCODE_ZEN_API_KEY ?? "",
+      apiKey: env.OPENCODE_API_KEY ?? env.OPENCODE_ZEN_API_KEY ?? "",
       baseURL: "https://opencode.ai/zen/v1",
       name: "opencode-zen",
     });
@@ -260,4 +266,98 @@ export function gateway(
   }
 
   return model;
+}
+
+export async function doctor(): Promise<{
+  status: "healthy" | "degraded" | "broken";
+  issues: string[];
+  providers: { name: string; status: "ok" | "missing" | "invalid_key"; error?: string }[];
+  suggestions: string[];
+}> {
+  const issues: string[] = [];
+  const suggestions: string[] = [];
+  const providerStatuses: { name: string; status: "ok" | "missing" | "invalid_key"; error?: string }[] = [];
+  const env = getAgentEnv();
+
+  const checks = [
+    { id: "anthropic", name: "Anthropic", key: env.ANTHROPIC_API_KEY, expectedPrefix: "sk-ant-" },
+    { id: "openai", name: "OpenAI", key: env.OPENAI_API_KEY, expectedPrefix: "sk-" },
+    { id: "together", name: "Together", key: env.TOGETHER_API_KEY, expectedPrefix: "tk-" },
+    { id: "xai", name: "xAI", key: env.XAI_API_KEY, expectedPrefix: "xai-" },
+    { id: "groq", name: "Groq", key: env.GROQ_API_KEY, expectedPrefix: "gsk_" },
+  ];
+
+  for (const check of checks) {
+    if (!check.key) {
+      providerStatuses.push({ name: check.name, status: "missing" });
+      issues.push(`${check.name} API key not configured`);
+      continue;
+    }
+
+    if (check.expectedPrefix && !check.key.startsWith(check.expectedPrefix)) {
+      providerStatuses.push({
+        name: check.name,
+        status: "invalid_key",
+        error: `key should start with ${check.expectedPrefix}`,
+      });
+      issues.push(`${check.name} API key may be invalid (expected prefix ${check.expectedPrefix})`);
+      suggestions.push(`Move ${check.name} key to correct env var if using different provider`);
+    } else {
+      providerStatuses.push({ name: check.name, status: "ok" });
+    }
+  }
+
+  if (!env.ANTHROPIC_API_KEY && !env.OPENAI_API_KEY) {
+    issues.push("No LLM provider configured");
+    suggestions.push("Set ANTHROPIC_API_KEY or OPENAI_API_KEY to use the agent");
+  }
+
+  if (env.HTTP_PROXY || env.HTTPS_PROXY) {
+    suggestions.push("Proxy configured - ensure it allows API endpoints");
+  }
+
+  if (isDebugMode()) {
+    suggestions.push("Debug mode enabled - verbose logging active");
+  }
+
+  let status: "healthy" | "degraded" | "broken" = "healthy";
+  if (providerStatuses.some((p) => p.status === "missing")) {
+    status = issues.length > 1 ? "broken" : "degraded";
+  }
+
+  return { status, issues: issues.slice(0, 5), providers: providerStatuses, suggestions: suggestions.slice(0, 5) };
+}
+
+export function formatDoctorReport(report: Awaited<ReturnType<typeof doctor>>): string {
+  const lines = ["=== Agent Doctor Report ===", ""];
+
+  lines.push(`Status: ${report.status.toUpperCase()}`);
+  lines.push("");
+
+  lines.push("=== Provider Status ===");
+  for (const p of report.providers) {
+    if (p.status === "ok") {
+      lines.push(`✅ ${p.name}: OK`);
+    } else if (p.status === "missing") {
+      lines.push(`❌ ${p.name}: Not configured`);
+    } else {
+      lines.push(`⚠️  ${p.name}: ${p.error}`);
+    }
+  }
+
+  if (report.issues.length > 0) {
+    lines.push("", "=== Issues ===");
+    for (const issue of report.issues) {
+      lines.push(`  - ${issue}`);
+    }
+  }
+
+  if (report.suggestions.length > 0) {
+    lines.push("", "=== Suggestions ===");
+    for (const suggestion of report.suggestions) {
+      lines.push(`  - ${suggestion}`);
+    }
+  }
+
+  return lines.join("\n");
 }

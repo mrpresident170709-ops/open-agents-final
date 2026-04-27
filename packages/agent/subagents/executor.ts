@@ -28,6 +28,7 @@ import {
   SUBAGENT_TOOL_ERROR_RULES,
   SUBAGENT_VALIDATE_RULES,
   SUBAGENT_WORKING_DIR,
+  SUBAGENT_RETRY_RULES,
 } from "./constants";
 
 const EXECUTOR_SYSTEM_PROMPT = `You are an executor agent - a fire-and-forget subagent that completes specific, well-defined implementation tasks autonomously.
@@ -41,6 +42,8 @@ ${SUBAGENT_NO_QUESTIONS_RULES}
 ${SUBAGENT_COMPLETE_TASK_RULES}
 
 ${SUBAGENT_TOOL_ERROR_RULES}
+
+${SUBAGENT_RETRY_RULES}
 
 ${SUBAGENT_ANTI_HALLUCINATION_RULES}
 
