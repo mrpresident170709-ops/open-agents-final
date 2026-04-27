@@ -38,15 +38,29 @@ const askUserQuestionOutputSchema = z
 export type AskUserQuestionOutput = z.infer<typeof askUserQuestionOutputSchema>;
 
 export const askUserQuestionTool = tool({
-  description: `Ask the user questions during execution to gather preferences, clarify requirements, or get decisions.
+  description: `Ask the user a question ONLY when you are genuinely blocked and cannot proceed without their answer.
 
-WHEN TO USE:
-- Gather user preferences or requirements
-- Clarify ambiguous instructions
-- Get decisions on implementation choices
-- Offer choices about direction to take
+WHEN TO USE (all conditions must be true):
+1. You cannot make a reasonable default decision yourself
+2. Proceeding without the answer would likely produce the wrong thing entirely
+3. The request is genuinely ambiguous — not just underspecified
+
+EXAMPLES of valid use:
+- Missing a required API key name that cannot be inferred from the request
+- Two completely different architectures are viable and the user hasn't hinted at either
+- You need a specific external URL (Spline scene, webhook endpoint) that only the user knows
+
+NEVER use for:
+- Confirming you may proceed on a clear build request ("build a document editor")
+- Asking about preferences (colors, fonts, layout) — just pick sensible defaults
+- Presenting a plan before building — just build
+- Getting approval before touching multiple files — just touch them
+- Any situation where you could make a reasonable choice yourself
+
+DEFAULT: Do not ask. Build with sensible defaults. Only call this tool if NOT calling it would make the result useless.
 
 USAGE NOTES:
+- 1-2 questions max; never more
 - Users can always select "Other" to provide custom text input
 - Use multiSelect: true to allow multiple answers
 - If you recommend a specific option, make it the first option and add "(Recommended)"
