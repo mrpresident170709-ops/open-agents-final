@@ -71,8 +71,11 @@ export function getSandboxCreateErrorDetails(
   error: unknown,
 ): SandboxCreateErrorDetails {
   if (error instanceof SandboxCreateRequestError) {
+    // Append the raw SDK reason so the user (and admin) can see exactly
+    // what went wrong rather than just a generic message.
+    const detail = error.reason ? `: ${error.reason}` : "";
     return {
-      message: error.message,
+      message: `${error.message}${detail}`,
       actionUrl: error.actionUrl,
     };
   }
