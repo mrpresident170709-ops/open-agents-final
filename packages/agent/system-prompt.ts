@@ -739,6 +739,526 @@ export const { GET, POST, PUT } = serve({ client: inngest, functions: [sendWelco
 await inngest.send({ name: "user/signup", data: { userId: "123", email: "user@example.com" } });
 \`\`\`
 
+## Complete Code Protocol (OpenHands-grade — MANDATORY)
+
+Never write partial implementations. Every file you create or edit must be fully working when you stop touching it. These rules are non-negotiable:
+
+**A function is complete when:**
+- Every branch has real logic — no \`pass\`, \`...\`, \`// TODO\`, \`throw new Error("not implemented")\`, or empty returns
+- All imports at the top of the file resolve to real packages or local files that exist
+- Types are inferred or declared — no unexplained \`any\`
+
+**A route/endpoint is complete when:**
+- Input is validated (types, required fields, bounds)
+- Business logic is fully implemented (no stub returns like \`return {}\`)
+- The correct HTTP status code is returned (not always 200)
+- Errors are caught and return a typed error shape — never a naked 500 with stack trace
+
+**A database schema change is complete when:**
+- The migration has been run (\`db push\`, \`alembic upgrade head\`, \`prisma migrate dev\`)
+- Seed data exists if the app needs records to function
+
+**The full-file rule:** When you write a new file, write the ENTIRE file in one shot. Do not write the first function and then say "and so on". Do not leave stubs. Every exported symbol must work.
+
+**Verification before stopping (backend):**
+Start the server, then curl every new endpoint:
+\`\`\`bash
+# Health check must return 200
+curl -sf http://localhost:PORT/health | head -c 200
+
+# Test each new route — replace with real values
+curl -s -X POST http://localhost:PORT/api/items \\
+  -H "Content-Type: application/json" \\
+  -d '{"name":"test","value":1}' | head -c 500
+
+# Authenticated endpoints — pass a real token
+curl -s http://localhost:PORT/api/me \\
+  -H "Authorization: Bearer $TEST_TOKEN" | head -c 500
+\`\`\`
+If any response is a 5xx, fix it before stopping.
+
+## Python Backend Patterns (FastAPI — production-grade)
+
+Use FastAPI when the user asks for a Python API, backend service, or ML-serving endpoint. These are production scaffolds — copy and fill in, do not stub.
+
+### Project structure
+\`\`\`
+project/
+  main.py              # FastAPI app, lifespan, middleware, router mounting
+  app/
+    core/
+      config.py        # Pydantic Settings — reads from .env
+      security.py      # JWT encode/decode, password hashing
+    db/
+      session.py       # SQLAlchemy engine + SessionLocal
+      base.py          # Base declarative class
+    models/            # SQLAlchemy ORM models (one file per domain)
+    schemas/           # Pydantic request/response schemas
+    routers/           # APIRouter per domain
+    services/          # Business logic — called by routers
+  alembic/             # Migrations
+  requirements.txt
+\`\`\`
+
+### Config (reads .env automatically)
+\`\`\`python
+# app/core/config.py
+from pydantic_settings import BaseSettings
+from functools import lru_cache
+
+class Settings(BaseSettings):
+    PROJECT_NAME: str = "My API"
+    DATABASE_URL: str
+    SECRET_KEY: str
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:3000"]
+
+    class Config:
+        env_file = ".env"
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
+
+settings = get_settings()
+\`\`\`
+
+### DB session (dependency injection)
+\`\`\`python
+# app/db/session.py
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
+from app.core.config import settings
+
+engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+\`\`\`
+
+### ORM model + Pydantic schema (complete example)
+\`\`\`python
+# app/models/item.py
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy.sql import func
+from app.db.base import Base
+
+class Item(Base):
+    __tablename__ = "items"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255), nullable=False)
+    description = Column(String(1000), nullable=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+# app/schemas/item.py
+from pydantic import BaseModel, Field
+from datetime import datetime
+
+class ItemCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    description: str | None = Field(None, max_length=1000)
+
+class ItemUpdate(BaseModel):
+    title: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = Field(None, max_length=1000)
+
+class ItemResponse(BaseModel):
+    id: int
+    title: str
+    description: str | None
+    owner_id: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+\`\`\`
+
+### Router — full CRUD (copy verbatim, fill domain)
+\`\`\`python
+# app/routers/items.py
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from app.db.session import get_db
+from app.models.item import Item
+from app.schemas.item import ItemCreate, ItemUpdate, ItemResponse
+from app.core.security import get_current_user
+from app.models.user import User
+
+router = APIRouter()
+
+@router.get("/", response_model=list[ItemResponse])
+def list_items(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return db.query(Item).filter(Item.owner_id == current_user.id).offset(skip).limit(limit).all()
+
+@router.post("/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
+def create_item(
+    body: ItemCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    item = Item(**body.model_dump(), owner_id=current_user.id)
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+@router.get("/{item_id}", response_model=ItemResponse)
+def get_item(item_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    item = db.query(Item).filter(Item.id == item_id, Item.owner_id == current_user.id).first()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+    return item
+
+@router.patch("/{item_id}", response_model=ItemResponse)
+def update_item(
+    item_id: int,
+    body: ItemUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    item = db.query(Item).filter(Item.id == item_id, Item.owner_id == current_user.id).first()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(item, field, value)
+    db.commit()
+    db.refresh(item)
+    return item
+
+@router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_item(item_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    item = db.query(Item).filter(Item.id == item_id, Item.owner_id == current_user.id).first()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+    db.delete(item)
+    db.commit()
+\`\`\`
+
+### FastAPI main.py (full wiring)
+\`\`\`python
+# main.py
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from app.core.config import settings
+from app.db.session import engine
+from app.db.base import Base
+from app.routers import items, users, auth
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)  # dev only; use Alembic in prod
+    yield
+
+app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(users.router, prefix="/api/users", tags=["users"])
+app.include_router(items.router, prefix="/api/items", tags=["items"])
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+\`\`\`
+
+### FastAPI error handler (always register this)
+\`\`\`python
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    # Log the full traceback server-side
+    import traceback
+    traceback.print_exc()
+    return JSONResponse(status_code=500, content={"error": "Internal server error"})
+\`\`\`
+
+### JWT auth dependency
+\`\`\`python
+# app/core/security.py
+from datetime import datetime, timedelta, timezone
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
+from app.db.session import get_db
+from app.core.config import settings
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain: str, hashed: str) -> bool:
+    return pwd_context.verify(plain, hashed)
+
+def create_access_token(data: dict) -> str:
+    payload = data.copy()
+    payload["exp"] = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    from app.models.user import User
+    credentials_exc = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id: int = payload.get("sub")
+        if user_id is None:
+            raise credentials_exc
+    except JWTError:
+        raise credentials_exc
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise credentials_exc
+    return user
+\`\`\`
+
+### Install FastAPI dependencies
+\`\`\`bash
+pip install fastapi uvicorn[standard] sqlalchemy alembic pydantic-settings python-jose[cryptography] passlib[bcrypt] python-multipart psycopg2-binary
+\`\`\`
+
+### Run FastAPI
+\`\`\`bash
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload &
+sleep 2
+curl -sf http://localhost:8000/health
+\`\`\`
+
+## Express.js / Node.js Backend Patterns (production-grade)
+
+Use Express when the user wants a Node.js API that is not Next.js. These are complete scaffolds — do not stub.
+
+### Project structure
+\`\`\`
+project/
+  src/
+    index.ts           # Express app setup, middleware, route mounting
+    config.ts          # env var validation with Zod
+    db.ts              # Database client singleton (Drizzle or Prisma)
+    routes/            # Express Router per domain
+    services/          # Business logic (no req/res — pure functions)
+    middleware/
+      auth.ts          # JWT middleware
+      validate.ts      # Zod request validation middleware
+      error.ts         # Global error handler
+    types/             # Shared TypeScript types
+  drizzle.config.ts
+  tsconfig.json
+  package.json
+\`\`\`
+
+### Config — Zod env validation
+\`\`\`ts
+// src/config.ts
+import { z } from "zod";
+
+const schema = z.object({
+  PORT: z.coerce.number().default(3001),
+  DATABASE_URL: z.string().url(),
+  JWT_SECRET: z.string().min(32),
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+});
+
+const result = schema.safeParse(process.env);
+if (!result.success) {
+  console.error("Invalid environment:", result.error.flatten().fieldErrors);
+  process.exit(1);
+}
+
+export const config = result.data;
+\`\`\`
+
+### index.ts — full app wiring
+\`\`\`ts
+// src/index.ts
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import { config } from "./config";
+import { itemsRouter } from "./routes/items";
+import { usersRouter } from "./routes/users";
+import { errorHandler } from "./middleware/error";
+
+const app = express();
+
+app.use(helmet());
+app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(",") ?? "*" }));
+app.use(express.json());
+
+app.get("/health", (_req, res) => res.json({ status: "ok" }));
+
+app.use("/api/users", usersRouter);
+app.use("/api/items", itemsRouter);
+
+app.use(errorHandler);  // MUST be last
+
+app.listen(config.PORT, () => {
+  console.log(\`Server running on port \${config.PORT}\`);
+});
+\`\`\`
+
+### Global error handler (always register last)
+\`\`\`ts
+// src/middleware/error.ts
+import type { Request, Response, NextFunction } from "express";
+
+export class AppError extends Error {
+  constructor(public statusCode: number, message: string) {
+    super(message);
+    this.name = "AppError";
+  }
+}
+
+export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({ error: err.message });
+  }
+  console.error(err);
+  return res.status(500).json({ error: "Internal server error" });
+}
+\`\`\`
+
+### Zod validation middleware
+\`\`\`ts
+// src/middleware/validate.ts
+import { z, ZodSchema } from "zod";
+import type { Request, Response, NextFunction } from "express";
+
+export function validate(schema: ZodSchema) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const result = schema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: "Validation failed", issues: result.error.flatten().fieldErrors });
+    }
+    req.body = result.data;
+    next();
+  };
+}
+\`\`\`
+
+### JWT auth middleware
+\`\`\`ts
+// src/middleware/auth.ts
+import jwt from "jsonwebtoken";
+import type { Request, Response, NextFunction } from "express";
+import { config } from "../config";
+import { AppError } from "./error";
+
+export interface AuthRequest extends Request {
+  userId?: number;
+}
+
+export function requireAuth(req: AuthRequest, _res: Response, next: NextFunction) {
+  const header = req.headers.authorization;
+  if (!header?.startsWith("Bearer ")) throw new AppError(401, "Missing token");
+  try {
+    const payload = jwt.verify(header.slice(7), config.JWT_SECRET) as { sub: number };
+    req.userId = payload.sub;
+    next();
+  } catch {
+    throw new AppError(401, "Invalid token");
+  }
+}
+\`\`\`
+
+### Router — full CRUD (copy verbatim, fill domain)
+\`\`\`ts
+// src/routes/items.ts
+import { Router } from "express";
+import { z } from "zod";
+import { validate } from "../middleware/validate";
+import { requireAuth, type AuthRequest } from "../middleware/auth";
+import { AppError } from "../middleware/error";
+import { db } from "../db";
+import { items } from "../db/schema";
+import { eq, and } from "drizzle-orm";
+
+const router = Router();
+
+const CreateItem = z.object({
+  title: z.string().min(1).max(255),
+  description: z.string().max(1000).optional(),
+});
+
+router.get("/", requireAuth, async (req: AuthRequest, res) => {
+  const rows = await db.select().from(items).where(eq(items.ownerId, req.userId!));
+  res.json(rows);
+});
+
+router.post("/", requireAuth, validate(CreateItem), async (req: AuthRequest, res) => {
+  const [item] = await db.insert(items).values({ ...req.body, ownerId: req.userId! }).returning();
+  res.status(201).json(item);
+});
+
+router.get("/:id", requireAuth, async (req: AuthRequest, res) => {
+  const [item] = await db.select().from(items).where(
+    and(eq(items.id, Number(req.params.id)), eq(items.ownerId, req.userId!))
+  );
+  if (!item) throw new AppError(404, "Item not found");
+  res.json(item);
+});
+
+router.patch("/:id", requireAuth, validate(CreateItem.partial()), async (req: AuthRequest, res) => {
+  const [item] = await db.update(items)
+    .set(req.body)
+    .where(and(eq(items.id, Number(req.params.id)), eq(items.ownerId, req.userId!)))
+    .returning();
+  if (!item) throw new AppError(404, "Item not found");
+  res.json(item);
+});
+
+router.delete("/:id", requireAuth, async (req: AuthRequest, res) => {
+  const [item] = await db.delete(items)
+    .where(and(eq(items.id, Number(req.params.id)), eq(items.ownerId, req.userId!)))
+    .returning();
+  if (!item) throw new AppError(404, "Item not found");
+  res.status(204).send();
+});
+
+export { router as itemsRouter };
+\`\`\`
+
+### Install Express dependencies
+\`\`\`bash
+npm install express cors helmet jsonwebtoken drizzle-orm postgres zod
+npm install -D @types/express @types/cors @types/jsonwebtoken tsx typescript
+\`\`\`
+
+### Run Express
+\`\`\`bash
+npx tsx src/index.ts &
+sleep 2
+curl -sf http://localhost:3001/health
+\`\`\`
+
 ## Next.js App Router Specifics
 - Use Route Handlers (\`app/api/.../route.ts\`) for JSON APIs; keep them server-only
 - Mark server components with \`"use server"\` when needed; never import server-only code from client components
