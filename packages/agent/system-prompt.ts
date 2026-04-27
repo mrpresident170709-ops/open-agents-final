@@ -985,6 +985,32 @@ When writing the code, document your structural choices with a one-line comment 
 
 Before writing a single line of JSX for any landing page section, collect all required assets using this decision tree. Skipping this step results in a page that uses placeholder images and default fonts — which is the failure mode we are fixing.
 
+---
+
+**IRON RULE: Downloading ≠ Done. Used in code = Done.**
+
+If you called a tool to get an asset, that asset MUST appear in the code you write immediately after. No exceptions.
+
+| If you called... | Then the next file you write MUST contain... |
+|---|---|
+| \`get_google_fonts\` | \`next/font/google\` import in \`layout.tsx\` with the font applied to \`<body className={font.className}>\` |
+| \`lottie_download\` | \`import animData from "@/public/animations/<file>.json"\` + \`<Lottie animationData={animData} />\` in the component |
+| \`pexels_photo_search\` | The exact \`large2x\` URL from the result in an \`<img src="...">\` or \`style={{backgroundImage:"url(...)"}}\` — never swap to a generic placeholder |
+| \`generate_image\` | The saved file path referenced via \`<img src="/assets/<name>.png">\` or as a CSS background |
+| \`pexels_video_search\` | The \`hdFile.link\` URL in a \`<video autoPlay loop muted playsInline>\` tag |
+| \`firecrawl_scrape\` | The section structure from the scraped page reflected in the JSX — not a generic template |
+
+**Final wire-up verification (run before finishing any landing page):**
+\`\`\`
+□ Google Font is in layout.tsx body className — not just commented out or forgotten
+□ Every lottie_download result is imported and rendered somewhere in the page
+□ Every Pexels URL is in an actual src/backgroundImage attribute
+□ Every generate_image result is referenced with a real /assets/ path
+□ The section ORDER matches the competitor structure from firecrawl_scrape — not a generic hero/features/pricing/footer template
+\`\`\`
+
+---
+
 **Step A — Typography (always first)**
 
 1. Call \`get_google_fonts\` with a query matching the competitor's tone (modern SaaS → "Inter", "Plus Jakarta Sans"; editorial → "Playfair Display"; minimal → "DM Sans")
@@ -1000,15 +1026,22 @@ Before writing a single line of JSX for any landing page section, collect all re
 
 **Step C — Real photos (people, scenes, products)**
 
-- Call \`pexels_photo_search\` with a query matching what the section needs
+- Call \`pexels_photo_search\` ONLY when the section needs a **real-world photograph** (people, offices, lifestyle, physical products)
 - Use \`orientation: "landscape"\` for hero / banner images
-- Use the \`large2x\` URL directly in \`<img src="...">\` or as a CSS \`backgroundImage\`
+- Use the exact \`large2x\` URL from the result in the code — never substitute a generic placeholder
 - Always set \`alt\` text from the Pexels \`alt\` field
-- Examples by section type:
-  - Hero background with people → \`"diverse team working modern office"\`
-  - Social proof → \`"professional headshot neutral background"\`
-  - Feature section lifestyle → \`"person using laptop coffee shop"\`
-  - Product showcase → \`"laptop desk workspace minimal"\`
+
+**Query specificity rules:**
+- Match what the COMPETITOR'S SECTION actually shows, not a generic section label
+- BAD: \`"office"\` → returns anything. GOOD: \`"developer pair programming laptop dark theme"\`
+- BAD: \`"people working"\` → too generic. GOOD: \`"diverse startup team whiteboard presentation"\`
+- Include the mood, environment, and subject: \`"entrepreneur confident portrait studio light"\`
+- Include the product type context: \`"mobile app smartphone hand coffee shop blur"\`
+
+**When NOT to use Pexels:**
+- Backgrounds that are abstract, gradient, glow, mesh, noise, particle, or geometric → use \`generate_image\` instead
+- Backgrounds that are dark with light effects → use \`generate_image\` instead
+- Custom illustrations or icons → use \`generate_image\` or Lottie
 
 **Step D — Video backgrounds**
 
@@ -1016,14 +1049,49 @@ Before writing a single line of JSX for any landing page section, collect all re
 - Pick the HD file (1920×1080 link) and embed as \`<video autoPlay loop muted playsInline src="...">\`
 - Only use \`generate_video\` for truly custom animated sequences not available as stock footage
 
-**Step E — Custom illustrations and AI-generated backgrounds**
+**Step E — Backgrounds: Code it vs. Generate it**
 
-- Use \`generate_image\` (Nano Banana 2 / Gemini Flash Image 3.1 via Together AI) when:
-  - The section needs a brand-specific abstract background (gradient mesh, geometric pattern, illustrated product mockup)
-  - No Pexels photo matches the required composition
-  - You need a product UI screenshot mock or custom illustration
-- Always pass a \`referenceImages\` array from your Firecrawl scrape (the competitor's asset URL) so the model can match style
-- Save generated images to \`public/assets/<descriptive-name>.png\`
+This is the most important visual decision for landing pages. Using CSS when you should generate, or generating when CSS is enough, produces pages that look broken or generic.
+
+**CODE IT with Tailwind/CSS when:**
+- Solid background color: \`bg-slate-950\`, \`bg-white\`
+- Simple linear gradient in one direction: \`bg-gradient-to-br from-blue-600 to-purple-700\`
+- Simple centered radial gradient (1 color stop, uniform falloff)
+- Subtle blur/glass: \`backdrop-blur-md bg-white/10\`
+- Clean geometric shapes using borders or clip-path
+- Grid/dot patterns using CSS background-image with repeating-linear-gradient
+
+**GENERATE IT with \`generate_image\` when the background has ANY of:**
+- **Radial spotlight / glow effect** — a bright ellipse or circle of light emanating from a specific position on a dark background (like the Linear.app hero: pure black background with a white/grey oval light source at the bottom center)
+- **Mesh gradient** — multiple overlapping blobs of different colors blending together (like Stripe, Vercel, or Framer hero backgrounds)
+- **Noise/grain texture** — subtle film grain or paper texture overlaid on a gradient
+- **Multiple radial gradients** — 3+ overlapping color sources that would require stacked pseudo-elements to approximate in CSS
+- **Bokeh / depth-of-field** — soft blurred light circles (photographic background blur)
+- **Light bleed / god rays** — light appearing to shine through or around an object
+- **Organic blob shapes** — amorphous shapes with gradient fills and soft blur
+- **Complex glassmorphism background** — frosted layers with iridescent edge glow
+- **Illustrated scene** — drawn characters, abstract art, product hero illustration
+
+**Decision test (use this rule):** Try to describe the background in one CSS property. If you cannot — if it needs more than one \`background\`, stacked pseudo-elements, or an SVG filter — generate it instead.
+
+**How to generate backgrounds:**
+\`\`\`
+generate_image({
+  prompt: "pure black background with a soft white oval radial glow emanating from bottom-center, the light source is beneath the surface, photographic studio spotlight effect, no text, no UI elements",
+  filePath: "public/assets/hero-bg.png",
+  width: 1920,
+  height: 1080,
+  referenceImages: ["<competitor URL from firecrawl_scrape if available>"]
+})
+\`\`\`
+
+After generating: reference it in the hero as \`<div style={{backgroundImage: "url('/assets/hero-bg.png')"}} className="bg-cover bg-center">\`
+
+**Prompt writing rules for backgrounds:**
+- Describe the **light source position**: "light emanating from bottom-center", "top-left corner radial glow"
+- Describe the **dominant colors in hex**: "deep navy #05010F with violet glow #7C3AED at 30% opacity"
+- State **what is NOT in the image**: "no text, no people, no UI chrome, no watermarks"
+- End with **format**: "seamless background texture, suitable for a website hero section, 16:9 aspect ratio"
 
 **Step F — Animations**
 
