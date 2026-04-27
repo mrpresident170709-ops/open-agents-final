@@ -198,21 +198,43 @@ function resolveBaseModel(
 ): LanguageModel {
   const id = modelId as string;
 
-  // Route Claude models directly to Anthropic API when key is available.
-  // We read the key lazily via getAgentEnv() rather than calling
-  // getAnthropicApiKey() (which throws), so that module initialisation during
-  // the Next.js production build does not fail when the env var has not been
-  // injected yet.  The Anthropic SDK will surface a clear auth error at request
-  // time if the key is missing.
-  if (id.startsWith("anthropic/")) {
-    const anthropicModelId = id.slice("anthropic/".length).replace(/\./g, "-");
+  const ANTHROPIC_VISION_MODELS = [
+    "claude-sonnet-4-20250514",
+    "claude-sonnet-4-20250509", 
+    "claude-sonnet-4",
+    "claude-opus-4-7",
+    "claude-opus-4-6",
+    "claude-opus-4-5",
+    "claude-opus-4",
+    "claude-3-7-sonnet",
+    "claude-3-5-sonnet-4",
+    "claude-3-5-sonnet-3",
+    "claude-3-5-sonnet-2",
+    "claude-3-5-sonnet",
+    "claude-3-opus",
+    "claude-3-sonnet",
+    "claude-3-haiku",
+  ];
+
+  const anthropicModelId = id.startsWith("anthropic/") 
+    ? id.slice("anthropic/".length).replace(/\./g, "-")
+    : id.replace(/\./g, "-");
+
+  const usesVision = ANTHROPIC_VISION_MODELS.some(m => 
+    anthropicModelId.includes(m.replace(/\./g, "-"))
+  );
+
+  // Route Claude models through Anthropic SDK (supports vision natively)
+  if (id.startsWith("anthropic/") || (!id.includes("/") && id.startsWith("claude-"))) {
+    const modelName = id.startsWith("anthropic/") 
+      ? id.slice("anthropic/".length).replace(/\./g, "-")
+      : id.replace(/\./g, "-");
     const apiKey = getAgentEnv().ANTHROPIC_API_KEY;
     const anthropic = apiKey ? createAnthropic({ apiKey }) : createAnthropic();
-    return anthropic(anthropicModelId);
+    return anthropic(modelName);
   }
 
-  // Route OpenAI models directly to OpenAI API when key is available.
-  // Same lazy-key pattern — avoid throwing at module init.
+  // Route OpenAI models through OpenAI SDK (supports vision natively)
   if (id.startsWith("openai/")) {
     const openaiModelId = id.slice("openai/".length);
     const apiKey = getAgentEnv().OPENAI_API_KEY;
@@ -220,10 +242,7 @@ function resolveBaseModel(
     return openai.responses(openaiModelId) as unknown as LanguageModel;
   }
 
-  // Route opencode zen models (OpenAI-compatible Chat Completions API).
-  // Free models like "big-pickle" are hosted at opencode.ai/zen and require a
-  // free API key from opencode.ai/auth, exposed via OPENCODE_API_KEY
-  // (OPENCODE_ZEN_API_KEY also accepted for compatibility).
+  // Route opencode zen models
   if (id.startsWith("opencode/")) {
     const env = getAgentEnv();
     const opencodeModelId = id.slice("opencode/".length);
@@ -235,7 +254,7 @@ function resolveBaseModel(
     return opencode.chat(opencodeModelId) as unknown as LanguageModel;
   }
 
-  // Fall back to Vercel AI Gateway for all other models
+  // Fall back to Vercel AI Gateway for other providers
   const baseGateway = config
     ? createGateway({ baseURL: config.baseURL, apiKey: config.apiKey })
     : aiGateway;
