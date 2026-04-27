@@ -1,5 +1,6 @@
 import type { LanguageModel } from "ai";
 import { gateway, stepCountIs, ToolLoopAgent } from "ai";
+import { addCacheControl, trimContext } from "../context-management";
 import { z } from "zod";
 import { bashTool } from "../tools/bash";
 import { exaFindSimilarTool, exaSearchTool } from "../tools/exa";
@@ -102,6 +103,12 @@ export const explorerSubagent = new ToolLoopAgent({
   },
   stopWhen: stepCountIs(SUBAGENT_STEP_LIMIT),
   callOptionsSchema,
+  prepareStep: ({ messages, model }) => {
+    const trimmed = trimContext(messages);
+    return {
+      messages: addCacheControl({ messages: trimmed, model }),
+    };
+  },
   prepareCall: ({ options, ...settings }) => {
     if (!options) {
       throw new Error("Explorer subagent requires task call options.");
@@ -112,6 +119,10 @@ export const explorerSubagent = new ToolLoopAgent({
     return {
       ...settings,
       model,
+      tools: addCacheControl({
+        tools: settings.tools,
+        model,
+      }),
       instructions: `${EXPLORER_SYSTEM_PROMPT}
 
 ${SUBAGENT_WORKING_DIR}

@@ -1,7 +1,7 @@
 import type { SandboxState } from "@open-harness/sandbox";
 import { stepCountIs, ToolLoopAgent, type ToolSet } from "ai";
 import { z } from "zod";
-import { addCacheControl } from "./context-management";
+import { addCacheControl, trimContext } from "./context-management";
 import {
   type GatewayModelId,
   gateway,
@@ -95,9 +95,10 @@ export const openHarnessAgent = new ToolLoopAgent({
   stopWhen: stepCountIs(1),
   callOptionsSchema,
   prepareStep: ({ messages, model, steps: _steps }) => {
+    const trimmed = trimContext(messages);
     return {
       messages: addCacheControl({
-        messages,
+        messages: trimmed,
         model,
       }),
     };

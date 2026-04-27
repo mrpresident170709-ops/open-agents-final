@@ -1,5 +1,6 @@
 import type { LanguageModel } from "ai";
 import { gateway, stepCountIs, ToolLoopAgent } from "ai";
+import { addCacheControl, trimContext } from "../context-management";
 import { z } from "zod";
 import { bashTool } from "../tools/bash";
 import { globTool } from "../tools/glob";
@@ -107,6 +108,12 @@ export const designSubagent = new ToolLoopAgent({
   },
   stopWhen: stepCountIs(SUBAGENT_STEP_LIMIT),
   callOptionsSchema,
+  prepareStep: ({ messages, model }) => {
+    const trimmed = trimContext(messages);
+    return {
+      messages: addCacheControl({ messages: trimmed, model }),
+    };
+  },
   prepareCall: ({ options, ...settings }) => {
     if (!options) {
       throw new Error("Design subagent requires task call options.");
@@ -117,6 +124,10 @@ export const designSubagent = new ToolLoopAgent({
     return {
       ...settings,
       model,
+      tools: addCacheControl({
+        tools: settings.tools,
+        model,
+      }),
       instructions: `${DESIGN_SYSTEM_PROMPT}
 
 ${SUBAGENT_WORKING_DIR}
