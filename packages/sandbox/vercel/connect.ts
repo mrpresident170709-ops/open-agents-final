@@ -51,7 +51,16 @@ function toErrorMessage(error: unknown): string {
 
 function isSandboxNotFoundError(error: unknown): boolean {
   const message = toErrorMessage(error).toLowerCase();
-  return message.includes("status code 404") || message.includes("not found");
+  return (
+    message.includes("status code 404") ||
+    message.includes("not found") ||
+    // Vercel returns 403 "Not authorized" when a named sandbox doesn't exist
+    // within the given project/team — treat this the same as "not found" so
+    // we fall through to createIfMissing and create a fresh sandbox instead.
+    message.includes("status code 403") ||
+    message.includes("not authorized") ||
+    message.includes("forbidden")
+  );
 }
 
 function buildCreateConfig(
