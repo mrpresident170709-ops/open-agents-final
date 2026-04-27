@@ -152,8 +152,11 @@ export async function POST(req: Request) {
 
   // ============================================
   // CREATE OR RESUME: Create a named persistent sandbox for this session.
+  // When REPL_ID is set we are running inside a Replit container — use the
+  // local filesystem sandbox so we don't hit the Vercel Sandbox API at all.
   // ============================================
   const startTime = Date.now();
+  const isReplitEnv = !!process.env.REPL_ID;
 
   const source = repoUrl
     ? {
@@ -163,23 +166,38 @@ export async function POST(req: Request) {
       }
     : undefined;
 
-  const sandbox = await connectSandbox({
-    state: {
-      type: "vercel",
-      ...(sandboxName ? { sandboxName } : {}),
-      source,
-    },
-    options: {
-      githubToken: githubToken ?? undefined,
-      gitUser,
-      timeout: DEFAULT_SANDBOX_TIMEOUT_MS,
-      ports: DEFAULT_SANDBOX_PORTS,
-      baseSnapshotId: DEFAULT_SANDBOX_BASE_SNAPSHOT_ID,
-      persistent: !!sandboxName,
-      resume: !!sandboxName,
-      createIfMissing: !!sandboxName,
-    },
-  });
+  const sandbox = await connectSandbox(
+    isReplitEnv
+      ? {
+          state: {
+            type: "local",
+            ...(sandboxName ? { sandboxName } : {}),
+          },
+          options: {
+            githubToken: githubToken ?? undefined,
+            gitUser,
+            timeout: DEFAULT_SANDBOX_TIMEOUT_MS,
+            ports: DEFAULT_SANDBOX_PORTS,
+          },
+        }
+      : {
+          state: {
+            type: "vercel",
+            ...(sandboxName ? { sandboxName } : {}),
+            source,
+          },
+          options: {
+            githubToken: githubToken ?? undefined,
+            gitUser,
+            timeout: DEFAULT_SANDBOX_TIMEOUT_MS,
+            ports: DEFAULT_SANDBOX_PORTS,
+            baseSnapshotId: DEFAULT_SANDBOX_BASE_SNAPSHOT_ID,
+            persistent: !!sandboxName,
+            resume: !!sandboxName,
+            createIfMissing: !!sandboxName,
+          },
+        },
+  );
 
   if (sessionId && sandbox.getState) {
     const nextState = sandbox.getState() as SandboxState;
@@ -233,7 +251,7 @@ export async function POST(req: Request) {
     createdAt: Date.now(),
     timeout: DEFAULT_SANDBOX_TIMEOUT_MS,
     currentBranch: repoUrl ? branch : undefined,
-    mode: "vercel",
+    mode: isReplitEnv ? "local" : "vercel",
     timing: { readyMs },
   });
 }

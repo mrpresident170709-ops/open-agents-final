@@ -49,12 +49,25 @@ export function hasPausedSandboxState(state: unknown): boolean {
 }
 
 /**
+ * Local sandboxes live for the lifetime of the process and have no expiry.
+ * Return true whenever one has a sandbox name.
+ */
+function isLocalSandboxState(state: SandboxState): boolean {
+  return state.type === "local";
+}
+
+/**
  * Type guard to check if a sandbox is active and ready to accept operations.
  */
 export function isSandboxActive(
   state: SandboxState | null | undefined,
 ): state is SandboxState {
   if (!state) return false;
+
+  // Local sandboxes have no expiry — they're always active while they exist.
+  if (isLocalSandboxState(state)) {
+    return hasResumableSandboxState(state);
+  }
 
   const expiresAt = getSandboxExpiresAt(state);
   if (expiresAt === undefined) {
@@ -75,6 +88,10 @@ export function canOperateOnSandbox(
   state: SandboxState | null | undefined,
 ): state is SandboxState {
   if (!state) return false;
+  // Local sandboxes have no expiry — always operable while they have a name.
+  if (isLocalSandboxState(state)) {
+    return hasResumableSandboxState(state);
+  }
   return hasRuntimeState(state);
 }
 
@@ -83,6 +100,11 @@ export function canOperateOnSandbox(
  */
 export function hasRuntimeSandboxState(state: unknown): boolean {
   if (!state || typeof state !== "object") return false;
+
+  // Local sandboxes have no expiry — treat them as always having runtime state.
+  if ((state as { type?: unknown }).type === "local") {
+    return hasResumableSandboxState(state);
+  }
 
   const expiresAt = getSandboxExpiresAt(state);
   if (expiresAt === undefined) {
