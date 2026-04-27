@@ -18,7 +18,29 @@ export {
 export { skillTool, type SkillToolInput } from "./skill";
 export { webFetchTool } from "./fetch";
 export { exaSearchTool, exaFindSimilarTool } from "./exa";
+export { codeSearchTool } from "./code-search";
 export { generateImageTool } from "./image-gen";
 export { generateVideoTool } from "./video-gen";
 export { googleFontsTool } from "./google-fonts";
 export { codebaseSearchTool } from "./codebase-search";
+export { doctorTool } from "./doctor";
+export {
+  lspHover,
+  lspDefinition,
+  lspReferences,
+  lspDiagnostics,
+  lspCodeActions,
+  lspSymbols,
+} from "./lsp";
+export {
+  classifyError,
+  calculateRetryDelay,
+  executeWithRetry,
+  createPlan,
+  getExecutableSteps,
+  type RetryConfig,
+  type ClassifiedError,
+  type ErrorSeverity,
+  type PlanningStep,
+  type Plan,
+} from "./retry-handler";

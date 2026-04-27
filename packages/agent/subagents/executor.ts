@@ -12,7 +12,16 @@ import {
 } from "../tools/firecrawl";
 import { globTool } from "../tools/glob";
 import { grepTool } from "../tools/grep";
+import {
+  lspCodeActions,
+  lspDefinition,
+  lspDiagnostics,
+  lspHover,
+  lspReferences,
+  lspSymbols,
+} from "../tools/lsp";
 import { generateImageTool } from "../tools/image-gen";
+import { codeSearchTool } from "../tools/code-search";
 import { readFileTool } from "../tools/read";
 import { generateVideoTool } from "../tools/video-gen";
 import { editFileTool, writeFileTool } from "../tools/write";
@@ -178,7 +187,7 @@ const callOptionsSchema = z.object({
 export type ExecutorCallOptions = z.infer<typeof callOptionsSchema>;
 
 export const executorSubagent = new ToolLoopAgent({
-  model: gateway("anthropic/claude-haiku-4.5"),
+  model: gateway("anthropic/claude-sonnet-4-20250514"),
   instructions: EXECUTOR_SYSTEM_PROMPT,
   tools: {
     read: readFileTool(),
@@ -192,9 +201,16 @@ export const executorSubagent = new ToolLoopAgent({
     firecrawl_scrape: firecrawlScrapeTool,
     exa_search: exaSearchTool,
     exa_find_similar: exaFindSimilarTool,
+    code_search: codeSearchTool,
     generate_image: generateImageTool,
     generate_video: generateVideoTool,
     critique_clone: critiqueCloneTool,
+    lsp_hover: lspHover,
+    lsp_definition: lspDefinition,
+    lsp_references: lspReferences,
+    lsp_diagnostics: lspDiagnostics,
+    lsp_code_actions: lspCodeActions,
+    lsp_symbols: lspSymbols,
   },
   stopWhen: stepCountIs(SUBAGENT_STEP_LIMIT),
   callOptionsSchema,

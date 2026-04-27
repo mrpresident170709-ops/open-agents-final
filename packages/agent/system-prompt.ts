@@ -4,6 +4,8 @@ import type { SkillMetadata } from "./skills/types";
 // ---------------------------------------------------------------------------
 // Model family detection
 // ---------------------------------------------------------------------------
+// Model family detection
+// ---------------------------------------------------------------------------
 
 type ModelFamily = "claude" | "gpt" | "gemini" | "other";
 
@@ -2668,10 +2670,7 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
   if (options.priorityInstructions) {
     parts.push(options.priorityInstructions);
   }
-  parts.push(
-    CORE_SYSTEM_PROMPT,
-    getModelOverlay(family, options.modelId),
-  );
+  parts.push(CORE_SYSTEM_PROMPT, getModelOverlay(family, options.modelId));
 
   if (options.cwd) {
     parts.push(

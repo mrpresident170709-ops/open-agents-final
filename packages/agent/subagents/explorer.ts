@@ -11,6 +11,15 @@ import {
 } from "../tools/firecrawl";
 import { globTool } from "../tools/glob";
 import { grepTool } from "../tools/grep";
+import {
+  lspCodeActions,
+  lspDefinition,
+  lspDiagnostics,
+  lspHover,
+  lspReferences,
+  lspSymbols,
+} from "../tools/lsp";
+import { codeSearchTool } from "../tools/code-search";
 import { readFileTool } from "../tools/read";
 import { webFetchTool } from "../tools/fetch";
 import type { SandboxExecutionContext } from "../types";
@@ -87,7 +96,7 @@ const callOptionsSchema = z.object({
 export type ExplorerCallOptions = z.infer<typeof callOptionsSchema>;
 
 export const explorerSubagent = new ToolLoopAgent({
-  model: gateway("anthropic/claude-haiku-4.5"),
+  model: gateway("anthropic/claude-sonnet-4-20250514"),
   instructions: EXPLORER_SYSTEM_PROMPT,
   tools: {
     read: readFileTool(),
@@ -100,6 +109,13 @@ export const explorerSubagent = new ToolLoopAgent({
     firecrawl_scrape: firecrawlScrapeTool,
     exa_search: exaSearchTool,
     exa_find_similar: exaFindSimilarTool,
+    code_search: codeSearchTool,
+    lsp_hover: lspHover,
+    lsp_definition: lspDefinition,
+    lsp_references: lspReferences,
+    lsp_diagnostics: lspDiagnostics,
+    lsp_code_actions: lspCodeActions,
+    lsp_symbols: lspSymbols,
   },
   stopWhen: stepCountIs(SUBAGENT_STEP_LIMIT),
   callOptionsSchema,

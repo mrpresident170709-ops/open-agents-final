@@ -23,14 +23,43 @@ const BATCH_SIZE = 64;
 const CACHE_TTL_MS = 90_000;
 
 const CODE_EXTENSIONS = new Set([
-  ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
-  ".py", ".go", ".rs", ".java", ".c", ".cpp", ".h", ".hpp",
-  ".css", ".scss", ".sass", ".less",
-  ".html", ".htm", ".svelte", ".vue",
-  ".json", ".jsonc", ".toml", ".yaml", ".yml",
-  ".md", ".mdx", ".txt",
-  ".sql", ".sh", ".bash", ".zsh",
-  ".graphql", ".gql", ".prisma",
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+  ".py",
+  ".go",
+  ".rs",
+  ".java",
+  ".c",
+  ".cpp",
+  ".h",
+  ".hpp",
+  ".css",
+  ".scss",
+  ".sass",
+  ".less",
+  ".html",
+  ".htm",
+  ".svelte",
+  ".vue",
+  ".json",
+  ".jsonc",
+  ".toml",
+  ".yaml",
+  ".yml",
+  ".md",
+  ".mdx",
+  ".txt",
+  ".sql",
+  ".sh",
+  ".bash",
+  ".zsh",
+  ".graphql",
+  ".gql",
+  ".prisma",
   ".env.example",
 ]);
 
@@ -98,7 +127,8 @@ function chunkFile(
     return [{ startLine: 1, endLine: lines.length, text }];
   }
 
-  const chunks: Array<{ startLine: number; endLine: number; text: string }> = [];
+  const chunks: Array<{ startLine: number; endLine: number; text: string }> =
+    [];
   let i = 0;
   while (i < lines.length) {
     const startIdx = i;
@@ -113,7 +143,10 @@ function chunkFile(
   return chunks;
 }
 
-async function embedBatch(texts: string[], apiKey: string): Promise<number[][]> {
+async function embedBatch(
+  texts: string[],
+  apiKey: string,
+): Promise<number[][]> {
   const allEmbeddings: number[][] = [];
   for (let i = 0; i < texts.length; i += BATCH_SIZE) {
     const batch = texts.slice(i, i + BATCH_SIZE);
@@ -132,7 +165,9 @@ async function embedBatch(texts: string[], apiKey: string): Promise<number[][]> 
     });
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Voyage API error ${res.status}: ${errText.slice(0, 400)}`);
+      throw new Error(
+        `Voyage API error ${res.status}: ${errText.slice(0, 400)}`,
+      );
     }
     const data = (await res.json()) as { data: Array<{ embedding: number[] }> };
     allEmbeddings.push(...data.data.map((d) => d.embedding));
@@ -140,7 +175,10 @@ async function embedBatch(texts: string[], apiKey: string): Promise<number[][]> 
   return allEmbeddings;
 }
 
-export async function embedQuery(query: string, apiKey: string): Promise<number[]> {
+export async function embedQuery(
+  query: string,
+  apiKey: string,
+): Promise<number[]> {
   const res = await fetch(VOYAGE_API_URL, {
     method: "POST",
     headers: {
@@ -159,17 +197,24 @@ export async function embedQuery(query: string, apiKey: string): Promise<number[
     throw new Error(`Voyage API error ${res.status}: ${errText.slice(0, 400)}`);
   }
   const data = (await res.json()) as { data: Array<{ embedding: number[] }> };
-  return data.data[0].embedding;
+  const embedding = data.data[0]?.embedding;
+  if (!embedding) {
+    throw new Error("Voyage API returned no embedding data");
+  }
+  return embedding;
 }
 
 export function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length || a.length === 0) return 0;
   let dot = 0;
   let normA = 0;
   let normB = 0;
   for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
+    const ai = a[i] ?? 0;
+    const bi = b[i] ?? 0;
+    dot += ai * bi;
+    normA += ai * ai;
+    normB += bi * bi;
   }
   const denom = Math.sqrt(normA) * Math.sqrt(normB);
   return denom === 0 ? 0 : dot / denom;
@@ -210,7 +255,12 @@ export async function buildOrGetIndex(
     .filter(hasCodeExtension);
 
   // Read files and build raw chunks
-  const rawChunks: Array<{ file: string; startLine: number; endLine: number; text: string }> = [];
+  const rawChunks: Array<{
+    file: string;
+    startLine: number;
+    endLine: number;
+    text: string;
+  }> = [];
 
   await Promise.all(
     filePaths.map(async (filePath) => {
@@ -256,7 +306,7 @@ export async function buildOrGetIndex(
     startLine: chunk.startLine,
     endLine: chunk.endLine,
     text: chunk.text,
-    embedding: embeddings[i],
+    embedding: embeddings[i] ?? [],
   }));
 
   const index: CodeIndex = {

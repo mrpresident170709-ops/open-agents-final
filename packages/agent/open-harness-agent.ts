@@ -14,13 +14,21 @@ import {
   askUserQuestionTool,
   bashTool,
   codebaseSearchTool,
+  codeSearchTool,
   editFileTool,
+  exaFindSimilarTool,
   exaSearchTool,
   generateImageTool,
   generateVideoTool,
   globTool,
   googleFontsTool,
   grepTool,
+  lspCodeActions,
+  lspDefinition,
+  lspDiagnostics,
+  lspHover,
+  lspReferences,
+  lspSymbols,
   readFileTool,
   skillTool,
   taskTool,
@@ -29,6 +37,27 @@ import {
   writeFileTool,
 } from "./tools";
 import { doctorTool } from "./tools/doctor";
+import { readFile } from "fs/promises";
+import { join } from "path";
+
+const CLAUDE_MD_FILES = ["CLAUDE.md", "claude.md", ".claude.md"];
+
+async function loadProjectMemory(
+  workingDirectory: string,
+): Promise<string | null> {
+  for (const filename of CLAUDE_MD_FILES) {
+    try {
+      const filepath = join(workingDirectory, filename);
+      const content = await readFile(filepath, "utf-8");
+      if (content.trim()) {
+        return content.trim();
+      }
+    } catch {
+      // File doesn't exist, try next
+    }
+  }
+  return null;
+}
 
 export interface AgentModelSelection {
   id: GatewayModelId;
@@ -84,10 +113,18 @@ const tools = {
   skill: skillTool,
   web_fetch: webFetchTool,
   exa_search: exaSearchTool,
+  exa_find_similar: exaFindSimilarTool,
+  code_search: codeSearchTool,
   generate_image: generateImageTool,
   generate_video: generateVideoTool,
   get_google_fonts: googleFontsTool,
   doctor: doctorTool,
+  lsp_hover: lspHover,
+  lsp_definition: lspDefinition,
+  lsp_references: lspReferences,
+  lsp_diagnostics: lspDiagnostics,
+  lsp_code_actions: lspCodeActions,
+  lsp_symbols: lspSymbols,
 } satisfies ToolSet;
 
 export const openHarnessAgent = new ToolLoopAgent({
@@ -105,7 +142,7 @@ export const openHarnessAgent = new ToolLoopAgent({
       }),
     };
   },
-  prepareCall: ({ options, ...settings }) => {
+  prepareCall: async ({ options, ...settings }) => {
     if (!options) {
       throw new Error("Open Harness agent requires call options with sandbox.");
     }
@@ -131,10 +168,18 @@ export const openHarnessAgent = new ToolLoopAgent({
     const sandbox = options.sandbox;
     const skills = options.skills ?? [];
 
+    const projectMemory = await loadProjectMemory(sandbox.workingDirectory);
+    const combinedCustomInstructions = [
+      projectMemory ? `# Project Memory\n\n${projectMemory}` : null,
+      customInstructions,
+    ]
+      .filter(Boolean)
+      .join("\n\n---\n\n");
+
     const instructions = buildSystemPrompt({
       cwd: sandbox.workingDirectory,
       currentBranch: sandbox.currentBranch,
-      customInstructions,
+      customInstructions: combinedCustomInstructions || undefined,
       priorityInstructions,
       environmentDetails: sandbox.environmentDetails,
       skills,
