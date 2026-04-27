@@ -166,38 +166,70 @@ export async function POST(req: Request) {
       }
     : undefined;
 
-  const sandbox = await connectSandbox(
-    isReplitEnv
-      ? {
-          state: {
-            type: "local",
-            ...(sandboxName ? { sandboxName } : {}),
+  let sandbox: Awaited<ReturnType<typeof connectSandbox>>;
+  try {
+    sandbox = await connectSandbox(
+      isReplitEnv
+        ? {
+            state: {
+              type: "local",
+              ...(sandboxName ? { sandboxName } : {}),
+            },
+            options: {
+              githubToken: githubToken ?? undefined,
+              gitUser,
+              timeout: DEFAULT_SANDBOX_TIMEOUT_MS,
+              ports: DEFAULT_SANDBOX_PORTS,
+            },
+          }
+        : {
+            state: {
+              type: "vercel",
+              ...(sandboxName ? { sandboxName } : {}),
+              source,
+            },
+            options: {
+              githubToken: githubToken ?? undefined,
+              gitUser,
+              timeout: DEFAULT_SANDBOX_TIMEOUT_MS,
+              ports: DEFAULT_SANDBOX_PORTS,
+              baseSnapshotId: DEFAULT_SANDBOX_BASE_SNAPSHOT_ID,
+              persistent: !!sandboxName,
+              resume: !!sandboxName,
+              createIfMissing: !!sandboxName,
+            },
           },
-          options: {
-            githubToken: githubToken ?? undefined,
-            gitUser,
-            timeout: DEFAULT_SANDBOX_TIMEOUT_MS,
-            ports: DEFAULT_SANDBOX_PORTS,
-          },
-        }
-      : {
-          state: {
-            type: "vercel",
-            ...(sandboxName ? { sandboxName } : {}),
-            source,
-          },
-          options: {
-            githubToken: githubToken ?? undefined,
-            gitUser,
-            timeout: DEFAULT_SANDBOX_TIMEOUT_MS,
-            ports: DEFAULT_SANDBOX_PORTS,
-            baseSnapshotId: DEFAULT_SANDBOX_BASE_SNAPSHOT_ID,
-            persistent: !!sandboxName,
-            resume: !!sandboxName,
-            createIfMissing: !!sandboxName,
-          },
-        },
-  );
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[sandbox] connectSandbox failed:", message, error);
+
+    // Surface actionable hints for common failure modes
+    let hint: string | undefined;
+    if (/403|not authorized|forbidden/i.test(message)) {
+      hint =
+        "Vercel Sandbox returned 403 — verify VERCEL_TOKEN has sandbox permissions, " +
+        "VERCEL_TEAM_ID matches the token's team, and your plan supports Vercel Sandbox (Pro/Enterprise).";
+    } else if (/401|unauthorized/i.test(message)) {
+      hint = "Vercel Sandbox returned 401 — VERCEL_TOKEN is invalid or expired.";
+    } else if (/oidc|compute credential/i.test(message)) {
+      hint =
+        "Vercel OIDC token is missing — enable 'Compute Credentials' in your Vercel project settings.";
+    } else if (/missing credential/i.test(message)) {
+      hint =
+        "Sandbox credentials incomplete — set VERCEL_TOKEN + VERCEL_TEAM_ID + VERCEL_PROJECT_ID " +
+        "or enable Vercel Compute Credentials (OIDC). Visit /api/sandbox/health for details.";
+    }
+
+    return Response.json(
+      {
+        error: "Failed to create sandbox",
+        reason: message,
+        ...(hint ? { hint } : {}),
+      },
+      { status: 503 },
+    );
+  }
 
   if (sessionId && sandbox.getState) {
     const nextState = sandbox.getState() as SandboxState;
