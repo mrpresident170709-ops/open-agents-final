@@ -17,9 +17,24 @@
         "NEXT_PUBLIC_VERCEL_APP_CLIENT_ID",
         "POSTGRES_URL",
         "REDIS_URL",
-        "VERCEL_APP_CLIENT_SECRET"
+        "VERCEL_APP_CLIENT_SECRET",
+        "SESSION_SECRET",
+        "ANTHROPIC_API_KEY",
+        "OPENAI_API_KEY",
+        "SINGLE_USER_MODE",
+        "ZENMUX_API_KEY",
+        "OPENCODE_API_KEY",
+        "VOYAGE_API_KEY",
+        "FIRECRAWL_API_KEY",
+        "PEXELS_API_KEY",
+        "BROWSERBASE_API_KEY",
+        "BROWSERBASE_PROJECT_ID",
+        "TOGETHER_API_KEY",
+        "TWENTY_FIRST_API_KEY",
+        "EXA_API_KEY",
+        "AI_GATEWAY_API_KEY"
       ],
-      "outputs": ["dist/**"]
+      "outputs": [".next/**", "!.next/cache/**"]
     },
     "dev": { "cache": false, "persistent": true },
     "typecheck": { "dependsOn": ["^typecheck"], "outputs": [] },

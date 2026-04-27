@@ -20,6 +20,8 @@ const envSchema = z.object({
   // Vercel Sandbox (Required for sandbox features)
   VERCEL_TOKEN: z.string().min(1).optional(),
   VERCEL_ACCESS_TOKEN: z.string().min(1).optional(),
+  // Auto-injected by Vercel when "Compute Credentials" (OIDC) is enabled
+  VERCEL_OIDC_TOKEN: z.string().min(1).optional(),
   VERCEL_TEAM_ID: z.string().min(1).optional(),
   VERCEL_PROJECT_ID: z.string().min(1).optional(),
   VERCEL_SANDBOX_TIMEOUT_MS: z
@@ -138,7 +140,8 @@ export function isGitHubAppConfigured(): boolean {
 
 export function isVercelSandboxConfigured(): boolean {
   const e = getEnv();
-  return !!(e.VERCEL_TOKEN && e.VERCEL_TEAM_ID && e.VERCEL_PROJECT_ID);
+  const token = e.VERCEL_TOKEN || e.VERCEL_ACCESS_TOKEN || e.VERCEL_OIDC_TOKEN;
+  return !!(token && e.VERCEL_TEAM_ID && e.VERCEL_PROJECT_ID);
 }
 
 export function isDaytonaConfigured(): boolean {
