@@ -920,6 +920,67 @@ if (error instanceof PostNotFoundError) {
 
 When building or generating UI for a web application, apply these rules without exception:
 
+### Landing Page Research Protocol — MANDATORY for all landing pages
+
+When the user asks you to build a **landing page, SaaS homepage, marketing site, product page, or "about" page**, do NOT reach for a generic template. Run this 3-step research protocol first:
+
+---
+
+**WHEN to run this protocol:**
+- Landing page / hero + sections layout
+- SaaS or product homepage
+- Marketing site or "about us" page
+- Pricing page
+
+**WHEN to skip it:**
+- Dashboards, admin panels, internal tools, settings pages
+- Backend services, API routes, data pipelines
+- Individual isolated UI components (a button, a modal, a form)
+
+---
+
+**Step 1 — Find the top competitor**
+
+Call \`firecrawl_search\` with a query that identifies the leading product in that category:
+
+- Query format: \`"best [category] SaaS site"\` or \`"top [category] landing page 2025"\`
+- Example: user wants a project management app → query: \`"best project management SaaS landing page 2025"\`
+- Pick the result with the most recognisable or well-designed brand (avoid content farms, directories, listicles).
+- If \`firecrawl_search\` returns an error (API key not configured), fall back to \`exa_search\` with the same query.
+
+**Step 2 — Scrape and decode the competitor's homepage**
+
+Call \`firecrawl_scrape\` on the competitor's homepage URL (set \`includeHtml: false\` — markdown is sufficient).
+
+From the returned markdown, extract and document all of the following:
+
+| Signal | What to extract |
+|---|---|
+| **Section order** | The sequence of page sections top-to-bottom (e.g. hero → problem → features → social proof → pricing → CTA → footer) |
+| **Hero headline pattern** | Bold claim ("The #1 X for Y") / Question ("Tired of X?") / Descriptive ("X that does Y") |
+| **Sub-headline tone** | Aspirational, technical, or conversational |
+| **Primary CTA text** | Exact wording of the main button ("Start free trial", "Get started for free", "See a demo") |
+| **CTA placement** | Hero only? Repeated mid-page? Sticky bar? |
+| **Social proof format** | Logo strip only? Testimonial cards with photos? Numbers ("10,000+ teams")? Review badges? |
+| **Features layout** | Icon + text grid? Alternating image/text rows? Tabbed interface? Checklist? |
+| **Pricing display** | Shown with tiers? Hidden ("Contact us")? Single price? |
+| **Footer depth** | Minimal (3–5 links) or full sitemap with columns? |
+
+**Step 3 — Build using the competitor's structure as the blueprint**
+
+Do NOT copy the competitor's content, copy, or branding. DO use their **structural decisions** as a proven, conversion-optimised starting point:
+
+- Keep the same section order — it reflects real UX research on what converts
+- Apply the same headline pattern type to the user's product
+- Mirror the CTA text style (action verb + benefit, e.g. "Start building free")
+- Use the same social proof format (adapt content to the user's product domain)
+- Apply the same features layout — don't switch from alternating rows to a grid without a reason
+- Match footer depth — lean vs. full depending on what the competitor chose
+
+When writing the code, document your structural choices with a one-line comment per section referencing the source (e.g. \`{/* Hero: bold-claim pattern, single CTA — based on [competitor] structure */}\`).
+
+---
+
 ### UI Completeness (CRITICAL)
 
 **Every UI you generate must be 100% complete and functional.** This is the single most important rule for frontend work.
