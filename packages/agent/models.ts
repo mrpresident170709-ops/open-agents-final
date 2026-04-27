@@ -12,8 +12,6 @@ import { createOpenAI } from "@ai-sdk/openai";
 import type { AnthropicLanguageModelOptions } from "@ai-sdk/anthropic";
 import type { OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
 import {
-  getAnthropicApiKey,
-  getOpenAIApiKey,
   getAgentEnv,
 } from "./env";
 
@@ -191,26 +189,27 @@ function resolveBaseModel(
 ): LanguageModel {
   const id = modelId as string;
 
-  // Route Claude models directly to Anthropic API when key is available
+  // Route Claude models directly to Anthropic API when key is available.
+  // We read the key lazily via getAgentEnv() rather than calling
+  // getAnthropicApiKey() (which throws), so that module initialisation during
+  // the Next.js production build does not fail when the env var has not been
+  // injected yet.  The Anthropic SDK will surface a clear auth error at request
+  // time if the key is missing.
   if (id.startsWith("anthropic/")) {
-    const apiKey = getAnthropicApiKey();
-    // Anthropic's API uses dashes between version segments
-    // (e.g. `claude-haiku-4-5`), but the gateway-style IDs we receive use
-    // dots (`claude-haiku-4.5`). Normalize before forwarding.
     const anthropicModelId = id
       .slice("anthropic/".length)
       .replace(/\./g, "-");
-    const anthropic = createAnthropic({ apiKey });
+    const apiKey = getAgentEnv().ANTHROPIC_API_KEY;
+    const anthropic = apiKey ? createAnthropic({ apiKey }) : createAnthropic();
     return anthropic(anthropicModelId);
   }
 
-  // Route OpenAI models directly to OpenAI API when key is available
+  // Route OpenAI models directly to OpenAI API when key is available.
+  // Same lazy-key pattern — avoid throwing at module init.
   if (id.startsWith("openai/")) {
-    const apiKey = getOpenAIApiKey();
     const openaiModelId = id.slice("openai/".length);
-    const openai = createOpenAI({
-      apiKey,
-    });
+    const apiKey = getAgentEnv().OPENAI_API_KEY;
+    const openai = apiKey ? createOpenAI({ apiKey }) : createOpenAI();
     return openai.responses(openaiModelId) as unknown as LanguageModel;
   }
 
