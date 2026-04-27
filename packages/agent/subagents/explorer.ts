@@ -119,10 +119,6 @@ export const explorerSubagent = new ToolLoopAgent({
     return {
       ...settings,
       model,
-      tools: addCacheControl({
-        tools: settings.tools,
-        model,
-      }),
       instructions: `${EXPLORER_SYSTEM_PROMPT}
 
 ${SUBAGENT_WORKING_DIR}

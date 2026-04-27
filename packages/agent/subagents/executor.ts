@@ -211,10 +211,6 @@ export const executorSubagent = new ToolLoopAgent({
     return {
       ...settings,
       model,
-      tools: addCacheControl({
-        tools: settings.tools,
-        model,
-      }),
       instructions: `${EXECUTOR_SYSTEM_PROMPT}
 
 ${SUBAGENT_WORKING_DIR}

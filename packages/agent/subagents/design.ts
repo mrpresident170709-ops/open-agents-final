@@ -124,10 +124,6 @@ export const designSubagent = new ToolLoopAgent({
     return {
       ...settings,
       model,
-      tools: addCacheControl({
-        tools: settings.tools,
-        model,
-      }),
       instructions: `${DESIGN_SYSTEM_PROMPT}
 
 ${SUBAGENT_WORKING_DIR}
