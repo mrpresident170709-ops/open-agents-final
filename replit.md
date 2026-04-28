@@ -31,7 +31,7 @@ docs/              # Architecture and style documentation
 
 ## Running on Replit
 
-- **Dev server**: `cd apps/web && bun run dev` on port 5000
+- **Dev server**: `cd apps/web && bun run dev` on port 5000 (uses `--webpack` flag to avoid Turbopack ESM resolution issues with `jose`)
 - **Single user mode**: `SINGLE_USER_MODE=true` (set in userenv) — bypasses auth
 - **Database**: Replit PostgreSQL (DATABASE_URL auto-configured)
 - **Encryption**: JWE_SECRET and ENCRYPTION_KEY auto-generated in userenv
