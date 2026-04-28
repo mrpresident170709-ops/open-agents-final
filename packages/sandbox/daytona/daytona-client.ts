@@ -56,6 +56,42 @@ export class Daytona {
 
   async create(params?: any): Promise<Sandbox> {
     const apiKey = this.config.apiKey || process.env.DAYTONA_API_KEY;
+    // Use correct Daytona API URL - docs say app.daytona.io/api
+    const apiUrl = this.config.apiUrl || process.env.DAYTONA_API_URL || "https://app.daytona.io/api";
+
+    console.log("Daytona: Creating sandbox", { 
+      apiUrl: apiUrl.substring(0, 30), 
+      hasKey: !!apiKey,
+      keyPrefix: apiKey?.substring(0, 10) 
+    });
+
+    if (!apiKey) {
+      throw new Error("DAYTONA_API_KEY is required. Set it in environment or pass to Daytona constructor.");
+    }
+
+    // Create sandbox via API - use empty body per Daytona docs
+    const response = await fetch(`${apiUrl}/sandbox`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Daytona API error:", response.status, text);
+      throw new Error(`Failed to create Daytona sandbox: ${response.status} ${text}`);
+    }
+
+    const data = await response.json();
+    console.log("Daytona: Created sandbox", data.id);
+    return this.wrapSandbox(data);
+  }
+
+  async create(params?: any): Promise<Sandbox> {
+    const apiKey = this.config.apiKey || process.env.DAYTONA_API_KEY;
     const apiUrl = this.config.apiUrl || process.env.DAYTONA_API_URL || "https://app.daytona.io/api";
 
     if (!apiKey) {
