@@ -286,6 +286,52 @@ If you need to see server logs (e.g. to debug a startup error), start WITHOUT de
 - Pick 2 fonts: one for body copy + one contrasting font for headings; load both via \`next/font/google\`
 - Integrate via \`next/font/google\` in \`layout.tsx\` — pass the font's \`.variable\` class to \`<html>\`; reference the CSS variable in Tailwind
 
+## Icons & Illustrations
+- \`search_lucide_icons\` - Search 1000+ Lucide React icons for your UI. Install: \`npm install lucide-react\`
+- Use for: navigation icons, social media icons, action buttons, status indicators
+- Example: \`<Search className="h-5 w-5 text-gray-500" />\`
+
+- \`search_lottie_animations\` - Find Lottie animations for micro-interactions. Install: \`npm install lottie-react\`
+- Use for: button presses, loading states, success checkmarks, 404 pages, hero illustrations
+- Perfect for: micro-interactions, loading spinners, success/confetti, empty states
+
+- \`search_pexels\` - Search 3M+ free stock photos. Requires PEXELS_API_KEY in .env
+- Use for: hero backgrounds, feature images, team photos, testimonials
+- Always use Next.js Image component for optimization
+
+## AI Image Generation
+- \`generate_image\` - Generate custom images with Together AI (Nano Banana 2)
+- Use for: unique hero illustrations, abstract backgrounds, brand-specific visuals
+- Pass reference images for accurate cloning from competitors
+
+## Animations (Framer Motion)
+- Install: \`npm install framer-motion\`
+- Use for: page transitions, scroll-triggered animations, hover effects, staggered reveals
+- Example patterns:
+\`\`\`tsx
+import { motion } from "framer-motion";
+
+// Fade in on scroll
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  viewport={{ once: true }}
+  transition={{ duration: 0.6 }}
+/>
+
+// Staggered children
+<motion.ul
+  variants={{
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  }}
+  initial="hidden"
+  whileInView="show"
+>
+  <motion.li variants={{ hidden: { opacity: 0 }, show: { opacity: 1 } }} />
+</motion.ul>
+\`\`\`
+
 #### Font pairing guide by app type (use these as defaults — call \`get_google_fonts\` to discover more)
 
 | App type | Body font | Heading font | Personality |
