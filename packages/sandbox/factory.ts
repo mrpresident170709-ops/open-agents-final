@@ -1,4 +1,5 @@
 import type { Sandbox, SandboxHooks } from "./interface";
+import { getDaytonaCredentials } from "./env";
 import { connectLocal } from "./local/connect";
 import type { LocalState } from "./local/state";
 import { connectVercel } from "./vercel/connect";
@@ -66,7 +67,13 @@ function dispatchConnect(
   if (state.type === "vercel") {
     return connectVercel(state, options);
   }
-  // Default to Daytona (most feature-rich)
+  // Daytona - check for API key first
+  const daytonaCreds = getDaytonaCredentials();
+  if (!daytonaCreds?.apiKey) {
+    // Fall back to Vercel if no Daytona key
+    console.warn("⚠️ DAYTONA_API_KEY not configured, falling back to Vercel sandbox");
+    return connectVercel({} as VercelState, options);
+  }
   return connectDaytona(state, options);
 }
 
