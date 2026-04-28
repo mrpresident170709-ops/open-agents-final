@@ -32,7 +32,10 @@
         "TOGETHER_API_KEY",
         "TWENTY_FIRST_API_KEY",
         "EXA_API_KEY",
-        "AI_GATEWAY_API_KEY"
+        "AI_GATEWAY_API_KEY",
+        "DAYTONA_API_KEY",
+        "DAYTONA_API_URL",
+        "DAYTONA_TARGET"
       ],
       "outputs": [".next/**", "!.next/cache/**"]
     },
