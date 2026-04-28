@@ -34,7 +34,7 @@ interface CreateSandboxRequest {
   branch?: string;
   isNewBranch?: boolean;
   sessionId?: string;
-  sandboxType?: "vercel";
+  sandboxType?: "vercel" | "daytona";
 }
 
 // async function syncVercelProjectEnvVarsToSandbox(params: {
