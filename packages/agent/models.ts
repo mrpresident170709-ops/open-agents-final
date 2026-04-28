@@ -256,9 +256,15 @@ function resolveBaseModel(
   }
 
   // Route MiniMax models via OpenCode Zen (free MiniMax models)
-  if (id.startsWith("minimax/")) {
+  if (id.startsWith("opencode/minimax") || id.startsWith("minimax/")) {
     const env = getAgentEnv();
-    const miniMaxModelId = id.slice("minimax/".length);
+    // Convert: minimax/MiniMax-M2.5-free → minimax-m2.5-free (dot format)
+    let miniMaxModelId = id.startsWith("minimax/") 
+      ? id.slice("minimax/".length)
+      : id.slice("opencode/".length);
+    // Convert M2-5-free to M2.5-free (dot format for API)
+    miniMaxModelId = miniMaxModelId.replace(/M(\d)-(\d)-/g, 'M$1.$2-');
+    
     const opencode = createOpenAI({
       apiKey: env.OPENCODE_API_KEY ?? env.OPENCODE_ZEN_API_KEY ?? "",
       baseURL: "https://opencode.ai/zen/v1",
