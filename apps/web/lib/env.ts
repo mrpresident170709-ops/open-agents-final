@@ -33,7 +33,7 @@ const envSchema = z.object({
   VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(),
 
   // Daytona Sandbox (Alternative to Vercel)
-  DAYTONA_API_KEY: z.string().min(1).optional(),
+  DAYTONA_API_KEY: z.string().optional(),
   DAYTONA_API_URL: z.string().url().optional(),
   DAYTONA_TARGET: z.string().optional(),
   DAYTONA_SANDBOX_TIMEOUT_MS: z
@@ -146,7 +146,9 @@ export function isVercelSandboxConfigured(): boolean {
 
 export function isDaytonaConfigured(): boolean {
   const e = getEnv();
-  return !!e.DAYTONA_API_KEY;
+  const hasKey = !!e.DAYTONA_API_KEY;
+  console.log("Daytona check:", { hasKey, keyLength: e.DAYTONA_API_KEY?.length, keyPrefix: e.DAYTONA_API_KEY?.substring(0, 8) });
+  return hasKey;
 }
 
 export function isDatabaseConfigured(): boolean {
