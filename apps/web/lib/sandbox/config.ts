@@ -44,7 +44,7 @@ export const DEFAULT_SANDBOX_PORTS = [3000, 5173, 4321, 8000];
 export const CODE_SERVER_PORT = 8000;
 
 /** Default working directory for sandboxes, used for path display */
-export const DEFAULT_WORKING_DIRECTORY = "/vercel/sandbox";
+export const DEFAULT_WORKING_DIRECTORY = "/home/daytona";
 
 /**
  * Base snapshot for fresh cloud sandboxes.

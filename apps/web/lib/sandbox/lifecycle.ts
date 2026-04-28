@@ -184,7 +184,7 @@ export async function evaluateSandboxLifecycle(
   if (!canOperateOnSandbox(sandboxState)) {
     return { action: "skipped", reason: "sandbox-not-operable" };
   }
-  if (sandboxState.type !== "vercel") {
+  if (sandboxState.type !== "vercel" && sandboxState.type !== "daytona") {
     return { action: "skipped", reason: "unsupported-sandbox-type" };
   }
 

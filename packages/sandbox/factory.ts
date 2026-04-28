@@ -63,10 +63,11 @@ function dispatchConnect(
   if (state.type === "local") {
     return connectLocal(state, options);
   }
-  if (state.type === "daytona") {
-    return connectDaytona(state, options);
+  if (state.type === "vercel") {
+    return connectVercel(state, options);
   }
-  return connectVercel(state, options);
+  // Default to Daytona (most feature-rich)
+  return connectDaytona(state, options);
 }
 
 /**
