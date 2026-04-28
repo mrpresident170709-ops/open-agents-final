@@ -15,7 +15,15 @@ export async function connectDaytona(
 
   let sandbox;
 
-  if (state.sandboxId || state.sandboxName) {
+  // Auto-create if no sandboxId/name provided (for new sessions)
+  if (!state.sandboxId && !state.sandboxName) {
+    console.log("Creating new Daytona sandbox for session...");
+    sandbox = await daytona.create({
+      name: state.sandboxName,
+      language: "typescript",
+      envVars: {},
+    });
+  } else if (state.sandboxId || state.sandboxName) {
     // Reconnect to existing sandbox
     try {
       sandbox = await daytona.get(state.sandboxId || state.sandboxName!);
@@ -31,14 +39,16 @@ export async function connectDaytona(
       });
     }
   } else if (options?.createIfMissing) {
-    // Create new sandbox
+    // Create new sandbox when explicitly requested
     sandbox = await daytona.create({
       name: state.sandboxName,
       language: "typescript",
       envVars: {},
     });
-  } else {
-    throw new Error("No sandbox ID/name provided and createIfMissing is false");
+  }
+
+  if (!sandbox) {
+    throw new Error("Failed to create or connect to Daytona sandbox");
   }
 
   // Import DaytonaSandbox dynamically to avoid circular dependency
