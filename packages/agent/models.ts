@@ -255,16 +255,16 @@ function resolveBaseModel(
     return opencode.chat(opencodeModelId) as unknown as LanguageModel;
   }
 
-  // Route MiniMax models via OpenAI SDK (MiniMax uses OpenAI-compatible API)
+  // Route MiniMax models via OpenCode Zen (free MiniMax models)
   if (id.startsWith("minimax/")) {
     const env = getAgentEnv();
     const miniMaxModelId = id.slice("minimax/".length);
-    const miniMax = createOpenAI({
-      apiKey: env.MINIMAX_API_KEY ?? "",
-      baseURL: "https://api.minimax.io/v1",
-      name: "minimax",
+    const opencode = createOpenAI({
+      apiKey: env.OPENCODE_API_KEY ?? env.OPENCODE_ZEN_API_KEY ?? "",
+      baseURL: "https://opencode.ai/zen/v1",
+      name: "opencode-zen",
     });
-    return miniMax.chat(miniMaxModelId) as unknown as LanguageModel;
+    return opencode.chat(miniMaxModelId) as unknown as LanguageModel;
   }
 
   // Fall back to Vercel AI Gateway for other providers
