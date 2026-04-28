@@ -12,6 +12,7 @@ import type { SkillMetadata } from "./skills/types";
 import { buildSystemPrompt } from "./system-prompt";
 import {
   askUserQuestionTool,
+  analyzeCodebaseTool,
   bashTool,
   codebaseSearchTool,
   codeSearchTool,
@@ -29,6 +30,7 @@ import {
   lspHover,
   lspReferences,
   lspSymbols,
+  planTool,
   readFileTool,
   skillTool,
   taskTool,
@@ -125,6 +127,8 @@ const tools = {
   lsp_diagnostics: lspDiagnostics,
   lsp_code_actions: lspCodeActions,
   lsp_symbols: lspSymbols,
+  plan: planTool,
+  analyze_codebase: analyzeCodebaseTool,
 } satisfies ToolSet;
 
 export const openHarnessAgent = new ToolLoopAgent({

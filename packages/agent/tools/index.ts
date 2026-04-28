@@ -32,6 +32,7 @@ export {
   lspCodeActions,
   lspSymbols,
 } from "./lsp";
+export { planTool, analyzeCodebaseTool } from "./plan";
 export {
   classifyError,
   calculateRetryDelay,
