@@ -17,6 +17,7 @@ import {
   codebaseSearchTool,
   codeSearchTool,
   editFileTool,
+  envTool,
   exaFindSimilarTool,
   exaSearchTool,
   generateImageTool,
@@ -24,6 +25,7 @@ import {
   globTool,
   googleFontsTool,
   grepTool,
+  installTool,
   lspCodeActions,
   lspDefinition,
   lspDiagnostics,
@@ -129,6 +131,8 @@ const tools = {
   lsp_symbols: lspSymbols,
   plan: planTool,
   analyze_codebase: analyzeCodebaseTool,
+  detect_environment: envTool,
+  install_package: installTool,
 } satisfies ToolSet;
 
 export const openHarnessAgent = new ToolLoopAgent({

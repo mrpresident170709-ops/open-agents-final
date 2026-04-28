@@ -4,6 +4,7 @@ export { writeFileTool, editFileTool } from "./write";
 export { grepTool } from "./grep";
 export { globTool } from "./glob";
 export { bashTool, commandNeedsApproval } from "./bash";
+export { envTool, installTool, detectEnvironment, parseInstallError, type DetectedEnvironment, type PackageManager, type RuntimeType } from "./env-tool";
 export {
   taskTool,
   type TaskPendingToolCall,
