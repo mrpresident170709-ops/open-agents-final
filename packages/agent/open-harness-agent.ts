@@ -92,7 +92,7 @@ const callOptionsSchema = z.object({
 
 export type OpenHarnessAgentCallOptions = z.infer<typeof callOptionsSchema>;
 
-export const defaultModelLabel = "anthropic/claude-sonnet-4-20250514" as const;
+export const defaultModelLabel = "minimax/MiniMax-M2.5-free" as const;
 export const defaultModel = gateway(defaultModelLabel);
 
 function normalizeAgentModelSelection(
