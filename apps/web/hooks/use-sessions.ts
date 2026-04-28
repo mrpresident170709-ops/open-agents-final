@@ -6,6 +6,7 @@ import useSWR, { useSWRConfig } from "swr";
 import type { Chat, Session } from "@/lib/db/schema";
 import type { VercelProjectSelection } from "@/lib/vercel/types";
 import { fetcher } from "@/lib/swr";
+import type { SandboxType } from "@/components/sandbox-selector-compact";
 
 export type SessionWithUnread = Pick<
   Session,
@@ -34,7 +35,7 @@ interface CreateSessionInput {
   branch?: string;
   cloneUrl?: string;
   isNewBranch: boolean;
-  sandboxType: "vercel";
+  sandboxType: SandboxType;
   autoCommitPush: boolean;
   autoCreatePr: boolean;
   vercelProject?: VercelProjectSelection | null;
