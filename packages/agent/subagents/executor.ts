@@ -173,6 +173,89 @@ export const postsRelations = relations(posts, ({ one }) => ({
 Check lock files: bun.lock/bun.lockb → bun | pnpm-lock.yaml → pnpm | yarn.lock → yarn | package-lock.json → npm
 NEVER hardcode a package manager — always check first.
 
+### Streaming Responses (Server-Sent Events):
+\`\`\`ts
+export async function POST(req: NextRequest) {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      req.json().then(async ({ messages }) => {
+        try {
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages,
+            stream: true,
+          });
+          for await (const chunk of response) {
+            const content = chunk.choices[0]?.delta?.content;
+            if (content) controller.enqueue(encoder.encode(\`data: \${content}\\n\\n\`));
+          }
+          controller.enqueue(encoder.encode("data: [DONE]\\n\\n"));
+          controller.close();
+        } catch (e) {
+          controller.enqueue(encoder.encode(\`error: \${e}\\n\\n\`));
+          controller.close();
+        }
+      });
+    },
+  });
+  return new Response(stream, {
+    headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
+  });
+}
+\`\`\`
+
+### Auth with NextAuth.js:
+\`\`\`ts
+// app/api/auth/[...nextauth]/route.ts
+import NextAuth from "next-auth";
+import GitHub from "next-auth/providers/github";
+import { DrizzleAdapter } from "@auth/drizzle-adapter";
+import { db } from "@/lib/db";
+
+export const { handlers, signIn, signOut, auth } = NextAuth({
+  adapter: DrizzleAdapter(db),
+  providers: [GitHub],
+  callbacks: {
+    session: ({ session, user }) => ({ ...session, user: { ...session.user, id: user.id } }),
+  },
+});
+
+export const GET = handlers.GET;
+export const POST = handlers.POST;
+\`\`\`
+
+### Protected Route:
+\`\`\`ts
+export async function GET(req: NextRequest) {
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // ... route handler
+}
+\`\`\`
+
+### Pagination with Cursor:
+\`\`\`ts
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const cursor = searchParams.get("cursor");
+  const limit = 10;
+
+  const items = await db.query.items.findMany({
+    limit: limit + 1,
+    where: cursor ? gt(items.id, cursor) : undefined,
+    orderBy: [asc(items.id)],
+    with: { author: true },
+  });
+
+  const hasMore = items.length > limit;
+  const data = hasMore ? items.slice(0, -1) : items;
+  const nextCursor = hasMore ? data[data.length - 1].id : null;
+
+  return NextResponse.json({ data, nextCursor });
+}
+\`\`\`
+
 ${SUBAGENT_BASH_RULES}`;
 
 const callOptionsSchema = z.object({

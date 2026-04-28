@@ -191,6 +191,153 @@ Write ALL of these before yielding control back to the user:
 10. If DB: \`lib/db.ts\` (Drizzle connection) + \`lib/schema.ts\` (all tables) + \`drizzle.config.ts\`
 11. If AI: \`app/api/chat/route.ts\` with streaming response wired end-to-end
 
+## Backend API Patterns (FastAPI/Next.js Routes)
+
+When building backend APIs, follow these patterns from OpenHands:
+
+### Route Handler Template (Next.js App Router):
+\`\`\`ts
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+
+const querySchema = z.object({
+  limit: z.number().int().min(1).max(100).default(10),
+  offset: z.number().int().min(0).default(0),
+});
+
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const params = querySchema.parse({
+      limit: searchParams.get("limit"),
+      offset: searchParams.get("offset"),
+    });
+
+    const data = await db.query...findMany({
+      limit: params.limit,
+      offset: params.offset,
+    });
+
+    return NextResponse.json({ data });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 }
+    );
+  }
+}
+
+const bodySchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = bodySchema.parse(await req.json());
+    const [created] = await db.insert(...).values(body).returning();
+    return NextResponse.json(created, { status: 201 });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", details: error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 }
+    );
+  }
+}
+\`\`\`
+
+### Dynamic Route Params (Next.js 15+):
+\`\`\`ts
+// app/api/posts/[id]/route.ts
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;  // MUST await in Next.js 15
+  const post = await db.query.posts.findFirst({ where: eq(posts.id, id) });
+  if (!post) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  return NextResponse.json(post);
+}
+\`\`\`
+
+### Database Singleton Pattern:
+\`\`\`ts
+// lib/db.ts
+import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+
+const globalForDb = globalThis as unknown as { pool: Pool };
+const pool = globalForDb.pool ?? new Pool({ connectionString: process.env.DATABASE_URL });
+if (process.env.NODE_ENV !== "production") globalForDb.pool = pool;
+
+export const db = drizzle(pool, { schema });
+\`\`\`
+
+### API Error Handler:
+\`\`\`ts
+export class ApiError extends Error {
+  constructor(public statusCode: number, message: string) {
+    super(message);
+  }
+}
+
+export function handleApiError(error: unknown) {
+  if (error instanceof ApiError) {
+    return NextResponse.json({ error: error.message }, { status: error.statusCode });
+  }
+  console.error("API Error:", error);
+  return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+}
+\`\`\`
+
+### WebSocket Streaming:
+\`\`\`ts
+// app/api/chat/route.ts
+export async function POST(req: NextRequest) {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        const { messages } = await req.json();
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages,
+          stream: true,
+        });
+
+        for await (const chunk of response) {
+          const content = chunk.choices[0]?.delta?.content;
+          if (content) {
+            controller.enqueue(encoder.encode(\`data: \${content}\\n\\n\`));
+          }
+        }
+        controller.enqueue(encoder.encode("data: [DONE]\\n\\n"));
+        controller.close();
+      } catch (error) {
+        controller.enqueue(encoder.encode(\`error: \${error}\\n\\n\`));
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+}
+\`\`\`
+
 **After writing all files:**
 \`\`\`bash
 npm install    # or bun install / pnpm install
