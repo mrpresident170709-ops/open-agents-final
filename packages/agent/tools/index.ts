@@ -23,6 +23,9 @@ export { codeSearchTool } from "./code-search";
 export { generateImageTool } from "./image-gen";
 export { generateVideoTool } from "./video-gen";
 export { googleFontsTool } from "./google-fonts";
+export { lucideIconsTool } from "./lucide-icons";
+export { lottieAnimationsTool } from "./lottie-animations";
+export { pexelsSearchTool } from "./pexels-search";
 export { codebaseSearchTool } from "./codebase-search";
 export { doctorTool } from "./doctor";
 export {
