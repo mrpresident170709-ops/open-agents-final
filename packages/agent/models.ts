@@ -22,6 +22,7 @@ import {
   getMissingEnvVars,
   getAnthropicApiKey,
   getOpenAIApiKey,
+  getMiniMaxApiKey,
 } from "./env";
 
 function supportsAdaptiveAnthropicThinking(modelId: string): boolean {
@@ -252,6 +253,18 @@ function resolveBaseModel(
       name: "opencode-zen",
     });
     return opencode.chat(opencodeModelId) as unknown as LanguageModel;
+  }
+
+  // Route MiniMax models via OpenAI SDK (MiniMax uses OpenAI-compatible API)
+  if (id.startsWith("minimax/")) {
+    const env = getAgentEnv();
+    const miniMaxModelId = id.slice("minimax/".length);
+    const miniMax = createOpenAI({
+      apiKey: env.MINIMAX_API_KEY ?? "",
+      baseURL: "https://api.minimax.io/v1",
+      name: "minimax",
+    });
+    return miniMax.chat(miniMaxModelId) as unknown as LanguageModel;
   }
 
   // Fall back to Vercel AI Gateway for other providers

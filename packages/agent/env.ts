@@ -17,6 +17,8 @@ const agentEnvSchema = z.object({
   MISTRAL_API_KEY: z.string().min(1).optional(),
   OLLAMA_BASE_URL: z.string().url().optional(),
   OPENROUTER_API_KEY: z.string().min(1).optional(),
+  MINIMAX_API_KEY: z.string().min(1).optional(),
+  PEXELS_API_KEY: z.string().min(1).optional(),
 
   TOGETHER_IMAGE_MODEL: z.string().optional(),
   CRITIC_MODEL: z.string().optional(),
@@ -420,6 +422,14 @@ export function getExaApiKey(): string {
     );
   }
   return key;
+}
+
+export function getMiniMaxApiKey(): string | undefined {
+  return getAgentEnv().MINIMAX_API_KEY;
+}
+
+export function getPexelsApiKey(): string | undefined {
+  return getAgentEnv().PEXELS_API_KEY;
 }
 
 export function getFirecrawlApiKey(): string {
