@@ -13,7 +13,7 @@ const sandboxEnvSchema = z.object({
   VERCEL_PROJECT_ID: z.string().min(1).optional(),
 
   // Daytona Sandbox credentials
-  DAYTONA_API_KEY: z.string().min(1).optional(),
+  DAYTONA_API_KEY: z.string().optional(),
   DAYTONA_API_URL: z.string().url().optional(),
   DAYTONA_TARGET: z.string().optional(),
 
