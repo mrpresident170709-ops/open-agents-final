@@ -1,6 +1,5 @@
 // Daytona SDK Types and Minimal Client
 // This module provides type definitions and a minimal client
-// that can work without installing the full @daytona/sdk package
 
 export interface DaytonaConfig {
   apiKey?: string;
@@ -27,7 +26,6 @@ export interface Process {
 }
 
 export interface Git {
-  // Git operations interface
 }
 
 export interface Sandbox {
@@ -56,11 +54,10 @@ export class Daytona {
 
   async create(params?: any): Promise<Sandbox> {
     const apiKey = this.config.apiKey || process.env.DAYTONA_API_KEY;
-    // Use correct Daytona API URL - docs say app.daytona.io/api
     const apiUrl = this.config.apiUrl || process.env.DAYTONA_API_URL || "https://app.daytona.io/api";
 
     console.log("Daytona: Creating sandbox", { 
-      apiUrl: apiUrl.substring(0, 30), 
+      apiUrl: apiUrl?.substring(0, 30), 
       hasKey: !!apiKey,
       keyPrefix: apiKey?.substring(0, 10) 
     });
@@ -69,38 +66,6 @@ export class Daytona {
       throw new Error("DAYTONA_API_KEY is required. Set it in environment or pass to Daytona constructor.");
     }
 
-    // Create sandbox via API - use empty body per Daytona docs
-    const response = await fetch(`${apiUrl}/sandbox`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({}),
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("Daytona API error:", response.status, text);
-      throw new Error(`Failed to create Daytona sandbox: ${response.status} ${text}`);
-    }
-
-    const data = await response.json();
-    console.log("Daytona: Created sandbox", data.id);
-    return this.wrapSandbox(data);
-  }
-
-  async create(params?: any): Promise<Sandbox> {
-    const apiKey = this.config.apiKey || process.env.DAYTONA_API_KEY;
-    const apiUrl = this.config.apiUrl || process.env.DAYTONA_API_URL || "https://app.daytona.io/api";
-
-    if (!apiKey) {
-      throw new Error("DAYTONA_API_KEY is required. Set it in environment or pass to Daytona constructor.");
-    }
-
-    console.log("Daytona: Creating sandbox", { apiUrl: apiUrl?.substring(0, 30), hasKey: !!apiKey });
-
-    // Create sandbox via API - minimal payload per Daytona API docs
     const response = await fetch(`${apiUrl}/sandbox`, {
       method: "POST",
       headers: {
@@ -116,7 +81,7 @@ export class Daytona {
       throw new Error(`Failed to create Daytona sandbox: ${response.status} - ${text}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as any;
     console.log("Daytona: Created sandbox", data.id);
     return this.wrapSandbox(data);
   }
@@ -141,127 +106,49 @@ export class Daytona {
 
   private wrapSandbox(data: any): Sandbox {
     const sandboxId = data.id || data.sandboxId;
-    const sandboxName = data.name || data.sandboxName;
+    const baseUrl = this.config.apiUrl || process.env.DAYTONA_API_URL || "https://app.daytona.io/api";
     const apiKey = this.config.apiKey || process.env.DAYTONA_API_KEY;
-    const apiUrl = this.config.apiUrl || process.env.DAYTONA_API_URL || "https://app.daytona.io/api";
 
-    // Create a proxy sandbox object that uses the API
-    const sandbox: Sandbox = {
+    return {
       id: sandboxId,
-      name: sandboxName,
-      fs: this.createFileSystem(sandboxId, apiKey!, apiUrl!),
-      process: this.createProcess(sandboxId, apiKey!, apiUrl!),
-      git: {} as Git,
-      getPreviewLink: (port: number) => {
-        return `https://${sandboxId}-${port}.daytona.app`;
+      name: data.name || sandboxId,
+      fs: {
+        readFile: async (path: string) => {
+          const res = await fetch(`${baseUrl}/sandbox/${sandboxId}/fs/read`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ path }),
+          });
+          const resData = (await res.json()) as any;
+          return resData.content;
+        },
+        uploadFile: async () => { throw new Error("Not implemented"); },
+        stat: async () => { throw new Error("Not implemented"); },
+        access: async () => { throw new Error("Not implemented"); },
+        createFolder: async () => { throw new Error("Not implemented"); },
+        listFiles: async () => { throw new Error("Not implemented"); },
       },
+      process: {
+        executeCommand: async (command: string, cwd?: string, env?: Record<string, string>, timeout?: number) => {
+          const res = await fetch(`${baseUrl}/sandbox/${sandboxId}/process`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ command, cwd, env, timeout }),
+          });
+          const processData = (await res.json()) as any;
+          return { exitCode: processData.exitCode ?? 1, result: processData.stdout };
+        },
+      },
+      git: {},
+      getPreviewLink: (port: number) => `https://${sandboxId}-${port}.daytona.app`,
       stop: async () => {
-        await fetch(`${apiUrl}/sandbox/${sandboxId}`, {
+        await fetch(`${baseUrl}/sandbox/${sandboxId}`, {
           method: "DELETE",
           headers: { "Authorization": `Bearer ${apiKey}` },
         });
       },
-      setAutoStopInterval: async (seconds: number) => {
-        await fetch(`${apiUrl}/sandbox/${sandboxId}/autostop`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ interval: seconds }),
-        });
-      },
-      _experimental_createSnapshot: async (name: string) => {
-        await fetch(`${apiUrl}/sandbox/${sandboxId}/snapshot`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ name }),
-        });
-      },
-    };
-
-    return sandbox;
-  }
-
-  private createFileSystem(sandboxId: string, apiKey: string, apiUrl: string): FileSystem {
-    return {
-      readFile: async (path: string) => {
-        const response = await fetch(
-          `${apiUrl}/toolbox/${sandboxId}/file?path=${encodeURIComponent(path)}`,
-          { headers: { "Authorization": `Bearer ${apiKey}` } },
-        );
-        if (!response.ok) throw new Error(`Failed to read file: ${response.status}`);
-        return response.text();
-      },
-      uploadFile: async (content: Buffer, path: string) => {
-        const uint8Array = new Uint8Array(content);
-        const blob = new Blob([uint8Array]);
-        const formData = new FormData();
-        formData.append("file", blob, path.split("/").pop()!);
-        formData.append("path", path);
-        await fetch(`${apiUrl}/toolbox/${sandboxId}/file`, {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${apiKey}` },
-          body: formData,
-        });
-      },
-      stat: async (path: string) => {
-        const response = await fetch(
-          `${apiUrl}/toolbox/${sandboxId}/file/stat?path=${encodeURIComponent(path)}`,
-          { headers: { "Authorization": `Bearer ${apiKey}` } },
-        );
-        return response.json();
-      },
-      access: async (path: string) => {
-        const response = await fetch(
-          `${apiUrl}/toolbox/${sandboxId}/file/access?path=${encodeURIComponent(path)}`,
-          { headers: { "Authorization": `Bearer ${apiKey}` } },
-        );
-        if (!response.ok) throw new Error(`File not accessible: ${path}`);
-      },
-      createFolder: async (path: string, mode: string) => {
-        await fetch(`${apiUrl}/toolbox/${sandboxId}/folder`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ path, mode }),
-        });
-      },
-      listFiles: async (path: string): Promise<Array<{ name: string; isDirectory: boolean }>> => {
-        const response = await fetch(
-          `${apiUrl}/toolbox/${sandboxId}/files?path=${encodeURIComponent(path)}`,
-          { headers: { "Authorization": `Bearer ${apiKey}` } },
-        );
-        const data = await response.json();
-        return data as Array<{ name: string; isDirectory: boolean }>;
-      },
-    };
-  }
-
-  private createProcess(sandboxId: string, apiKey: string, apiUrl: string): Process {
-    return {
-      executeCommand: async (command: string, cwd?: string, env?: Record<string, string>, timeout?: number): Promise<ExecuteResponse> => {
-        const response = await fetch(`${apiUrl}/toolbox/${sandboxId}/process/execute`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            command,
-            cwd,
-            env,
-            timeout,
-          }),
-        });
-        const data = await response.json();
-        return data as ExecuteResponse;
-      },
+      setAutoStopInterval: async () => {},
+      _experimental_createSnapshot: async () => { throw new Error("Not implemented"); },
     };
   }
 }
