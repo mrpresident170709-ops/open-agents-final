@@ -92,7 +92,7 @@ const callOptionsSchema = z.object({
 
 export type OpenHarnessAgentCallOptions = z.infer<typeof callOptionsSchema>;
 
-export const defaultModelLabel = "anthropic/claude-haiku-4.5" as const;
+export const defaultModelLabel = "anthropic/claude-sonnet-4-20250514" as const;
 export const defaultModel = gateway(defaultModelLabel);
 
 function normalizeAgentModelSelection(
@@ -145,7 +145,7 @@ export const openHarnessAgent = new ToolLoopAgent({
   model: defaultModel,
   instructions: buildSystemPrompt({}),
   tools,
-  stopWhen: stepCountIs(1),
+  stopWhen: stepCountIs(10),
   callOptionsSchema,
   prepareStep: ({ messages, model, steps: _steps }) => {
     const trimmed = trimContext(messages);
