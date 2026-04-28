@@ -227,6 +227,12 @@ const CUSTOM_LANGUAGE_MODELS: GatewayModel[] = [
     description: "Free model from opencode zen",
     modelType: "language",
   },
+  {
+    id: "opencode/minimax-m2.5-free",
+    name: "MiniMax M2.5",
+    description: "Free MiniMax M2.5 model from opencode zen",
+    modelType: "language",
+  },
 ];
 
 export async function fetchAvailableLanguageModels(): Promise<
