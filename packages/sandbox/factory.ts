@@ -67,6 +67,17 @@ function dispatchConnect(
   if (state.type === "vercel") {
     return connectVercel(state, options);
   }
+  // Daytona - requires billing enabled on account
+  const daytonaCreds = getDaytonaCredentials();
+  if (!daytonaCreds?.apiKey) {
+    console.warn("⚠️ DAYTONA_API_KEY not configured, falling back to Vercel sandbox");
+    return connectVercel({ type: "vercel" }, options);
+  }
+  return connectDaytona(state, options);
+}
+  if (state.type === "vercel") {
+    return connectVercel(state, options);
+  }
   // Daytona - check for API key first
   const daytonaCreds = getDaytonaCredentials();
   if (!daytonaCreds?.apiKey) {

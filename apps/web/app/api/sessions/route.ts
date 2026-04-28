@@ -258,7 +258,7 @@ export async function POST(req: Request) {
     branch,
     cloneUrl,
     isNewBranch,
-    sandboxType = process.env.REPL_ID ? "local" : "daytona",
+    sandboxType = process.env.REPL_ID ? "local" : "vercel",
     autoCommitPush,
     autoCreatePr,
   } = body;
