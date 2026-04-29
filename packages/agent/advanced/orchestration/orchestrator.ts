@@ -117,7 +117,7 @@ export class Orchestrator {
     while (iteration < this.maxIterations) {
       iteration++;
 
-      const toolDefinitions = this.buildToolDefinitions(request.agent.tools);
+      const toolDefinitions = this.buildToolDefinitions(request.agent.tools ?? []);
       
       try {
         const responseStream = request.model.complete({
@@ -204,7 +204,8 @@ export class Orchestrator {
     return parts.join("\n");
   }
 
-  private buildToolDefinitions(toolNames: string[]): LLMTool[] {
+  private buildToolDefinitions(toolNames: string[] | undefined): LLMTool[] {
+    if (!toolNames) return [];
     return toolNames
       .map((name) => {
         const info = globalToolRegistry.get(name);
@@ -215,7 +216,8 @@ export class Orchestrator {
       .filter(Boolean) as LLMTool[];
   }
 
-  private getToolDescriptions(toolNames: string[]): string[] {
+  private getToolDescriptions(toolNames: string[] | undefined): string[] {
+    if (!toolNames) return [];
     return toolNames.map((name) => `- ${name}`);
   }
 
