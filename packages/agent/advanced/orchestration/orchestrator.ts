@@ -207,13 +207,16 @@ export class Orchestrator {
   private async buildToolDefinitions(toolNames: string[] | undefined): Promise<LLMTool[]> {
     if (!toolNames) return [];
     const tools: LLMTool[] = [];
-    
+     
     for (const name of toolNames) {
       const info = globalToolRegistry.get(name);
       if (!info) continue;
       
       tools.push({ name: info.id, description: info.description, parameters: {} });
     }
+     
+    return tools;
+  }
     
     return tools;
   }
