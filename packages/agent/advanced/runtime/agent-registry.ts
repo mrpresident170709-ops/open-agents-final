@@ -10,6 +10,7 @@ export interface AgentInfo {
   prompt?: string;
   options: Record<string, unknown>;
   steps?: number;
+  tools?: string[];
 }
 
 export type PermissionRules = Record<string, PermissionLevel>;
@@ -57,6 +58,7 @@ export class AgentRegistry implements AgentInterface {
           plan_exit: "deny",
         },
         mode: "primary",
+        tools: [],
       },
       plan: {
         name: "plan",
@@ -70,6 +72,7 @@ export class AgentRegistry implements AgentInterface {
           plan_exit: "allow",
         },
         mode: "primary",
+        tools: [],
       },
       explore: {
         name: "explore",
@@ -85,6 +88,7 @@ export class AgentRegistry implements AgentInterface {
           websearch: "allow",
         },
         mode: "subagent",
+        tools: ["read", "glob", "grep", "list", "webfetch", "websearch"],
       },
       general: {
         name: "general",
@@ -95,6 +99,7 @@ export class AgentRegistry implements AgentInterface {
           todowrite: "deny",
         },
         mode: "subagent",
+        tools: ["read", "write", "edit", "bash", "glob", "grep"],
       },
       code: {
         name: "code",
@@ -102,6 +107,7 @@ export class AgentRegistry implements AgentInterface {
         options: {},
         permission: { "*": "allow" },
         mode: "subagent",
+        tools: ["read", "write", "edit", "bash", "glob", "grep", "node"],
       },
       review: {
         name: "review",
@@ -109,6 +115,7 @@ export class AgentRegistry implements AgentInterface {
         options: {},
         permission: { "*": "allow", write: "deny", edit: "deny" },
         mode: "subagent",
+        tools: ["read", "glob", "grep", "list"],
       },
       debug: {
         name: "debug",
@@ -116,6 +123,7 @@ export class AgentRegistry implements AgentInterface {
         options: {},
         permission: { "*": "allow" },
         mode: "subagent",
+        tools: ["read", "grep", "glob", "bash", "node"],
       },
       test: {
         name: "test",
@@ -123,6 +131,7 @@ export class AgentRegistry implements AgentInterface {
         options: {},
         permission: { "*": "allow" },
         mode: "subagent",
+        tools: ["read", "write", "glob", "bash", "node"],
       },
       docs: {
         name: "docs",
@@ -130,6 +139,7 @@ export class AgentRegistry implements AgentInterface {
         options: {},
         permission: { "*": "allow" },
         mode: "subagent",
+        tools: ["read", "glob", "write"],
       },
       architect: {
         name: "architect",
@@ -137,6 +147,7 @@ export class AgentRegistry implements AgentInterface {
         options: {},
         permission: { "*": "allow", edit: "deny", write: "deny" },
         mode: "subagent",
+        tools: ["read", "glob", "grep", "list", "websearch"],
       },
     };
 
