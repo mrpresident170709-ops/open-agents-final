@@ -1,7 +1,3 @@
-import { Effect, Context, Layer, Schema } from "effect";
-import type { SessionID, MessageID } from "./schema";
-import type { MessageV2 } from "./message-v2";
-
 export interface AgentInfo {
   name: string;
   description: string;
@@ -21,10 +17,10 @@ export type PermissionRules = Record<string, PermissionLevel>;
 export type PermissionLevel = "allow" | "deny" | "ask";
 
 export interface AgentExecuteOptions {
-  sessionID: SessionID;
-  messageID: MessageID;
+  sessionID: string;
+  messageID: string;
   agent: string;
-  messages: MessageV2.WithParts[];
+  messages: any[];
   abort: AbortSignal;
 }
 
@@ -34,19 +30,20 @@ export interface AgentExecuteResult {
 }
 
 export interface AgentInterface {
-  get(agent: string): Effect.Effect<AgentInfo>;
-  list(): Effect.Effect<AgentInfo[]>;
-  defaultAgent(): Effect.Effect<string>;
-  execute(options: AgentExecuteOptions): Effect.Effect<AgentExecuteResult>;
+  get(agent: string): AgentInfo;
+  list(): AgentInfo[];
+  defaultAgent(): string;
+  execute(options: AgentExecuteOptions): Promise<AgentExecuteResult>;
 }
 
-export class AgentService extends Context.Service<AgentService, AgentInterface>()(
-  "@opencode/Agent",
-) {}
+export class AgentRegistry implements AgentInterface {
+  private agents: Map<string, AgentInfo> = new Map();
 
-export const AgentLayer = Layer.effect(
-  AgentService,
-  Effect.gen(function* () {
+  constructor() {
+    this.registerDefaultAgents();
+  }
+
+  private registerDefaultAgents(): void {
     const agents: Record<string, AgentInfo> = {
       build: {
         name: "build",
@@ -76,8 +73,7 @@ export const AgentLayer = Layer.effect(
       },
       explore: {
         name: "explore",
-        description:
-          "Fast agent specialized for exploring codebases. Use this when you need to quickly find files, search code, or answer questions about the codebase.",
+        description: "Fast agent specialized for exploring codebases. Use this when you need to quickly find files, search code, or answer questions about the codebase.",
         options: {},
         permission: {
           "*": "deny",
@@ -92,8 +88,7 @@ export const AgentLayer = Layer.effect(
       },
       general: {
         name: "general",
-        description:
-          "General-purpose agent for researching complex questions and executing multi-step tasks.",
+        description: "General-purpose agent for researching complex questions and executing multi-step tasks.",
         options: {},
         permission: {
           "*": "allow",
@@ -103,76 +98,72 @@ export const AgentLayer = Layer.effect(
       },
       code: {
         name: "code",
-        description:
-          "Specialized agent for code generation, refactoring, and implementation tasks.",
+        description: "Specialized agent for code generation, refactoring, and implementation tasks.",
         options: {},
-        permission: {
-          "*": "allow",
-        },
+        permission: { "*": "allow" },
         mode: "subagent",
       },
       review: {
         name: "review",
-        description:
-          "Specialized agent for code review, bug detection, and quality assessment.",
+        description: "Specialized agent for code review, bug detection, and quality assessment.",
         options: {},
-        permission: {
-          "*": "allow",
-          write: "deny",
-          edit: "deny",
-        },
+        permission: { "*": "allow", write: "deny", edit: "deny" },
         mode: "subagent",
       },
       debug: {
         name: "debug",
-        description:
-          "Specialized agent for debugging, diagnosing issues, and finding root causes.",
+        description: "Specialized agent for debugging, diagnosing issues, and finding root causes.",
         options: {},
-        permission: {
-          "*": "allow",
-        },
+        permission: { "*": "allow" },
         mode: "subagent",
       },
       test: {
         name: "test",
-        description:
-          "Specialized agent for writing tests, test strategies, and test coverage.",
+        description: "Specialized agent for writing tests, test strategies, and test coverage.",
         options: {},
-        permission: {
-          "*": "allow",
-        },
+        permission: { "*": "allow" },
         mode: "subagent",
       },
       docs: {
         name: "docs",
-        description:
-          "Specialized agent for documentation generation, README creation, and API docs.",
+        description: "Specialized agent for documentation generation, README creation, and API docs.",
         options: {},
-        permission: {
-          "*": "allow",
-        },
+        permission: { "*": "allow" },
         mode: "subagent",
       },
       architect: {
         name: "architect",
-        description:
-          "Specialized agent for system design, architecture planning, and technical decisions.",
+        description: "Specialized agent for system design, architecture planning, and technical decisions.",
         options: {},
-        permission: {
-          "*": "allow",
-          edit: "deny",
-          write: "deny",
-        },
+        permission: { "*": "allow", edit: "deny", write: "deny" },
         mode: "subagent",
       },
     };
 
-    return {
-      get: (agent: string) => Effect.succeed(agents[agent] ?? agents.build),
-      list: () => Effect.succeed(Object.values(agents)),
-      defaultAgent: () => Effect.succeed("build"),
-      execute: (_options: AgentExecuteOptions) =>
-        Effect.succeed({ output: "", metadata: {} }),
-    };
-  }),
-);
+    for (const [name, agent] of Object.entries(agents)) {
+      this.agents.set(name, agent);
+    }
+  }
+
+  get(agent: string): AgentInfo {
+    return this.agents.get(agent) ?? this.agents.get("build")!;
+  }
+
+  list(): AgentInfo[] {
+    return Array.from(this.agents.values());
+  }
+
+  defaultAgent(): string {
+    return "build";
+  }
+
+  async execute(_options: AgentExecuteOptions): Promise<AgentExecuteResult> {
+    return { output: "", metadata: {} };
+  }
+
+  register(name: string, agent: AgentInfo): void {
+    this.agents.set(name, agent);
+  }
+}
+
+export const globalAgentRegistry = new AgentRegistry();

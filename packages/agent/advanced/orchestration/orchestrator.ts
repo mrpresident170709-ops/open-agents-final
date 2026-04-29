@@ -1,11 +1,9 @@
-import { Effect, Schema } from "effect";
-import type { AgentInfo } from "./runtime/agent-registry";
-import type { ToolContext } from "./tools/tool-registry";
-import { globalToolRegistry } from "./tools";
-import { SubagentManager } from "./subagents/subagent-manager";
-import { globalMemory } from "./memory/memory-store";
-import { globalContextManager } from "./context/context-manager";
-import { globalAbilityRegistry } from "./abilities/ability-registry";
+import type { AgentInfo } from "../runtime/agent-registry";
+import type { ToolContext } from "../tools/tool-registry";
+import { globalToolRegistry, createToolContext } from "../tools";
+import { SubagentManager } from "../subagents/subagent-manager";
+import { globalMemory } from "../memory/memory-store";
+import { globalContextManager } from "../context/context-manager";
 
 export interface OrchestrationRequest {
   sessionId: string;
@@ -62,7 +60,7 @@ export type StopReason =
   | "timeout";
 
 export interface LanguageModelAdapter {
-  complete(request: LLMRequest): AsyncIterable<LLMResponse>;
+  complete(request: LLMRequest): AsyncGenerator<LLMResponse>;
 }
 
 export interface LLMRequest {
@@ -99,7 +97,6 @@ export interface LLMResponse {
 export class Orchestrator {
   private subagentManager: SubagentManager;
   private maxIterations: number = 100;
-  private maxTokensPerRequest: number = 100000;
 
   constructor() {
     this.subagentManager = new SubagentManager();
@@ -107,142 +104,115 @@ export class Orchestrator {
 
   async orchestrate(request: OrchestrationRequest): Promise<OrchestrationResult> {
     const toolCalls: ToolCallResult[] = [];
-    const subagentResults: SubagentResult[] = [];
-    let inputTokens = 0;
-    let outputTokens = 0;
+    let stopReason: StopReason = "stop";
 
     const messages: LLMMessage[] = [
       { role: "system", content: request.agent.prompt || "" },
       { role: "user", content: request.input },
     ];
 
-    const toolDefinitions = this.buildToolDefinitions(request.agent.tools);
     let iteration = 0;
-    let stopReason: StopReason = "stop";
+    let responseContent = "";
 
     while (iteration < this.maxIterations) {
       iteration++;
 
-      const llmRequest: LLMRequest = {
-        system: this.buildSystemPrompt(request),
-        messages,
-        tools: toolDefinitions.length > 0 ? toolDefinitions : undefined,
-      };
+      const toolDefinitions = this.buildToolDefinitions(request.agent.tools);
+      
+      try {
+        const responseStream = request.model.complete({
+          system: this.buildSystemPrompt(request),
+          messages,
+          tools: toolDefinitions.length > 0 ? toolDefinitions : undefined,
+        });
 
-      let responseContent = "";
-      let hasToolCalls = false;
+        let hasToolCalls = false;
 
-      for await (const response of request.model.complete(llmRequest)) {
-        if (response.type === "content" && response.content) {
-          responseContent += response.content;
-        }
+        for await (const response of responseStream) {
+          if (response.type === "content" && response.content) {
+            responseContent += response.content;
+          }
 
-        if (response.type === "tool_use" && response.toolUse) {
-          hasToolCalls = true;
+          if (response.type === "tool_use" && response.toolUse) {
+            hasToolCalls = true;
 
-          const toolResult = await this.executeTool(
-            response.toolUse.name,
-            response.toolUse.input,
-            request,
-          );
+            const toolResult = await this.executeTool(
+              response.toolUse.name,
+              response.toolUse.input,
+              request,
+            );
 
-          toolCalls.push({
-            tool: response.toolUse.name,
-            input: response.toolUse.input,
-            result: toolResult.output,
-            duration: 100,
-            success: !toolResult.metadata?.error,
-          });
-
-          globalMemory.add({
-            type: "tool_use",
-            content: `Tool: ${response.toolUse.name}\nInput: ${JSON.stringify(response.toolUse.input)}\nOutput: ${toolResult.output}`,
-            metadata: {
+            toolCalls.push({
               tool: response.toolUse.name,
+              input: response.toolUse.input,
+              result: toolResult.output,
+              duration: 100,
               success: !toolResult.metadata?.error,
-            },
-            importance: 5,
-          });
+            });
 
-          messages.push({
-            role: "assistant",
-            content: `[Tool: ${response.toolUse.name}]`,
-          });
-          messages.push({
-            role: "user",
-            content: toolResult.output,
-          });
+            globalMemory.add({
+              type: "tool_use",
+              content: `Tool: ${response.toolUse.name}\nOutput: ${toolResult.output}`,
+              metadata: { tool: response.toolUse.name },
+              importance: 5,
+            });
+
+            messages.push({ role: "assistant", content: `[Tool: ${response.toolUse.name}]` });
+            messages.push({ role: "user", content: toolResult.output });
+          }
+
+          if (response.type === "stop") {
+            stopReason = response.stopReason || "stop";
+            break;
+          }
+
+          if (response.type === "error") {
+            stopReason = "error";
+            responseContent += `\n\nError: ${response.error}`;
+            break;
+          }
         }
 
-        if (response.type === "stop") {
-          stopReason = response.stopReason || "stop";
+        if (!hasToolCalls || stopReason !== "tool_calls") {
           break;
         }
-
-        if (response.type === "error") {
-          stopReason = "error";
-          responseContent += `\n\nError: ${response.error}`;
-          break;
-        }
-      }
-
-      if (!hasToolCalls || stopReason !== "tool_calls") {
+      } catch (error) {
+        stopReason = "error";
+        responseContent += `\n\nError: ${error instanceof Error ? error.message : String(error)}`;
         break;
       }
+    }
 
-      if (iteration >= this.maxIterations) {
-        stopReason = "max_tokens";
-      }
+    if (iteration >= this.maxIterations) {
+      stopReason = "max_tokens";
     }
 
     return {
       response: messages
         .filter((m) => m.role === "assistant")
-        .pop()?.content || "",
+        .pop()?.content || responseContent,
       toolCalls,
-      subagentResults,
-      tokens: {
-        input: inputTokens,
-        output: outputTokens,
-        total: inputTokens + outputTokens,
-      },
+      subagentResults: [],
+      tokens: { input: 0, output: 0, total: 0 },
       stopReason,
     };
   }
 
   private buildSystemPrompt(request: OrchestrationRequest): string {
-    const parts: string[] = [
-      request.agent.prompt || "",
-      "",
-      "## Available Tools",
-      this.getToolDescriptions(request.agent.tools).join("\n"),
-    ];
-
-    const context = globalContextManager.getProject();
-    if (context) {
-      parts.push("", "## Project Context");
-      parts.push(`- Root: ${context.rootPath}`);
-      parts.push(`- Package Manager: ${context.packageManager}`);
-    }
-
+    const parts: string[] = [request.agent.prompt || "", "", "## Available Tools"];
+    parts.push(this.getToolDescriptions(request.agent.tools).join("\n"));
     return parts.join("\n");
   }
 
   private buildToolDefinitions(toolNames: string[]): LLMTool[] {
-    const tools: LLMTool[] = [];
-
-    for (const name of toolNames) {
-      const info = globalToolRegistry.get(name);
-      if (info) {
-        tools.push({
-          name: info.id,
-          description: "",
-          parameters: {},
-        });
-      }
-    }
-
-    return tools;
+    return toolNames
+      .map((name) => {
+        const info = globalToolRegistry.get(name);
+        return info
+          ? { name: info.id, description: info.description, parameters: {} }
+          : null;
+      })
+      .filter(Boolean) as LLMTool[];
   }
 
   private getToolDescriptions(toolNames: string[]): string[] {
@@ -255,15 +225,13 @@ export class Orchestrator {
     request: OrchestrationRequest,
   ): Promise<{ output: string; metadata?: Record<string, unknown> }> {
     try {
-      const ctx: ToolContext = {
-        sessionID: request.sessionId as any,
-        messageID: request.messageId as any,
+      const ctx = createToolContext({
+        sessionID: request.sessionId,
+        messageID: request.messageId,
         agent: request.agent.name,
         abort: new AbortController().signal,
         messages: [],
-        metadata: () => Effect.succeed(undefined),
-        ask: () => Effect.succeed(undefined),
-      };
+      });
 
       const result = await globalToolRegistry.execute(toolName, input, ctx);
       return { output: result.output, metadata: result.metadata };
