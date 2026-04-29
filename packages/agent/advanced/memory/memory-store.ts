@@ -9,14 +9,17 @@ export interface MemoryEntry {
   expiresAt?: number;
 }
 
-export type MemoryType =
-  | "conversation"
-  | "code_change"
-  | "error"
-  | "tool_use"
-  | "knowledge"
-  | "preference"
-  | "context";
+export const MEMORY_TYPES = [
+  "conversation",
+  "code_change",
+  "error",
+  "tool_use",
+  "knowledge",
+  "preference",
+  "context",
+] as const;
+
+export type MemoryType = typeof MEMORY_TYPES[number];
 
 export interface MemoryQuery {
   query: string;
@@ -41,7 +44,7 @@ export class MemoryStore {
     if (options?.maxMemories) this.maxMemories = options.maxMemories;
     if (options?.maxTokens) this.maxTokens = options.maxTokens;
 
-    for (const type of Object.values(MemoryType)) {
+    for (const type of MEMORY_TYPES) {
       this.byType.set(type, new Set());
     }
   }
