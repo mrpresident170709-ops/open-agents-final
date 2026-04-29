@@ -5,7 +5,17 @@
   "type": "module",
   "main": "./index.ts",
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./zed-pipeline": "./zed-pipeline/index.ts",
+    "./zed-pipeline/acp": "./zed-pipeline/acp/index.ts",
+    "./zed-pipeline/thread": "./zed-pipeline/thread/index.ts",
+    "./zed-pipeline/tools": "./zed-pipeline/tools/index.ts",
+    "./zed-pipeline/plan": "./zed-pipeline/plan/index.ts",
+    "./zed-pipeline/context": "./zed-pipeline/context/index.ts",
+    "./zed-pipeline/templates": "./zed-pipeline/templates/index.ts",
+    "./zed-pipeline/subagent": "./zed-pipeline/subagent/index.ts",
+    "./zed-pipeline/store": "./zed-pipeline/store/index.ts",
+    "./zed-pipeline/usage": "./zed-pipeline/usage/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

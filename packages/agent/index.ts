@@ -45,3 +45,9 @@ export {
   collectTaskToolUsageEvents,
   sumLanguageModelUsage,
 } from "./usage";
+
+// Zed Pipeline exports (ported from Zed editor agentic workflow)
+export * from "./zed-pipeline";
+
+// Advanced Agent exports (ultimate coding agent - better than Cursor)
+export * from "./advanced";

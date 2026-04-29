@@ -1,0 +1,26 @@
+{
+  "name": "@open-harness/zed-pipeline",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Ported Zed agentic coding pipeline - ACP protocol, thread model, tool lifecycle, plan system, and more",
+  "type": "module",
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./acp": "./acp/index.ts",
+    "./thread": "./thread/index.ts",
+    "./tools": "./tools/index.ts",
+    "./plan": "./plan/index.ts",
+    "./context": "./context/index.ts",
+    "./templates": "./templates/index.ts",
+    "./subagent": "./subagent/index.ts",
+    "./store": "./store/index.ts",
+    "./usage": "./usage/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
