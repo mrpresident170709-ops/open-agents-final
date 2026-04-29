@@ -117,7 +117,7 @@ export class Orchestrator {
     while (iteration < this.maxIterations) {
       iteration++;
 
-      const toolDefinitions = this.buildToolDefinitions(request.agent.tools ?? []);
+      const toolDefinitions = await this.buildToolDefinitions(request.agent.tools ?? []);
       
       try {
         const responseStream = request.model.complete({
@@ -204,16 +204,23 @@ export class Orchestrator {
     return parts.join("\n");
   }
 
-  private buildToolDefinitions(toolNames: string[] | undefined): LLMTool[] {
+  private async buildToolDefinitions(toolNames: string[] | undefined): Promise<LLMTool[]> {
     if (!toolNames) return [];
-    return toolNames
-      .map((name) => {
-        const info = globalToolRegistry.get(name);
-        return info
-          ? { name: info.id, description: info.description, parameters: {} }
-          : null;
-      })
-      .filter(Boolean) as LLMTool[];
+    const tools: LLMTool[] = [];
+    
+    for (const name of toolNames) {
+      const info = globalToolRegistry.get(name);
+      if (!info) continue;
+      
+      try {
+        const toolDef = await info.init();
+        tools.push({ name: toolDef.id, description: toolDef.description, parameters: {} });
+      } catch {
+        // Skip tools that fail to initialize
+      }
+    }
+    
+    return tools;
   }
 
   private getToolDescriptions(toolNames: string[] | undefined): string[] {
