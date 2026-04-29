@@ -212,12 +212,7 @@ export class Orchestrator {
       const info = globalToolRegistry.get(name);
       if (!info) continue;
       
-      try {
-        const toolDef = await info.init();
-        tools.push({ name: toolDef.id, description: toolDef.description, parameters: {} });
-      } catch {
-        // Skip tools that fail to initialize
-      }
+      tools.push({ name: info.id, description: info.description, parameters: {} });
     }
     
     return tools;
