@@ -6,8 +6,7 @@ interface ReadInput {
   limit?: number;
 }
 
-export const ReadTool = defineTool("read", async () => ({
-  description: "Read the contents of a file. Use this to view existing code, configuration, or any text content.",
+export const ReadTool = defineTool("read", "Read the contents of a file. Use this to view existing code, configuration, or any text content.", async () => ({
   parameters: {},
   execute: async (args: ReadInput, _ctx: ToolContext): Promise<ToolResult> => {
     return {
@@ -23,8 +22,7 @@ interface GlobInput {
   path?: string;
 }
 
-export const GlobTool = defineTool("glob", async () => ({
-  description: "Find files matching a glob pattern. Supports wildcards like **/*.ts, *.json, src/**/*.tsx.",
+export const GlobTool = defineTool("glob", "Find files matching a glob pattern. Supports wildcards like **/*.ts, *.json, src/**/*.tsx.", async () => ({
   parameters: {},
   execute: async (args: GlobInput, _ctx: ToolContext): Promise<ToolResult> => {
     return {
@@ -33,7 +31,7 @@ export const GlobTool = defineTool("glob", async () => ({
       output: `[Simulated] Would find files matching: ${args.pattern}`,
     };
   },
-}));
+));
 
 interface GrepInput {
   pattern: string;
@@ -43,8 +41,7 @@ interface GrepInput {
   context?: number;
 }
 
-export const GrepTool = defineTool("grep", async () => ({
-  description: "Search for text patterns in files. Returns matching lines with file paths and line numbers.",
+export const GrepTool = defineTool("grep", "Search for text patterns in files. Returns matching lines with file paths and line numbers.", async () => ({
   parameters: {},
   execute: async (args: GrepInput, _ctx: ToolContext): Promise<ToolResult> => {
     return {
@@ -53,14 +50,13 @@ export const GrepTool = defineTool("grep", async () => ({
       output: `[Simulated] Would search for: ${args.pattern}`,
     };
   },
-}));
+));
 
 interface ListInput {
   path: string;
 }
 
-export const ListTool = defineTool("list", async () => ({
-  description: "List the contents of a directory.",
+export const ListTool = defineTool("list", "List the contents of a directory.", async () => ({
   parameters: {},
   execute: async (args: ListInput, _ctx: ToolContext): Promise<ToolResult> => {
     return {

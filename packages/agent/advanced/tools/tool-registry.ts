@@ -27,6 +27,7 @@ export interface ToolDefinition<P = any> {
 
 export interface ToolInfo<P = any> {
   id: string;
+  description: string;
   init: () => Promise<ToolDefinition<P>>;
 }
 
@@ -67,10 +68,12 @@ export const globalToolRegistry = new ToolRegistry();
 
 export function defineTool<P = any>(
   id: string,
-  init: () => Promise<Omit<ToolDefinition<P>, "id">>,
+  description: string,
+  init: () => Promise<Omit<ToolDefinition<P>, "id">,
 ): ToolInfo<P> {
   return {
     id,
+    description,
     init: async () => {
       const tool = await init();
       return { ...tool, id };
