@@ -217,9 +217,6 @@ export class Orchestrator {
      
     return tools;
   }
-    
-    return tools;
-  }
 
   private getToolDescriptions(toolNames: string[] | undefined): string[] {
     if (!toolNames) return [];

@@ -69,7 +69,7 @@ export const globalToolRegistry = new ToolRegistry();
 export function defineTool<P = any>(
   id: string,
   description: string,
-  init: () => Promise<Omit<ToolDefinition<P>, "id">,
+  init: () => Promise<Omit<ToolDefinition<P>, "id">>,
 ): ToolInfo<P> {
   return {
     id,
