@@ -3,7 +3,6 @@
 import {
   ArrowLeft,
   Cable,
-  KeyRound,
   LogOut,
   Menu,
   Settings as SettingsIcon,
@@ -86,12 +85,6 @@ const sidebarItems = [
     label: "Model Variants",
     href: "/settings/model-variants",
     icon: SlidersHorizontal,
-  },
-  {
-    id: "secrets",
-    label: "Secrets",
-    href: "/settings/secrets",
-    icon: KeyRound,
   },
   {
     id: "leaderboard",

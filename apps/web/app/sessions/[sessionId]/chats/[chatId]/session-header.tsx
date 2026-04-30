@@ -6,7 +6,6 @@ import {
   GitMerge,
   GitPullRequest,
   GitPullRequestClosed,
-  KeyRound,
   Link2,
   PanelLeft,
 } from "lucide-react";
@@ -21,7 +20,6 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { useGitPanel } from "./git-panel-context";
 import { useSessionLayout } from "@/app/sessions/[sessionId]/session-layout-context";
-import { SecretsSheet } from "./secrets-sheet";
 
 /**
  * Session header that uses only layout-level data (persists across chat switches).
@@ -29,7 +27,6 @@ import { SecretsSheet } from "./secrets-sheet";
  */
 export function SessionHeader() {
   const { toggleSidebar } = useSidebar();
-  const [secretsOpen, setSecretsOpen] = useState(false);
   const {
     gitPanelOpen,
     setGitPanelOpen,
@@ -206,23 +203,6 @@ export function SessionHeader() {
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "h-7 w-7 shrink-0",
-                  secretsOpen && "bg-accent text-accent-foreground",
-                )}
-                onClick={() => setSecretsOpen((o) => !o)}
-              >
-                <KeyRound className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Secrets</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
                   "relative h-7 w-7 shrink-0",
                   gitPanelOpen && "bg-accent text-accent-foreground",
                 )}
@@ -245,8 +225,6 @@ export function SessionHeader() {
           </Tooltip>
         </div>
       </div>
-
-      <SecretsSheet open={secretsOpen} onOpenChange={setSecretsOpen} />
     </header>
   );
 }
