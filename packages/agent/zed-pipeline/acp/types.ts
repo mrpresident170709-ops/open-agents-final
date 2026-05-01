@@ -134,7 +134,7 @@ export interface ContentBlock {
   type: "text" | "resource_link" | "image" | "resource";
   text?: string;
   resource_link?: ResourceLink;
-  image?: ImageContent;
+  image?: AcpImageContent;
   resource?: EmbeddedResource;
 }
 
@@ -149,7 +149,7 @@ export interface ResourceLink {
   description?: string;
 }
 
-export interface ImageContent {
+export interface AcpImageContent {
   data: string;
   mime_type: string;
 }
