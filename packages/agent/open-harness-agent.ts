@@ -98,11 +98,13 @@ const fallbackModel = gateway(defaultModelLabel);
 function normalizeAgentModelSelection(
   selection: OpenHarnessAgentModelInput | undefined,
 ): AgentModelSelection {
-  if (!selection) {
-    throw new Error("No model specified. The caller MUST provide a model.");
+  // Use user's selection if provided, otherwise fall back to default
+  if (selection) {
+    return typeof selection === "string" ? { id: selection } : selection;
   }
 
-  return typeof selection === "string" ? { id: selection } : selection;
+  // Fallback to default model
+  return { id: defaultModelLabel };
 }
 
 const tools = {

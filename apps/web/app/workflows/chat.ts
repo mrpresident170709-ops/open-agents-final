@@ -830,9 +830,15 @@ const runAgentStep = async (
     while (true) {
       attempt += 1;
       try {
+        // Pass the selected model to the agent - CRITICAL for frontend quality
+        const agentOptionsWithModel = {
+          ...agentOptions,
+          model: modelId || selectedModelId,
+        };
+        
         result = await webAgent.stream({
           messages,
-          options: agentOptions,
+          options: agentOptionsWithModel,
           abortSignal: abortController.signal,
         });
         break;
