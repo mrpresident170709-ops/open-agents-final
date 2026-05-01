@@ -68,7 +68,7 @@ export enum ToolCallStatus {
   Failed = "failed",
 }
 
-export enum PermissionOptionKind {
+export enum AcpPermissionOptionKind {
   AllowOnce = "allow_once",
   AllowAlways = "allow_always",
   Reject = "reject",
@@ -77,7 +77,7 @@ export enum PermissionOptionKind {
 export interface AcpPermissionOption {
   id: PermissionOptionId;
   title: string;
-  kind: PermissionOptionKind;
+  kind: AcpPermissionOptionKind;
 }
 
 export interface PermissionOptionId {
