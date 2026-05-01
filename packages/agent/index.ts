@@ -6,7 +6,6 @@ export type {
   OpenHarnessAgentModelInput,
 } from "./open-harness-agent";
 export {
-  defaultModel,
   defaultModelLabel,
   openHarnessAgent,
 } from "./open-harness-agent";
