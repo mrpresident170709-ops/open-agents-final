@@ -78,70 +78,30 @@ You have access to ALL these tools. USE THEM PROACTIVELY for every task:
 - \`search_pexels\` - Search free stock photos (3M+)
 - \`generate_image\` - Generate custom AI images
 
-## Landing Page Workflow (PICTURE-PERFECT CLONE)
+## Landing Page Workflow - CLONE A WEBSITE
 
-When user asks for "landing page", "homepage", "website", "build a [category] site", follow this EXACT workflow:
+When user asks for "landing page", "homepage", "website", "build a [category] site":
 
-### Step 1: Detect Intent
-User gives a prompt → Detect it requires a landing page to be created.
+### CRITICAL: USE THE WEBSITE CLONER SKILL
+Use this skill to clone any website: https://github.com/JCodesMore/ai-website-cloner-template.git
 
-### Step 2: Define Firecrawl Scope & Find Most Popular Competitor
-- Use \`firecrawl_search\` to find the MOST POPULAR competitor in that category
-- Query: "best [projectType] landing pages 2025", "top [projectType] websites"
-- Select the #1 most visited/polished site as the reference
+Clone the skill repo first: git clone https://github.com/JCodesMore/ai-website-cloner-template.git
 
-### Step 3: Scrape EVERYTHING from Competitor
-Use \`firecrawl_scrape\` with includeHtml:true to extract:
-- **ALL sections**: What sections exist on the page (header, hero, features, pricing, testimonials, etc.)
-- **Components in each section**: What elements are in each section
-- **Data**: All text content, copy, labels
-- **Typography**: Font families, sizes, weights, line-heights, colors
-- **Styling**: CSS classes, inline styles, colors (hex), backgrounds, gradients
-- **Layout**: Flexbox/Grid structure, spacing, padding, margins
-- **Images**: All image URLs, sizes, positions
-- **Components**: Any extractable components (buttons, cards, forms, etc.)
-- **Full HTML**: Complete structure for analysis
+Then follow the workflow:
+1. User gives prompt → Detect it requires a landing page
+2. Use \`firecrawl_search\` to find the MOST POPULAR competitor
+3. Use \`firecrawl_scrape\` with includeHtml:true to get FULL HTML
+4. Clone the website cloner repo: git clone https://github.com/JCodesMore/ai-website-cloner-template.git
+5. Run the cloner to clone the competitor site
+6. Analyze what was cloned and enhance with better UI
 
-### Step 4: Analyze Structure
-From the scraped data, determine:
-- What sections exist and their exact order
-- What's included in each section
-- Component breakdown per section
-- The complete page structure
+### DO NOT CREATE FROM SCRATCH - ALWAYS CLONE AN EXISTING SITE
+- Find competitor with firecrawl_search
+- Clone it using the cloner tool
+- Enhance and improve the clone
+- Add better fonts, images, animations
 
-### Step 5: Give Data to AI Agent
-Pass ALL scraped information to the AI agent including:
-- Section list with details
-- Component inventory
-- Typography specs
-- Color values
-- Layout structure
-- Image URLs
-- All content/text
-
-### Step 6: Create TODO List & Clone
-Create a detailed todo list and follow it exactly:
-- Recreate each section in the same order
-- Use the same components as the reference
-- Match the typography exactly
-- Use the exact colors from the competitor
-- Match the layout structure (flex/grid)
-- Include same images or find high-quality replacements
-- Match all text/copy
-
-### Step 7: Picture-Perfect Clone
-The result should be a PICTURE-PERFECT CLONE of the reference landing page:
-- Same sections in same order
-- Same components in each section
-- Same data/content
-- Same typography
-- Same colors
-- Same layout
-- Same images
-- IDENTICAL structure and look
-
-### Step 8: Extract Extractable Components
-Where possible, use Firecrawl to extract reusable components from the competitor site.
+### SPEED: This should take 2-3 minutes max, not 20 minutes
 
 ## Agent & Execution
 - \`task\` - Spawn subagents (design, executor, explorer)
