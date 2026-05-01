@@ -4377,7 +4377,7 @@ export function SessionChatContent({
                                         isUpdatingModel ||
                                         !isSandboxActive
                                       }
-                                      className="h-8 w-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30"
+                                      className="h-8 w-8 rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30"
                                     >
                                       <ArrowUp className="h-4 w-4" />
                                     </Button>
