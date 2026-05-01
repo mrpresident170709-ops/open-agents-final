@@ -74,7 +74,7 @@ export enum PermissionOptionKind {
   Reject = "reject",
 }
 
-export interface PermissionOption {
+export interface AcpPermissionOption {
   id: PermissionOptionId;
   title: string;
   kind: PermissionOptionKind;
@@ -85,19 +85,19 @@ export interface PermissionOptionId {
   value: string;
 }
 
-export interface ToolCall {
+export interface AcpToolCall {
   tool_call_id: ToolCallId;
   kind: ToolKind;
   status: ToolCallStatus;
   title: string;
   content: ToolCallContent[];
-  locations: ToolCallLocation[];
+  locations: AcpToolCallLocation[];
   raw_input?: Record<string, unknown>;
   raw_output?: Record<string, unknown>;
   meta?: Meta;
 }
 
-export interface ToolCallLocation {
+export interface AcpToolCallLocation {
   path: string;
   line?: number;
 }
@@ -125,7 +125,7 @@ export interface ToolCallUpdate {
   status?: ToolCallStatus;
   title?: string;
   content?: ToolCallContent[];
-  locations?: ToolCallLocation[];
+  locations?: AcpToolCallLocation[];
   raw_input?: Record<string, unknown>;
   raw_output?: Record<string, unknown>;
 }
@@ -138,7 +138,7 @@ export interface ContentBlock {
   resource?: EmbeddedResource;
 }
 
-export interface TextContent {
+export interface AcpTextContent {
   type: "text";
   text: string;
 }
@@ -241,7 +241,7 @@ export interface AgentThoughtChunkUpdate {
 
 export interface ToolCallSessionUpdate {
   type: "tool_call";
-  tool_call: ToolCall;
+  tool_call: AcpToolCall;
 }
 
 export interface ToolCallUpdateSessionUpdate {

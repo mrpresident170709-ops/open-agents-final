@@ -6,8 +6,8 @@ import type {
   SessionUpdate,
   PlanEntry,
   StopReason,
-  ToolCall,
-  PermissionOption,
+  AcpToolCall,
+  AcpPermissionOption,
   PermissionOptionId,
   ToolCallId,
   SessionMode,
@@ -33,8 +33,8 @@ export interface AgentConnection {
 
   permission(
     sessionId: SessionId,
-    toolCall: ToolCall,
-    options: PermissionOption[],
+    toolCall: AcpToolCall,
+    options: AcpPermissionOption[],
     cx: unknown,
   ): Promise<{ optionId: PermissionOptionId }>;
 
@@ -93,7 +93,7 @@ export type AgentSessionUpdate =
   | { type: "token_usage"; usage: TokenUsage }
   | { type: "cost"; amount: number; currency: string }
   | { type: "plan"; entries: PlanEntry[] }
-  | { type: "tool_call"; toolCall: ToolCall }
+  | { type: "tool_call"; toolCall: AcpToolCall }
   | { type: "stop"; reason: StopReason }
   | { type: "mode"; modeId: string }
   | { type: "config_options"; options: SessionConfigOption[] }
