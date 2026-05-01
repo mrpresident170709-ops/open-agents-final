@@ -42,6 +42,11 @@ import {
   todoWriteTool,
   webFetchTool,
   writeFileTool,
+  firecrawlSearchTool,
+  firecrawlMapTool,
+  firecrawlScrapeTool,
+  landingPageGeneratorTool,
+  detectLandingPageIntentTool,
 } from "./tools";
 import { doctorTool } from "./tools/doctor";
 import { readFile } from "fs/promises";
@@ -140,6 +145,12 @@ const tools = {
   analyze_codebase: analyzeCodebaseTool,
   detect_environment: envTool,
   install_package: installTool,
+  // Landing page workflow tools
+  firecrawl_search: firecrawlSearchTool,
+  firecrawl_map: firecrawlMapTool,
+  firecrawl_scrape: firecrawlScrapeTool,
+  generate_landing_page: landingPageGeneratorTool,
+  detect_landing_page_intent: detectLandingPageIntentTool,
 } satisfies ToolSet;
 
 export const openHarnessAgent = new ToolLoopAgent({
