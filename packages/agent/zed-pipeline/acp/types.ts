@@ -105,11 +105,11 @@ export interface ToolCallLocation {
 export interface ToolCallContent {
   type: "content" | "diff" | "terminal";
   content?: ContentBlock[];
-  diff?: DiffContent;
+  diff?: AcpDiffContent;
   terminal?: TerminalContent;
 }
 
-export interface DiffContent {
+export interface AcpDiffContent {
   path: string;
   old_text?: string;
   new_text: string;
