@@ -50,4 +50,4 @@ export {
 export * from "./zed-pipeline";
 
 // Advanced Agent exports (ultimate coding agent - better than Cursor)
-export * from "./advanced";
+// export * from "./advanced"; // Removed - module no longer exists
