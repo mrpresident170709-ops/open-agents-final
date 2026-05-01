@@ -86,12 +86,12 @@ When user asks for "landing page", "homepage", "website", "build a [category] si
 User gives a prompt → Detect it requires a landing page to be created.
 
 ### Step 2: Define Firecrawl Scope & Find Most Popular Competitor
-- Use `firecrawl_search` to find the MOST POPULAR competitor in that category
+- Use \`firecrawl_search\` to find the MOST POPULAR competitor in that category
 - Query: "best [projectType] landing pages 2025", "top [projectType] websites"
 - Select the #1 most visited/polished site as the reference
 
 ### Step 3: Scrape EVERYTHING from Competitor
-Use `firecrawl_scrape` with includeHtml:true to extract:
+Use \`firecrawl_scrape\` with includeHtml:true to extract:
 - **ALL sections**: What sections exist on the page (header, hero, features, pricing, testimonials, etc.)
 - **Components in each section**: What elements are in each section
 - **Data**: All text content, copy, labels
