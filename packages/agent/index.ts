@@ -47,7 +47,7 @@ export {
 } from "./usage";
 
 // Zed Pipeline exports (ported from Zed editor agentic workflow)
-export * from "./zed-pipeline";
+// export * from "./zed-pipeline"; // Disabled - has duplicate export conflicts
 
 // Advanced Agent exports (ultimate coding agent - better than Cursor)
 // export * from "./advanced"; // Removed - module no longer exists
