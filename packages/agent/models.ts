@@ -26,7 +26,7 @@ import {
 } from "./env";
 
 function supportsAdaptiveAnthropicThinking(modelId: string): boolean {
-  return modelId.includes("4.6") || modelId.includes("4.7");
+  return modelId.includes("4.6") || modelId.includes("4.7") || modelId.includes("opus");
 }
 
 // Haiku-class models are optimised for speed and low cost — skip thinking.
