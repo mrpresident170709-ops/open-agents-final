@@ -58,7 +58,7 @@ export interface ToolCallUpdateEvent extends BaseThreadEvent {
 export interface ToolCallAuthorizationEvent extends BaseThreadEvent {
   kind: ThreadEventKind.ToolCallAuthorization;
   toolCall: ToolCall;
-  options: PermissionOption[];
+  options: ThreadPermissionOption[];
   context?: ToolPermissionContext;
 }
 
@@ -272,7 +272,7 @@ export interface ToolCallUpdateFields {
   rawOutput?: Record<string, unknown>;
 }
 
-export interface PermissionOption {
+export interface ThreadPermissionOption {
   id: string;
   title: string;
   kind: PermissionOptionKind;

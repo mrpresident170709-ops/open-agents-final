@@ -14,7 +14,7 @@ import type {
   ToolCallStatus,
   ToolCallKind,
   ToolCallUpdateFields,
-  PermissionOption,
+  ThreadPermissionOption,
   RunningTurn,
   ProjectContext,
   ThreadOptions,

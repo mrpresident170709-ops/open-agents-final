@@ -1,14 +1,14 @@
-export enum PermissionOptionKind {
+export enum ToolPermissionOptionKind {
   AllowOnce = "allow_once",
   AllowAlways = "allow_always",
   Reject = "reject",
   RejectAlways = "reject_always",
 }
 
-export interface PermissionOption {
+export interface ToolPermissionOption {
   id: string;
   title: string;
-  kind: PermissionOptionKind;
+  kind: ToolPermissionOptionKind;
 }
 
 export interface ToolPermissionContext {
@@ -38,7 +38,7 @@ export interface PermissionRequest {
   toolCallId: string;
   toolName: string;
   inputValues: string[];
-  options: PermissionOption[];
+  options: ToolPermissionOption[];
 }
 
 export interface PermissionResponse {
@@ -106,33 +106,33 @@ export class ToolPermissionManager {
     toolName: string,
     inputValues: string[],
     includeAlwaysOptions = true,
-  ): PermissionOption[] {
-    const options: PermissionOption[] = [];
+  ): ToolPermissionOption[] {
+    const options: ToolPermissionOption[] = [];
 
     if (includeAlwaysOptions) {
       options.push({
         id: `always_allow:${toolName}`,
         title: `Always for ${toolName.replace(/_/g, " ")}`,
-        kind: PermissionOptionKind.AllowAlways,
+        kind: ToolPermissionOptionKind.AllowAlways,
       });
 
       options.push({
         id: `always_deny:${toolName}`,
         title: `Always deny ${toolName.replace(/_/g, " ")}`,
-        kind: PermissionOptionKind.RejectAlways,
+        kind: ToolPermissionOptionKind.RejectAlways,
       });
     }
 
     options.push({
       id: "allow",
       title: "Yes",
-      kind: PermissionOptionKind.AllowOnce,
+      kind: ToolPermissionOptionKind.AllowOnce,
     });
 
     options.push({
       id: "deny",
       title: "No",
-      kind: PermissionOptionKind.Reject,
+      kind: ToolPermissionOptionKind.Reject,
     });
 
     return options;
