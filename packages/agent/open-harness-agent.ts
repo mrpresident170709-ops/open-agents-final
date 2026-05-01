@@ -93,14 +93,13 @@ const callOptionsSchema = z.object({
 export type OpenHarnessAgentCallOptions = z.infer<typeof callOptionsSchema>;
 
 export const defaultModelLabel = "anthropic/claude-opus-4.7-20250514" as const;
-export const defaultModel = gateway(defaultModelLabel);
+const fallbackModel = gateway(defaultModelLabel);
 
 function normalizeAgentModelSelection(
   selection: OpenHarnessAgentModelInput | undefined,
-  fallbackId: GatewayModelId,
 ): AgentModelSelection {
   if (!selection) {
-    return { id: fallbackId };
+    throw new Error("No model specified. The caller MUST provide a model.");
   }
 
   return typeof selection === "string" ? { id: selection } : selection;
@@ -142,7 +141,7 @@ const tools = {
 } satisfies ToolSet;
 
 export const openHarnessAgent = new ToolLoopAgent({
-  model: defaultModel,
+  model: fallbackModel,
   instructions: buildSystemPrompt({}),
   tools,
   stopWhen: stepCountIs(100),
@@ -161,12 +160,9 @@ export const openHarnessAgent = new ToolLoopAgent({
       throw new Error("Open Harness agent requires call options with sandbox.");
     }
 
-    const mainSelection = normalizeAgentModelSelection(
-      options.model,
-      defaultModelLabel,
-    );
+    const mainSelection = normalizeAgentModelSelection(options.model);
     const subagentSelection = options.subagentModel
-      ? normalizeAgentModelSelection(options.subagentModel, defaultModelLabel)
+      ? normalizeAgentModelSelection(options.subagentModel)
       : undefined;
 
     const callModel = gateway(mainSelection.id, {
