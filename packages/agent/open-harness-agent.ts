@@ -145,7 +145,7 @@ export const openHarnessAgent = new ToolLoopAgent({
   model: defaultModel,
   instructions: buildSystemPrompt({}),
   tools,
-  stopWhen: stepCountIs(10),
+  stopWhen: stepCountIs(100),
   callOptionsSchema,
   prepareStep: ({ messages, model, steps: _steps }) => {
     const trimmed = trimContext(messages);
