@@ -35,7 +35,7 @@ USE FOR: "Build a landing page", "Create a SaaS homepage", "Make a startup websi
     fonts: z.array(z.string()).optional(),
     status: z.string(),
   }),
-  execute: async ({ projectType, description, targetAudience, keyFeatures, style }) => {
+  execute: async ({ projectType, description, targetAudience, keyFeatures, style }, { abortSignal }) => {
     const searchQueries = [
       `best ${projectType} landing pages 2025`,
       `top ${projectType} startup websites`,
@@ -70,7 +70,7 @@ Returns: isLandingPage (boolean), projectType, description, audience, features, 
     keyFeatures: z.array(z.string()).optional(),
     preferredStyle: z.string().optional(),
   }),
-  execute: async ({ userMessage }) => {
+  execute: async ({ userMessage }, { abortSignal }) => {
     const lowerMessage = userMessage.toLowerCase();
     
     const landingPageKeywords = [
