@@ -55,13 +55,13 @@ export function createUserMessageId(): UserMessageId {
   };
 }
 
-export enum ToolKind {
+export enum AcpToolKind {
   Read = "read",
   Edit = "edit",
   Execute = "execute",
 }
 
-export enum ToolCallStatus {
+export enum AcpToolCallStatus {
   Pending = "pending",
   InProgress = "in_progress",
   Completed = "completed",
@@ -87,8 +87,8 @@ export interface PermissionOptionId {
 
 export interface AcpToolCall {
   tool_call_id: ToolCallId;
-  kind: ToolKind;
-  status: ToolCallStatus;
+  kind: AcpToolKind;
+  status: AcpToolCallStatus;
   title: string;
   content: ToolCallContent[];
   locations: AcpToolCallLocation[];
@@ -121,8 +121,8 @@ export interface TerminalContent {
 
 export interface ToolCallUpdate {
   tool_call_id: ToolCallId;
-  kind?: ToolKind;
-  status?: ToolCallStatus;
+  kind?: AcpToolKind;
+  status?: AcpToolCallStatus;
   title?: string;
   content?: ToolCallContent[];
   locations?: AcpToolCallLocation[];

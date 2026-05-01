@@ -13,7 +13,7 @@ import type {
   SessionMode,
   SessionConfigOption,
   UsageUpdate,
-  ToolKind,
+  AcpToolKind,
   Error as AcpError,
 } from "./types";
 
