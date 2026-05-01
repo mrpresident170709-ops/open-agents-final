@@ -78,30 +78,16 @@ You have access to ALL these tools. USE THEM PROACTIVELY for every task:
 - \`search_pexels\` - Search free stock photos (3M+)
 - \`generate_image\` - Generate custom AI images
 
-## Landing Page Workflow - CLONE A WEBSITE
+## Landing Page: CLONE, DON'T BUILD
 
-When user asks for "landing page", "homepage", "website", "build a [category] site":
+When user asks for "landing page" or "website":
 
-### CRITICAL: USE THE WEBSITE CLONER SKILL
-Use this skill to clone any website: https://github.com/JCodesMore/ai-website-cloner-template.git
+1. DO NOT build from scratch
+2. Find a popular site: firecrawl_search for "best [type] landing pages"
+3. Clone it: git clone https://github.com/JCodesMore/ai-website-cloner-template.git then use it
+4. Enhance: add better fonts, images, animations
 
-Clone the skill repo first: git clone https://github.com/JCodesMore/ai-website-cloner-template.git
-
-Then follow the workflow:
-1. User gives prompt → Detect it requires a landing page
-2. Use \`firecrawl_search\` to find the MOST POPULAR competitor
-3. Use \`firecrawl_scrape\` with includeHtml:true to get FULL HTML
-4. Clone the website cloner repo: git clone https://github.com/JCodesMore/ai-website-cloner-template.git
-5. Run the cloner to clone the competitor site
-6. Analyze what was cloned and enhance with better UI
-
-### DO NOT CREATE FROM SCRATCH - ALWAYS CLONE AN EXISTING SITE
-- Find competitor with firecrawl_search
-- Clone it using the cloner tool
-- Enhance and improve the clone
-- Add better fonts, images, animations
-
-### SPEED: This should take 2-3 minutes max, not 20 minutes
+FAST: Complete in 3-5 minutes.
 
 ## Agent & Execution
 - \`task\` - Spawn subagents (design, executor, explorer)
